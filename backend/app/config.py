@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     ldap_conf_path: str = "./generated/mods-enabled/ldap"
     ldap_ca_path: str = "./generated/certs/ad-ca.pem"
 
+    # policy.d snippet with the panel's named policies (radiuspanel_srcip/_adgate).
+    policy_conf_path: str = "./generated/policy.d/radiuspanel"
+
     # Command used to validate config before applying. `radiusd -XC` (or
     # `freeradius -XC`) does a dry-run parse and exits non-zero on error.
     # Leave empty to skip validation (e.g. when the panel runs off-host).

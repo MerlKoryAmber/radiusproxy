@@ -47,7 +47,7 @@ FreeRADIUS Proxy Panel (`radiusproxy`) — веб-панель управлен�
 4. Policy-гейт (обсуждён, ADR-0002):
    - **шаг 0:** FreeRADIUS 3.2 в backend-контейнере (готово+проверено, `feature/radius-stack`);
      apply валидирует+reload реальный FR за ~1с. `_run` через `asyncio.to_thread` (uvloop-фикс).
-   - **4a:** source-IP per-client + policy.d-скаффолд + одноразовый include
+   - **4a:** source-IP per-client + policy.d-скаффолд + одноразовый include (готово, `feature/policy-srcip`)
    - **4b:** синк AD-групп в панель (планировщик + ldap3 + таблица) + sql-гейт (сравнение локально)
 5. Аудит-логи решений в Postgres (`sql`) + экран
 6. Экран авторизации панели (флаг, off на dev)

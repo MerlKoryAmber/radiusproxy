@@ -151,6 +151,7 @@ class ClientBase(BaseModel):
     nas_type: str = "other"
     proto: str = "udp"
     require_message_authenticator: str = "auto"
+    preserve_source_ip: bool = False
     enabled: bool = True
     note: str = ""
 
