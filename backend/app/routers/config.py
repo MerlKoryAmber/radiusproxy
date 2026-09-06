@@ -40,8 +40,11 @@ async def apply(db: AsyncSession = Depends(get_db)):
             detail={"message": "FreeRADIUS rejected the config", "output": exc.output},
         )
     await crud.log(
-        db, "apply", "config", ", ".join(result.written_paths),
-        detail=f"validated={result.validated} reloaded={result.reloaded}",
+        db, "apply", "config", f"{len(result.written_paths)} files",
+        detail=(
+            f"validated={result.validated} reloaded={result.reloaded} | "
+            + ", ".join(result.written_paths)
+        ),
     )
     await db.commit()
     return schemas.ApplyResponse(**result.__dict__)

@@ -21,16 +21,18 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://radpanel:radpanel@db:5432/radpanel
       CORS_ORIGINS: http://localhost:8080
-      # Point these at your FreeRADIUS host to enable validate + reload.
-      # The generated file must land where FreeRADIUS reads it — mount that
-      # path into this container and set PROXY_CONF_PATH to match.
-      PROXY_CONF_PATH: /data/proxy.conf
-      # RADIUS_CHECK_CMD: "freeradius -XC"
-      # RADIUS_RELOAD_CMD: "systemctl reload freeradius"
-    volumes:
-      - proxycfg:/data
+      # FreeRADIUS runs in this container; the panel writes straight into its
+      # real config tree and validates/reloads it.
+      PROXY_CONF_PATH: /etc/freeradius/3.0/proxy.conf
+      CLIENTS_CONF_PATH: /etc/freeradius/3.0/clients.conf
+      LDAP_CONF_PATH: /etc/freeradius/3.0/mods-enabled/ldap
+      LDAP_CA_PATH: /etc/freeradius/3.0/certs/ad-ca.pem
+      RADIUS_CHECK_CMD: "freeradius -XC"
+      RADIUS_RELOAD_CMD: "/usr/local/bin/radius-reload.sh"
     ports:
       - "8000:8000"
+      - "1812:1812/udp"
+      - "1813:1813/udp"
 
   frontend:
     build: ./frontend
@@ -41,4 +43,3 @@ services:
 
 volumes:
   pgdata:
-  proxycfg:

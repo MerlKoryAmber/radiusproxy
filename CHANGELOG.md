@@ -31,3 +31,6 @@
   рендер `tls{}`, `apply_config` пишет ldap-модуль + CA при включённом AD, `/api/ldap/ca.pem`.
 - **refactor:** `routers/realms.py` `_serialize` через `model_validate` — новые поля realm
   больше не требуют ручной правки сериализатора.
+- **feat(infra):** FreeRADIUS 3.2 в backend-контейнере (шаг 0 к policy-гейту) — панель
+  пишет в реальный `/etc/freeradius/3.0`, `freeradius -XC` валидирует, `radius-reload.sh`
+  перезагружает. compose: пути на raddb, порты 1812/1813 udp. Панель+FR на одном хосте.

@@ -44,9 +44,17 @@ FreeRADIUS Proxy Panel (`radiusproxy`) — веб-панель управлен�
 1. ~~AD data-модель + ldap рендер~~ (готово, main)
 2. ~~Clients / clients.conf~~ (готово, main)
 3. ~~AD/LDAP: CA-сертификат + require_cert (LDAPS)~~ + ldap в apply (готово, `feature/ldap-tls`)
-4. Policy-гейт: AD-проверка per realm (`pre-proxy`/`authorize`) + сохранение source-IP
+4. Policy-гейт (обсуждён, ADR-0002):
+   - **шаг 0:** FreeRADIUS 3.2 в backend-контейнере (готово+проверено, `feature/radius-stack`);
+     apply валидирует+reload реальный FR за ~1с. `_run` через `asyncio.to_thread` (uvloop-фикс).
+   - **4a:** source-IP per-client + policy.d-скаффолд + одноразовый include
+   - **4b:** синк AD-групп в панель (планировщик + ldap3 + таблица) + sql-гейт (сравнение локально)
 5. Аудит-логи решений в Postgres (`sql`) + экран
 6. Экран авторизации панели (флаг, off на dev)
+
+**Решения по куску 4 (2026-09-06):** вариант A (policy.d + include); source-IP per-client;
+группы синкать раз ~30 мин в панель и сравнивать локально (не per-packet AD); FR ставится
+контейнером вместе с панелью, панель им полностью управляет. → ADR-0002 (завести).
 
 ## Хвосты (открыто)
 
@@ -56,6 +64,8 @@ FreeRADIUS Proxy Panel (`radiusproxy`) — веб-панель управлен�
   на существующих таблицах НЕ мигрируются (нужен drop БД или Alembic).
 - `bind_password` (AD) в БД плейнтекстом — шифрование до прода (ADR-0001).
 - Дефолтные креды в `docker-compose.yml` (`radpanel/radpanel`) — только для локали, не прод.
+- **Reload FR = pkill+restart**, оставляет defunct-зомби (init:true убран — ломал apply).
+  Косметика; при желании — proper reaper/HUP позже. Также `freeradius -HUP` не перечитывает proxy.conf.
 
 ## Деплой-сервер (тест)
 

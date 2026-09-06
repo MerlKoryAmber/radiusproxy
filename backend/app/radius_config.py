@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 import os
 import shlex
+import subprocess
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -281,14 +282,22 @@ class ApplyResult:
     reload_output: str
 
 
-async def _run(cmd: str) -> tuple[int, str]:
-    proc = await asyncio.create_subprocess_exec(
-        *shlex.split(cmd),
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.STDOUT,
+def _run_blocking(cmd: str) -> tuple[int, str]:
+    proc = subprocess.run(
+        shlex.split(cmd),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
     )
-    out, _ = await proc.communicate()
-    return proc.returncode or 0, out.decode(errors="replace")
+    return proc.returncode, proc.stdout
+
+
+async def _run(cmd: str) -> tuple[int, str]:
+    # Run in a worker thread via subprocess.run rather than
+    # asyncio.create_subprocess_exec: under uvicorn's uvloop the asyncio child
+    # watcher interacts badly with FreeRADIUS's double-forking daemon (apply
+    # would take minutes / hang). A thread + blocking subprocess is reliable.
+    return await asyncio.to_thread(_run_blocking, cmd)
 
 
 class ConfigValidationError(Exception):
