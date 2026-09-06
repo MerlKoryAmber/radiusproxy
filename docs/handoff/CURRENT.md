@@ -57,6 +57,8 @@ FreeRADIUS Proxy Panel (`radiusproxy`) — веб-панель управлен�
 7. **Маршрут по клиенту (ADR-0003)** — готово, `feature/routing-by-client`: Home→Target server,
    Client→target_pool + AD-гейт на клиенте, Realm удалён (генерится per-pool), топбар/юзер-меню.
    Хвост: реальный AD/трафик по-прежнему не проверены (нет AD/NAS).
+8. **Install/update/uninstall + AD/LDAP в Settings** — `feature/install-scripts`.
+   `scripts/*.sh`; AD/LDAP под-вкладка Settings. Деплой-каталог по умолчанию `/opt/radiusproxy`.
 
 **Решения по куску 4 (2026-09-06):** вариант A (policy.d + include); source-IP per-client;
 группы синкать раз ~30 мин в панель и сравнивать локально (не per-packet AD); FR ставится

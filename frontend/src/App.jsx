@@ -4,7 +4,6 @@ import { UserMenu } from "./components.jsx";
 import Clients from "./pages/Clients.jsx";
 import TargetServers from "./pages/TargetServers.jsx";
 import Pools from "./pages/Pools.jsx";
-import LdapSettings from "./pages/LdapSettings.jsx";
 import Decisions from "./pages/Decisions.jsx";
 import ConfigPreview from "./pages/ConfigPreview.jsx";
 import Settings from "./pages/Settings.jsx";
@@ -14,7 +13,6 @@ const TABS = [
   { id: "clients", label: "Clients" },
   { id: "targets", label: "Target servers" },
   { id: "pools", label: "Pools" },
-  { id: "ldap", label: "AD / LDAP" },
   { id: "decisions", label: "Decision log" },
   { id: "config", label: "Config & apply" },
   { id: "settings", label: "Settings" },
@@ -124,7 +122,6 @@ export default function App() {
             <TargetServers notify={notify} onChange={refreshCounts} />
           )}
           {tab === "pools" && <Pools notify={notify} onChange={refreshCounts} />}
-          {tab === "ldap" && <LdapSettings notify={notify} />}
           {tab === "decisions" && <Decisions />}
           {tab === "config" && <ConfigPreview notify={notify} />}
           {tab === "settings" && (

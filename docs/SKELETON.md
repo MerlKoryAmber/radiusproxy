@@ -4,7 +4,7 @@
 Обновлять **перед каждым push** (см. §22 CLAUDE.md). Читать после handoff и перед
 началом задачи. Если что-то тут расходится с кодом — код прав, а скелет чинить.
 
-**Обновлено:** 2026-09-06 МСК · ветка на момент правки: `feature/routing-by-client`
+**Обновлено:** 2026-09-07 МСК · ветка на момент правки: `feature/install-scripts`
 
 ---
 
@@ -98,14 +98,21 @@
 | `pages/Clients.jsx` | CRUD клиентов (NAS) + target-пул + AD-гейт |
 | `pages/TargetServers.jsx` | CRUD target servers |
 | `pages/Pools.jsx` | CRUD пулов + порядок членов (target servers) |
-| `pages/LdapSettings.jsx` | форма AD/LDAP + превью модуля + синк |
+| `pages/LdapSettings.jsx` | форма AD/LDAP + превью + синк (`embedded` внутри Settings) |
 | `pages/ConfigPreview.jsx` | превью proxy.conf + apply (показывает `written_paths`) |
 | `pages/Decisions.jsx` | лог решений RADIUS (фильтр по user) |
-| `pages/Settings.jsx` | настройки панели (тумблер auth). Смена пароля — в топбар-меню |
+| `pages/Settings.jsx` | настройки панели: под-вкладки **Access** (тумблер auth) + **AD / LDAP** (`<LdapSettings embedded/>`). Смена пароля — в топбар-меню |
 | `pages/Login.jsx` | экран входа (показывается при auth on и 401) |
 | `styles.css` | дизайн Interros (navy+gold), классы ниже |
 
-**TABS:** clients → targets → pools → ldap → decisions → config → settings. Маршрут: client→target_pool (не по User-Name, ADR-0003).
+**TABS:** clients → targets → pools → decisions → config → settings (Access + AD/LDAP под-вкладки). Маршрут: client→target_pool (не по User-Name, ADR-0003).
+
+## Скрипты деплоя (`scripts/`)
+
+- `install.sh` — ставит docker+compose (при отсутствии) + git, клонит репо в `INSTALL_DIR`
+  (деф. `/opt/radiusproxy`), собирает и поднимает стек, ждёт health. Самодостаточный (`curl|bash`).
+- `update.sh` — `git pull` + `compose up -d --build` (INSTALL_DIR = корень репо по умолчанию).
+- `uninstall.sh` — `compose down -v --rmi local` (`--keep-data`, `--purge`). Docker не трогает.
 **Auth-гейт (App.jsx):** на старте `api.auth.status()`; 401 → `<Login>`; иначе shell. Имя юзера в топбаре → дропдаун (Change password с подтверждением / Log out).
 
 **CSS-словарь:** `.shell/.sidebar/.brand/.brand-mark/.nav`, `.page-head`, `.btn(.primary/.ghost/.danger/.sm)`,

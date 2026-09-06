@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { Field, Spinner } from "../components.jsx";
 
-export default function LdapSettings({ notify }) {
+export default function LdapSettings({ notify, embedded = false }) {
   const [form, setForm] = useState(null);
   const [hasPassword, setHasPassword] = useState(false);
   const [password, setPassword] = useState("");
@@ -90,11 +90,11 @@ export default function LdapSettings({ notify }) {
     <>
       <div className="page-head">
         <div>
-          <h1>AD / LDAP</h1>
+          {!embedded && <h1>AD / LDAP</h1>}
           <p>
-            Active Directory connection for the per-realm group gate. Rendered
-            into a FreeRADIUS <span className="mono">mods-enabled/ldap</span>{" "}
-            module. The bind password is write-only and never shown.
+            Active Directory connection for the group gate. Rendered into a
+            FreeRADIUS <span className="mono">mods-enabled/ldap</span> module.
+            The bind password is write-only and never shown.
           </p>
         </div>
         <button className="btn primary" disabled={saving} onClick={save}>

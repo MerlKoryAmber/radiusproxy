@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { Spinner } from "../components.jsx";
+import LdapSettings from "./LdapSettings.jsx";
 
-export default function Settings({ notify, onAuthChange }) {
+function AccessSettings({ notify, onAuthChange }) {
   const [status, setStatus] = useState(null);
   const [busy, setBusy] = useState(false);
 
@@ -29,6 +30,33 @@ export default function Settings({ notify, onAuthChange }) {
   if (status === null) return <Spinner />;
 
   return (
+    <fieldset className="settings-section">
+      <legend>Access</legend>
+      <div className="check">
+        <input
+          id="auth-enabled"
+          type="checkbox"
+          checked={status.auth_enabled}
+          onChange={toggle}
+          disabled={busy}
+        />
+        <label htmlFor="auth-enabled" style={{ margin: 0 }}>
+          Require login to use the panel
+        </label>
+      </div>
+      <p className="field-hint" style={{ marginTop: 8 }}>
+        Off by default for development. Default admin is{" "}
+        <span className="mono">admin</span> / <span className="mono">admin</span> —
+        change the password (user menu, top right) before enabling in production.
+      </p>
+    </fieldset>
+  );
+}
+
+export default function Settings({ notify, onAuthChange }) {
+  const [sub, setSub] = useState("access");
+
+  return (
     <>
       <div className="page-head">
         <div>
@@ -37,26 +65,25 @@ export default function Settings({ notify, onAuthChange }) {
         </div>
       </div>
 
-      <fieldset className="settings-section">
-        <legend>Access</legend>
-        <div className="check">
-          <input
-            id="auth-enabled"
-            type="checkbox"
-            checked={status.auth_enabled}
-            onChange={toggle}
-            disabled={busy}
-          />
-          <label htmlFor="auth-enabled" style={{ margin: 0 }}>
-            Require login to use the panel
-          </label>
-        </div>
-        <p className="field-hint" style={{ marginTop: 8 }}>
-          Off by default for development. Default admin is{" "}
-          <span className="mono">admin</span> / <span className="mono">admin</span> —
-          change the password (user menu) before enabling in production.
-        </p>
-      </fieldset>
+      <div className="subtabs">
+        <button
+          className={`subtab ${sub === "access" ? "active" : ""}`}
+          onClick={() => setSub("access")}
+        >
+          Access
+        </button>
+        <button
+          className={`subtab ${sub === "ldap" ? "active" : ""}`}
+          onClick={() => setSub("ldap")}
+        >
+          AD / LDAP
+        </button>
+      </div>
+
+      {sub === "access" && (
+        <AccessSettings notify={notify} onAuthChange={onAuthChange} />
+      )}
+      {sub === "ldap" && <LdapSettings notify={notify} embedded />}
     </>
   );
 }
