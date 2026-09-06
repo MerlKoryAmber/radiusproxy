@@ -49,7 +49,9 @@ export default function App() {
     <div className="shell">
       <aside className="sidebar">
         <div className="brand">
-          <span className="dot" />
+          <span className="brand-mark">
+            <img src="/logo.png" alt="" />
+          </span>
           <b>RADIUS Proxy</b>
           <span>3.2</span>
         </div>
