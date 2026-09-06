@@ -23,7 +23,10 @@ def _serialize(row: models.LdapSettings) -> schemas.LdapSettingsOut:
         group_membership_attribute=row.group_membership_attribute,
         cache_ttl=row.cache_ttl,
         net_timeout=row.net_timeout,
+        tls_require_cert=row.tls_require_cert,
+        tls_min_version=row.tls_min_version,
         has_password=bool(row.bind_password),
+        has_ca_cert=bool(row.ca_cert.strip()),
     )
 
 
@@ -44,3 +47,10 @@ async def preview_module(db: AsyncSession = Depends(get_db)):
     # Password masked — the preview is served to the browser.
     row = await crud.get_ldap_settings(db)
     return render_ldap_module(row, mask_password=True)
+
+
+@router.get("/ca.pem", response_class=PlainTextResponse)
+async def download_ca(db: AsyncSession = Depends(get_db)):
+    # CA cert is public; return the stored PEM (empty if none).
+    row = await crud.get_ldap_settings(db)
+    return row.ca_cert or ""

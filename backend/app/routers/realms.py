@@ -8,21 +8,12 @@ router = APIRouter(prefix="/api/realms", tags=["realms"])
 
 
 def _serialize(realm: models.Realm) -> schemas.RealmOut:
-    return schemas.RealmOut(
-        id=realm.id,
-        name=realm.name,
-        auth_pool_id=realm.auth_pool_id,
-        acct_pool_id=realm.acct_pool_id,
-        nostrip=realm.nostrip,
-        ad_group_check=realm.ad_group_check,
-        required_ad_group=realm.required_ad_group,
-        username_normalization=realm.username_normalization,
-        ad_fail_mode=realm.ad_fail_mode,
-        enabled=realm.enabled,
-        note=realm.note,
-        auth_pool_name=realm.auth_pool.name if realm.auth_pool else None,
-        acct_pool_name=realm.acct_pool.name if realm.acct_pool else None,
-    )
+    # Scalar fields flow via from_attributes — new realm columns need no change
+    # here. Only the two derived pool names are set explicitly.
+    out = schemas.RealmOut.model_validate(realm)
+    out.auth_pool_name = realm.auth_pool.name if realm.auth_pool else None
+    out.acct_pool_name = realm.acct_pool.name if realm.acct_pool else None
+    return out
 
 
 @router.get("", response_model=list[schemas.RealmOut])

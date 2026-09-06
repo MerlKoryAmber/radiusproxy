@@ -11,6 +11,7 @@ from .models import (
     NAS_TYPES,
     POOL_TYPES,
     STATUS_CHECK_TYPES,
+    TLS_REQUIRE_CERT,
     USERNAME_NORMALIZATIONS,
 )
 
@@ -202,17 +203,30 @@ class LdapSettingsBase(BaseModel):
     group_membership_attribute: str = Field(default="memberOf", max_length=128)
     cache_ttl: int = Field(default=300, ge=0, le=86400)
     net_timeout: int = Field(default=5, ge=1, le=120)
+    tls_require_cert: str = "allow"
+    tls_min_version: str = Field(default="1.2", max_length=4)
+
+    @field_validator("tls_require_cert")
+    @classmethod
+    def _valid_reqcert(cls, v: str) -> str:
+        if v not in TLS_REQUIRE_CERT:
+            raise ValueError(f"must be one of {TLS_REQUIRE_CERT}")
+        return v
 
 
 class LdapSettingsUpdate(LdapSettingsBase):
     # Write-only. Empty string keeps the stored password unchanged.
     bind_password: str = ""
+    # CA cert (PEM). Empty string keeps the stored cert; "-" clears it.
+    ca_cert: str = ""
 
 
 class LdapSettingsOut(LdapSettingsBase):
     model_config = ConfigDict(from_attributes=True)
     # Never return the secret; expose only whether one is set.
     has_password: bool = False
+    # CA is not secret, but kept out of the list payload; flag + download route.
+    has_ca_cert: bool = False
 
 
 # --------------------------- Config ---------------------------------------

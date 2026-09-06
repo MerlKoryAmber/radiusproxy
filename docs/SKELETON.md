@@ -4,7 +4,7 @@
 Обновлять **перед каждым push** (см. §22 CLAUDE.md). Читать после handoff и перед
 началом задачи. Если что-то тут расходится с кодом — код прав, а скелет чинить.
 
-**Обновлено:** 2026-09-06 МСК · ветка на момент правки: `feature/clients`
+**Обновлено:** 2026-09-06 МСК · ветка на момент правки: `feature/ldap-tls`
 
 ---
 
@@ -20,7 +20,7 @@
 | Файл | Роль |
 |------|------|
 | `main.py` | FastAPI app, lifespan → `init_models()`, CORS, include роутеров, `/api/health` |
-| `config.py` | `Settings` (env): `database_url`, `proxy_conf_path`, `clients_conf_path`, `radius_check_cmd`, `radius_reload_cmd`, `cors_origins`. `get_settings()` (lru_cache) |
+| `config.py` | `Settings` (env): `database_url`, `proxy_conf_path`, `clients_conf_path`, `ldap_conf_path`, `ldap_ca_path`, `radius_check_cmd`, `radius_reload_cmd`, `cors_origins`. `get_settings()` (lru_cache) |
 | `database.py` | async engine, `SessionLocal`, `Base`, `get_db()`, `init_models()` (create_all) |
 | `models.py` | ORM-таблицы + константы-enum |
 | `schemas.py` | Pydantic in/out + валидаторы (зеркалят ограничения FR) |
@@ -41,20 +41,22 @@
   proto, require_message_authenticator, enabled, note.
 - `LdapSettings` — **singleton (id=1)** AD-подключение → `mods-enabled/ldap`. enabled, server,
   port, use_ldaps, start_tls, bind_dn, bind_password(секрет), base_dn, group_base_dn,
-  group_filter, group_membership_attribute, cache_ttl, net_timeout.
+  group_filter, group_membership_attribute, cache_ttl, net_timeout **+ TLS:** `ca_cert`(PEM,
+  публичный), `tls_require_cert`, `tls_min_version`.
 - `AuditLog` — actor, action, entity, entity_ref, detail, created_at.
 
 **Константы:** `HOME_SERVER_TYPES`, `POOL_TYPES`, `STATUS_CHECK_TYPES`, `USERNAME_NORMALIZATIONS`,
-`AD_FAIL_MODES`, `NAS_TYPES`, `CLIENT_PROTOS`, `MESSAGE_AUTH_MODES`.
+`AD_FAIL_MODES`, `NAS_TYPES`, `CLIENT_PROTOS`, `MESSAGE_AUTH_MODES`, `TLS_REQUIRE_CERT`.
 
 ### Рендереры + apply (`radius_config.py`)
 
 - `render_home_server`, `render_pool`, `render_realm` → `render_proxy_conf(db)` (proxy.conf).
 - `render_client` → `render_clients_conf(db)` (clients.conf).
-- `render_ldap_module(cfg, *, mask_password=False)` → mods-enabled/ldap.
-- `apply_config(db)` → **multi-file**: список (path, content) [proxy.conf, clients.conf],
-  `_write_with_backup` каждый, `radius_check_cmd` валидирует, `_rollback` всех при провале,
-  затем `radius_reload_cmd`. Возвращает `ApplyResult(written_paths, validated, ...)`.
+- `render_ldap_module(cfg, *, mask_password=False)` → mods-enabled/ldap (+ `tls{}` с ca_file/require_cert/min_version при use_ldaps|start_tls).
+- `apply_config(db)` → **multi-file**: [proxy.conf, clients.conf] + при `LdapSettings.enabled`
+  ещё CA-файл (`ldap_ca_path`) и ldap-модуль (`ldap_conf_path`). `_write_with_backup` каждый,
+  `radius_check_cmd` валидирует, `_rollback` всех при провале, затем `radius_reload_cmd`.
+  Возвращает `ApplyResult(written_paths, validated, ...)`.
 - `ConfigValidationError(output)`. Хелперы: `_quote`, `_quote_secret`, `_run`, `_Backup`.
 
 ### API-эндпоинты
@@ -62,8 +64,8 @@
 - `/api/clients` GET/POST/PUT{id}/DELETE{id} (`routers/clients.py`)
 - `/api/home-servers` GET/POST/PUT/DELETE (`routers/home_servers.py`)
 - `/api/pools` GET/POST/PUT/DELETE (`routers/pools.py`)
-- `/api/realms` GET/POST/PUT/DELETE — `_serialize` строит RealmOut вручную (`routers/realms.py`)
-- `/api/ldap` GET/PUT + `/api/ldap/preview.conf` (маска пароля) (`routers/ldap.py`)
+- `/api/realms` GET/POST/PUT/DELETE — `_serialize` через `model_validate` + имена пулов (`routers/realms.py`)
+- `/api/ldap` GET/PUT + `/api/ldap/preview.conf` (маска пароля) + `/api/ldap/ca.pem` (скачать CA) (`routers/ldap.py`)
 - `/api/config/preview`, `/preview.conf`, `/clients-preview.conf`, `/apply` (POST), `/audit` (`routers/config.py`)
 - `/api/health` (`main.py`)
 
@@ -91,7 +93,7 @@
 
 ## Файлы FR, которыми владеет панель (ADR-0001)
 
-`proxy.conf` ✓ · `clients.conf` ✓ · `mods-enabled/ldap` (рендер есть, в apply — TODO) ·
+`proxy.conf` ✓ · `clients.conf` ✓ · `mods-enabled/ldap` ✓ (+ CA-файл, в apply при enabled) ·
 policy `sites-enabled` (TODO) · `mods-enabled/sql` (TODO). Apply/валидация — на всём наборе.
 
 ## Паттерн добавления сущности

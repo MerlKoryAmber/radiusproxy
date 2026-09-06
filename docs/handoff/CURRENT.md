@@ -42,8 +42,8 @@ FreeRADIUS Proxy Panel (`radiusproxy`) — веб-панель управлен�
 ## План (куски, ADR-0001)
 
 1. ~~AD data-модель + ldap рендер~~ (готово, main)
-2. **Clients / clients.conf** (готово, `feature/clients`)
-3. AD/LDAP: CA-сертификат + require_cert (LDAPS)
+2. ~~Clients / clients.conf~~ (готово, main)
+3. ~~AD/LDAP: CA-сертификат + require_cert (LDAPS)~~ + ldap в apply (готово, `feature/ldap-tls`)
 4. Policy-гейт: AD-проверка per realm (`pre-proxy`/`authorize`) + сохранение source-IP
 5. Аудит-логи решений в Postgres (`sql`) + экран
 6. Экран авторизации панели (флаг, off на dev)

@@ -147,10 +147,18 @@ def render_ldap_module(cfg: LdapSettings, *, mask_password: bool = False) -> str
     lines.append(f"{INDENT}{INDENT}timeout = {cfg.net_timeout}")
     lines.append(f"{INDENT}{INDENT}res_timeout = {cfg.net_timeout}")
     lines.append(f"{INDENT}}}")
-    if cfg.start_tls and not cfg.use_ldaps:
+    if cfg.use_ldaps or cfg.start_tls:
         lines.append("")
         lines.append(f"{INDENT}tls {{")
-        lines.append(f"{INDENT}{INDENT}start_tls = yes")
+        if cfg.start_tls and not cfg.use_ldaps:
+            lines.append(f"{INDENT}{INDENT}start_tls = yes")
+        if cfg.ca_cert.strip():
+            lines.append(f"{INDENT}{INDENT}ca_file = {_quote(settings.ldap_ca_path)}")
+        lines.append(f"{INDENT}{INDENT}require_cert = '{cfg.tls_require_cert}'")
+        if cfg.tls_min_version:
+            lines.append(
+                f"{INDENT}{INDENT}tls_min_version = {_quote(cfg.tls_min_version)}"
+            )
         lines.append(f"{INDENT}}}")
     lines.append(f"{INDENT}# membership cache TTL (s): {cfg.cache_ttl}")
     lines.append("}")
@@ -328,6 +336,16 @@ async def apply_config(db: AsyncSession) -> ApplyResult:
         (Path(settings.proxy_conf_path), await render_proxy_conf(db)),
         (Path(settings.clients_conf_path), await render_clients_conf(db)),
     ]
+
+    # AD/LDAP module is written only when enabled. Its CA cert (if any) is
+    # materialised first so the module's ca_file points at a real file.
+    ldap_cfg = await db.get(LdapSettings, 1)
+    if ldap_cfg and ldap_cfg.enabled:
+        if ldap_cfg.ca_cert.strip():
+            targets.append((Path(settings.ldap_ca_path), ldap_cfg.ca_cert))
+        targets.append(
+            (Path(settings.ldap_conf_path), render_ldap_module(ldap_cfg))
+        )
 
     backups = [_write_with_backup(path, content) for path, content in targets]
 
