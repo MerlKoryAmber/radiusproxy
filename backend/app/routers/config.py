@@ -6,7 +6,8 @@ from .. import crud, schemas
 from ..database import get_db
 from ..radius_config import (
     ConfigValidationError,
-    apply_proxy_conf,
+    apply_config,
+    render_clients_conf,
     render_proxy_conf,
 )
 
@@ -23,18 +24,23 @@ async def preview_raw(db: AsyncSession = Depends(get_db)):
     return await render_proxy_conf(db)
 
 
+@router.get("/clients-preview.conf", response_class=PlainTextResponse)
+async def preview_clients(db: AsyncSession = Depends(get_db)):
+    return await render_clients_conf(db)
+
+
 @router.post("/apply", response_model=schemas.ApplyResponse)
 async def apply(db: AsyncSession = Depends(get_db)):
     try:
-        result = await apply_proxy_conf(db)
+        result = await apply_config(db)
     except ConfigValidationError as exc:
-        # Config was rejected by radiusd -XC. The live file is untouched.
+        # Config was rejected by radiusd -XC. The live files are untouched.
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={"message": "FreeRADIUS rejected the config", "output": exc.output},
         )
     await crud.log(
-        db, "apply", "config", result.written_path,
+        db, "apply", "config", ", ".join(result.written_paths),
         detail=f"validated={result.validated} reloaded={result.reloaded}",
     )
     await db.commit()

@@ -36,7 +36,8 @@ export default function ConfigPreview({ notify }) {
   }, []);
 
   const apply = async () => {
-    if (!confirm("Write proxy.conf and reload FreeRADIUS?")) return;
+    if (!confirm("Write config files (proxy.conf, clients.conf) and reload FreeRADIUS?"))
+      return;
     setApplying(true);
     setResult(null);
     setError(null);
@@ -102,8 +103,11 @@ export default function ConfigPreview({ notify }) {
         <div className="result ok">
           <h3 style={{ color: "var(--ok)" }}>Applied</h3>
           <div className="muted">
-            Written to <span className="mono">{result.written_path}</span> ·
-            validated: {String(result.validated)} · reloaded:{" "}
+            Written:{" "}
+            <span className="mono">
+              {(result.written_paths || []).join(", ")}
+            </span>{" "}
+            · validated: {String(result.validated)} · reloaded:{" "}
             {String(result.reloaded)}
           </div>
           {result.validation_output && result.validated && (

@@ -33,13 +33,28 @@ FreeRADIUS Proxy Panel (`radiusproxy`) — веб-панель управлен�
   + `docs/design/DESIGN.md`. Ветка `feature/interros-skin` (НЕ в main — ждёт merge по команде).
 - **Развёрнуто на тесте:** CentOS Stream 9 `192.168.0.178`, docker-ce, `/root/radiusproxy`,
   `docker compose up -d --build`; панель :8080, backend :8000, db healthy. Проверено в браузере.
+- **Дизайн Interros + бренд-иконка** — в main. **AD-гейт кусок 1** (LdapSettings + поля
+  realm + рендер ldap + UI) — в main. **Clients** (`clients.conf`, раздел + рендер +
+  multi-file apply) — ветка `feature/clients`.
+- ADR-0001 расширен: скоуп файлов панели (clients.conf обяз., CA-серт для LDAPS,
+  экран авторизации с флагом off, multi-file apply).
+
+## План (куски, ADR-0001)
+
+1. ~~AD data-модель + ldap рендер~~ (готово, main)
+2. **Clients / clients.conf** (готово, `feature/clients`)
+3. AD/LDAP: CA-сертификат + require_cert (LDAPS)
+4. Policy-гейт: AD-проверка per realm (`pre-proxy`/`authorize`) + сохранение source-IP
+5. Аудит-логи решений в Postgres (`sql`) + экран
+6. Экран авторизации панели (флаг, off на dev)
 
 ## Хвосты (открыто)
 
-- Нет `README.md#security` разбора для прод-выкатки (панель пишет `proxy.conf` и дёргает
-  `RADIUS_RELOAD_CMD` — привилегированная операция, нужен threat-model перед прод).
+- Нет `README.md#security` разбора для прод-выкатки (привилегированная запись конфигов + reload).
 - Нет тестов (`backend`/`frontend`), нет гейта `make verify` — §4 верификация вручную.
-- Нет `docs/adr/` — реестр архитектурных решений (§10) при первом крупном решении.
+- **Нет Alembic:** схема через `create_all` — новые таблицы создаются, но новые колонки
+  на существующих таблицах НЕ мигрируются (нужен drop БД или Alembic).
+- `bind_password` (AD) в БД плейнтекстом — шифрование до прода (ADR-0001).
 - Дефолтные креды в `docker-compose.yml` (`radpanel/radpanel`) — только для локали, не прод.
 
 ## Деплой-сервер (тест)

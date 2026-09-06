@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { api } from "./api.js";
+import Clients from "./pages/Clients.jsx";
 import HomeServers from "./pages/HomeServers.jsx";
 import Pools from "./pages/Pools.jsx";
 import Realms from "./pages/Realms.jsx";
@@ -7,6 +8,7 @@ import LdapSettings from "./pages/LdapSettings.jsx";
 import ConfigPreview from "./pages/ConfigPreview.jsx";
 
 const TABS = [
+  { id: "clients", label: "Clients" },
   { id: "home-servers", label: "Home servers" },
   { id: "pools", label: "Pools" },
   { id: "realms", label: "Realms" },
@@ -15,7 +17,7 @@ const TABS = [
 ];
 
 export default function App() {
-  const [tab, setTab] = useState("home-servers");
+  const [tab, setTab] = useState("clients");
   const [toast, setToast] = useState(null);
   const [counts, setCounts] = useState({});
 
@@ -26,12 +28,14 @@ export default function App() {
 
   const refreshCounts = useCallback(async () => {
     try {
-      const [hs, pools, realms] = await Promise.all([
+      const [clients, hs, pools, realms] = await Promise.all([
+        api.clients.list(),
         api.homeServers.list(),
         api.pools.list(),
         api.realms.list(),
       ]);
       setCounts({
+        clients: clients.length,
         "home-servers": hs.length,
         pools: pools.length,
         realms: realms.length,
@@ -72,6 +76,9 @@ export default function App() {
       </aside>
 
       <main className="main">
+        {tab === "clients" && (
+          <Clients notify={notify} onChange={refreshCounts} />
+        )}
         {tab === "home-servers" && (
           <HomeServers notify={notify} onChange={refreshCounts} />
         )}

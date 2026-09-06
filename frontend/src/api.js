@@ -28,6 +28,14 @@ export const api = {
       }),
     remove: (id) => request(`/home-servers/${id}`, { method: "DELETE" }),
   },
+  clients: {
+    list: () => request("/clients"),
+    create: (body) =>
+      request("/clients", { method: "POST", body: JSON.stringify(body) }),
+    update: (id, body) =>
+      request(`/clients/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+    remove: (id) => request(`/clients/${id}`, { method: "DELETE" }),
+  },
   pools: {
     list: () => request("/pools"),
     create: (body) =>

@@ -19,3 +19,10 @@
 - **chore(deploy):** развёрнуто на тестовом CentOS Stream 9 (`192.168.0.178`) через
   docker-ce 29.8.0 + compose; панель на :8080, backend :8000, db healthy. Рескин
   проверен в браузере (§4). Соседний проект 2fa с сервера снесён (переехал).
+- **feat:** AD-гейт кусок 1 — `LdapSettings` (AD-подключение) + поля realm
+  (группа, нормализация, fail-mode), рендер `mods-enabled/ldap`, `/api/ldap`,
+  UI AD/LDAP + поля в модалке realm. Пароль bind write-only. ADR-0001.
+- **feat(frontend):** бренд-иконка из 2fa (лого в сайдбар + фавиконки).
+- **feat:** раздел **Clients** — `clients.conf` (от кого принимаем: UAG/VPN/WiFi).
+  Модель `Client`, рендер `client{}`, `/api/clients`, страница Clients. Apply
+  обобщён на несколько файлов (proxy.conf + clients.conf) с бэкапом/rollback всех.
