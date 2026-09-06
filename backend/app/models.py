@@ -50,6 +50,8 @@ MESSAGE_AUTH_MODES = ("no", "yes", "auto")
 USERNAME_NORMALIZATIONS = ("none", "strip_realm", "strip_ntdomain")
 # What to do when AD is unreachable during the group check (ADR-0001).
 AD_FAIL_MODES = ("open", "closed")
+# rlm_ldap tls { require_cert } — how strictly the DC cert is validated.
+TLS_REQUIRE_CERT = ("never", "allow", "try", "demand", "hard")
 
 
 class HomeServer(Base):
@@ -258,6 +260,15 @@ class LdapSettings(Base):
     # Cache membership to avoid an AD hit on every packet (seconds).
     cache_ttl: Mapped[int] = mapped_column(Integer, default=300)
     net_timeout: Mapped[int] = mapped_column(Integer, default=5)
+
+    # --- TLS (LDAPS / StartTLS) -------------------------------------------
+    # Root/CA certificate (PEM) that signed the DC cert. Without it LDAPS
+    # usually fails validation. Not a secret — may be shown/downloaded.
+    ca_cert: Mapped[str] = mapped_column(Text, default="")
+    # How strictly to validate the DC cert against ca_cert. "never" skips
+    # validation entirely (works but insecure — diagnostics only).
+    tls_require_cert: Mapped[str] = mapped_column(String(8), default="allow")
+    tls_min_version: Mapped[str] = mapped_column(String(4), default="1.2")
 
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

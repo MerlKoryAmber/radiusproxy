@@ -27,6 +27,12 @@ class Settings(BaseSettings):
     # or /etc/raddb/clients.conf (RHEL).
     clients_conf_path: str = "./generated/clients.conf"
 
+    # AD/LDAP module (rlm_ldap) and its CA cert. On the FreeRADIUS host these
+    # point at mods-enabled/ldap and a readable cert path; in dev they stay
+    # local. Written only when AD is enabled in the panel.
+    ldap_conf_path: str = "./generated/mods-enabled/ldap"
+    ldap_ca_path: str = "./generated/certs/ad-ca.pem"
+
     # Command used to validate config before applying. `radiusd -XC` (or
     # `freeradius -XC`) does a dry-run parse and exits non-zero on error.
     # Leave empty to skip validation (e.g. when the panel runs off-host).

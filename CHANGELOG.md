@@ -26,3 +26,8 @@
 - **feat:** раздел **Clients** — `clients.conf` (от кого принимаем: UAG/VPN/WiFi).
   Модель `Client`, рендер `client{}`, `/api/clients`, страница Clients. Apply
   обобщён на несколько файлов (proxy.conf + clients.conf) с бэкапом/rollback всех.
+- **docs:** `docs/SKELETON.md` — карта проекта + правило §22 (сверяться, не перечитывать).
+- **feat:** LDAPS TLS — загрузка CA-серта (PEM) + `require_cert`/`tls_min_version`,
+  рендер `tls{}`, `apply_config` пишет ldap-модуль + CA при включённом AD, `/api/ldap/ca.pem`.
+- **refactor:** `routers/realms.py` `_serialize` через `model_validate` — новые поля realm
+  больше не требуют ручной правки сериализатора.

@@ -248,11 +248,16 @@ async def update_ldap_settings(
     row = await get_ldap_settings(db)
     payload = data.model_dump()
     password = payload.pop("bind_password", "")
+    ca_cert = payload.pop("ca_cert", "")
     for k, v in payload.items():
         setattr(row, k, v)
-    # Empty password field = keep the stored secret.
+    # Empty password/CA field = keep stored; "-" clears the CA.
     if password:
         row.bind_password = password
+    if ca_cert == "-":
+        row.ca_cert = ""
+    elif ca_cert:
+        row.ca_cert = ca_cert
     await log(db, "update", "ldap_settings", "ad")  # never log the secret
     await db.commit()
     await db.refresh(row)
