@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import get_settings
 from .database import init_models
-from .routers import config, home_servers, pools, realms
+from .routers import config, home_servers, ldap, pools, realms
 
 settings = get_settings()
 
@@ -34,6 +34,7 @@ app.add_middleware(
 app.include_router(home_servers.router)
 app.include_router(pools.router)
 app.include_router(realms.router)
+app.include_router(ldap.router)
 app.include_router(config.router)
 
 

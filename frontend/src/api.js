@@ -44,6 +44,12 @@ export const api = {
       request(`/realms/${id}`, { method: "PUT", body: JSON.stringify(body) }),
     remove: (id) => request(`/realms/${id}`, { method: "DELETE" }),
   },
+  ldap: {
+    get: () => request("/ldap"),
+    update: (body) =>
+      request("/ldap", { method: "PUT", body: JSON.stringify(body) }),
+    previewUrl: "/api/ldap/preview.conf",
+  },
   config: {
     preview: () => request("/config/preview"),
     apply: () => request("/config/apply", { method: "POST" }),

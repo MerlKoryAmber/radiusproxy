@@ -191,6 +191,35 @@ async def delete_realm(db: AsyncSession, realm: models.Realm) -> None:
     await db.commit()
 
 
+# --------------------------- LDAP / AD settings ---------------------------
+async def get_ldap_settings(db: AsyncSession) -> models.LdapSettings:
+    """Return the singleton row, creating it (id=1) on first access."""
+    row = await db.get(models.LdapSettings, 1)
+    if row is None:
+        row = models.LdapSettings(id=1)
+        db.add(row)
+        await db.commit()
+        await db.refresh(row)
+    return row
+
+
+async def update_ldap_settings(
+    db: AsyncSession, data: schemas.LdapSettingsUpdate
+) -> models.LdapSettings:
+    row = await get_ldap_settings(db)
+    payload = data.model_dump()
+    password = payload.pop("bind_password", "")
+    for k, v in payload.items():
+        setattr(row, k, v)
+    # Empty password field = keep the stored secret.
+    if password:
+        row.bind_password = password
+    await log(db, "update", "ldap_settings", "ad")  # never log the secret
+    await db.commit()
+    await db.refresh(row)
+    return row
+
+
 async def recent_audit(db: AsyncSession, limit: int = 50) -> list[models.AuditLog]:
     res = await db.execute(
         select(models.AuditLog).order_by(models.AuditLog.id.desc()).limit(limit)

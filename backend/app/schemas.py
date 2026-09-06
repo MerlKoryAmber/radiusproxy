@@ -3,7 +3,13 @@ config is rejected at the API boundary rather than by radiusd later.
 """
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from .models import HOME_SERVER_TYPES, POOL_TYPES, STATUS_CHECK_TYPES
+from .models import (
+    AD_FAIL_MODES,
+    HOME_SERVER_TYPES,
+    POOL_TYPES,
+    STATUS_CHECK_TYPES,
+    USERNAME_NORMALIZATIONS,
+)
 
 _NAME_RE = r"^[A-Za-z0-9_.\-]+$"
 
@@ -95,8 +101,26 @@ class RealmBase(BaseModel):
     auth_pool_id: int | None = None
     acct_pool_id: int | None = None
     nostrip: bool = False
+    ad_group_check: bool = False
+    required_ad_group: str = Field(default="", max_length=512)
+    username_normalization: str = "none"
+    ad_fail_mode: str = "open"
     enabled: bool = True
     note: str = ""
+
+    @field_validator("username_normalization")
+    @classmethod
+    def _valid_norm(cls, v: str) -> str:
+        if v not in USERNAME_NORMALIZATIONS:
+            raise ValueError(f"must be one of {USERNAME_NORMALIZATIONS}")
+        return v
+
+    @field_validator("ad_fail_mode")
+    @classmethod
+    def _valid_fail(cls, v: str) -> str:
+        if v not in AD_FAIL_MODES:
+            raise ValueError(f"must be one of {AD_FAIL_MODES}")
+        return v
 
 
 class RealmCreate(RealmBase):
@@ -112,6 +136,33 @@ class RealmOut(RealmBase):
     id: int
     auth_pool_name: str | None = None
     acct_pool_name: str | None = None
+
+
+# --------------------------- LDAP / AD ------------------------------------
+class LdapSettingsBase(BaseModel):
+    enabled: bool = False
+    server: str = Field(default="", max_length=256)
+    port: int = Field(default=389, ge=1, le=65535)
+    use_ldaps: bool = False
+    start_tls: bool = False
+    bind_dn: str = Field(default="", max_length=512)
+    base_dn: str = Field(default="", max_length=512)
+    group_base_dn: str = Field(default="", max_length=512)
+    group_filter: str = Field(default="(objectClass=group)", max_length=512)
+    group_membership_attribute: str = Field(default="memberOf", max_length=128)
+    cache_ttl: int = Field(default=300, ge=0, le=86400)
+    net_timeout: int = Field(default=5, ge=1, le=120)
+
+
+class LdapSettingsUpdate(LdapSettingsBase):
+    # Write-only. Empty string keeps the stored password unchanged.
+    bind_password: str = ""
+
+
+class LdapSettingsOut(LdapSettingsBase):
+    model_config = ConfigDict(from_attributes=True)
+    # Never return the secret; expose only whether one is set.
+    has_password: bool = False
 
 
 # --------------------------- Config ---------------------------------------

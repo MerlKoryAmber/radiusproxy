@@ -37,6 +37,13 @@ POOL_TYPES = (
 )
 # status_check strategies.
 STATUS_CHECK_TYPES = ("none", "status-server", "request")
+# How the incoming User-Name is normalised before the AD lookup.
+#   none          -> use User-Name as received
+#   strip_realm   -> "user@realm"  -> "user"
+#   strip_ntdomain-> "DOMAIN\\user" -> "user"
+USERNAME_NORMALIZATIONS = ("none", "strip_realm", "strip_ntdomain")
+# What to do when AD is unreachable during the group check (ADR-0001).
+AD_FAIL_MODES = ("open", "closed")
 
 
 class HomeServer(Base):
@@ -140,6 +147,20 @@ class Realm(Base):
 
     # If true, keep the realm suffix on the User-Name when proxying.
     nostrip: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # --- AD group gate (ADR-0001) -----------------------------------------
+    # When ad_group_check is on, the proxy checks that the request's user is a
+    # member of `required_ad_group` in AD *before* proxying this realm. The
+    # group is per realm. Uses the global LdapSettings connection.
+    ad_group_check: Mapped[bool] = mapped_column(Boolean, default=False)
+    required_ad_group: Mapped[str] = mapped_column(String(512), default="")
+    username_normalization: Mapped[str] = mapped_column(
+        String(24), default="none"
+    )
+    # Per-realm override of the AD-unreachable behaviour. "open" = proxy anyway
+    # (default, ADR-0001), "closed" = reject when AD is down.
+    ad_fail_mode: Mapped[str] = mapped_column(String(8), default="open")
+
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     note: Mapped[str] = mapped_column(Text, default="")
 
@@ -155,6 +176,51 @@ class Realm(Base):
     )
     acct_pool: Mapped[HomeServerPool | None] = relationship(
         foreign_keys=[acct_pool_id]
+    )
+
+
+class LdapSettings(Base):
+    """Global AD/LDAP connection used for the per-realm group gate.
+
+    Singleton: one row (id=1). Rendered into a FreeRADIUS `mods-enabled/ldap`
+    module. The bind password is a secret — it is never returned by the API and
+    never written to the audit log. NOTE (tail): stored plaintext for MVP; must
+    be encrypted at rest before production (see docs/adr/0001).
+    """
+
+    __tablename__ = "ldap_settings"
+
+    id: Mapped[int] = mapped_column(primary_key=True, default=1)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    server: Mapped[str] = mapped_column(String(256), default="")  # host/IP
+    port: Mapped[int] = mapped_column(Integer, default=389)
+    use_ldaps: Mapped[bool] = mapped_column(Boolean, default=False)  # ldaps:// 636
+    start_tls: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # Bind (service) account used to search AD.
+    bind_dn: Mapped[str] = mapped_column(String(512), default="")
+    bind_password: Mapped[str] = mapped_column(String(512), default="")
+
+    base_dn: Mapped[str] = mapped_column(String(512), default="")
+
+    # Group membership lookup knobs (rlm_ldap `group {}` sub-section).
+    group_base_dn: Mapped[str] = mapped_column(String(512), default="")
+    group_filter: Mapped[str] = mapped_column(
+        String(512), default="(objectClass=group)"
+    )
+    # AD stores membership on the user via memberOf; this is the attribute the
+    # group check compares against.
+    group_membership_attribute: Mapped[str] = mapped_column(
+        String(128), default="memberOf"
+    )
+
+    # Cache membership to avoid an AD hit on every packet (seconds).
+    cache_ttl: Mapped[int] = mapped_column(Integer, default=300)
+    net_timeout: Mapped[int] = mapped_column(Integer, default=5)
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
 
