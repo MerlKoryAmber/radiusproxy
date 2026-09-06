@@ -204,6 +204,7 @@ class LdapSettingsBase(BaseModel):
     group_membership_attribute: str = Field(default="memberOf", max_length=128)
     cache_ttl: int = Field(default=300, ge=0, le=86400)
     net_timeout: int = Field(default=5, ge=1, le=120)
+    group_sync_interval: int = Field(default=1800, ge=60, le=86400)
     tls_require_cert: str = "allow"
     tls_min_version: str = Field(default="1.2", max_length=4)
 

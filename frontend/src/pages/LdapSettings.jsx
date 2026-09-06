@@ -11,6 +11,8 @@ export default function LdapSettings({ notify }) {
   const [caFileName, setCaFileName] = useState("");
   const [saving, setSaving] = useState(false);
   const [preview, setPreview] = useState("");
+  const [syncRows, setSyncRows] = useState([]);
+  const [syncing, setSyncing] = useState(false);
 
   const loadPreview = async () => {
     const res = await fetch(api.ldap.previewUrl);
@@ -23,6 +25,24 @@ export default function LdapSettings({ notify }) {
     setHasCa(s.has_ca_cert);
     setForm(s);
     await loadPreview();
+    try {
+      setSyncRows(await api.ldap.syncStatus());
+    } catch {
+      /* table may be empty */
+    }
+  };
+
+  const syncNow = async () => {
+    setSyncing(true);
+    try {
+      await api.ldap.syncNow();
+      setSyncRows(await api.ldap.syncStatus());
+      notify("Group sync run");
+    } catch (e) {
+      notify(e.message, "err");
+    } finally {
+      setSyncing(false);
+    }
   };
   useEffect(() => {
     load();
@@ -195,6 +215,16 @@ export default function LdapSettings({ notify }) {
               />
             </Field>
           </div>
+          <Field
+            label="Group sync interval (s)"
+            hint="how often the panel pulls group membership from AD (compared locally)"
+          >
+            <input
+              type="number"
+              value={form.group_sync_interval}
+              onChange={set("group_sync_interval")}
+            />
+          </Field>
 
           <Field label="Network timeout (s)">
             <input
@@ -277,12 +307,69 @@ export default function LdapSettings({ notify }) {
           </Field>
         </div>
 
-        <div className="config-pane">
-          <header>
-            <span>Rendered module (preview)</span>
-            <span className="path">mods-enabled/ldap</span>
-          </header>
-          <pre className="conf">{preview}</pre>
+        <div>
+          <div className="config-pane" style={{ marginBottom: 18 }}>
+            <header>
+              <span>Rendered module (preview)</span>
+              <span className="path">mods-enabled/ldap</span>
+            </header>
+            <pre className="conf">{preview}</pre>
+          </div>
+
+          <div className="page-head" style={{ margin: "0 0 12px" }}>
+            <div>
+              <h1 style={{ fontSize: 16 }}>Group sync</h1>
+              <p style={{ fontSize: 13 }}>
+                Members pulled from AD into the panel; the gate compares locally.
+              </p>
+            </div>
+            <button className="btn ghost sm" disabled={syncing} onClick={syncNow}>
+              {syncing ? "Syncing…" : "Sync now"}
+            </button>
+          </div>
+          {syncRows.length === 0 ? (
+            <div className="empty" style={{ padding: 20 }}>
+              No gated realms synced yet.
+            </div>
+          ) : (
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Group DN</th>
+                    <th>Status</th>
+                    <th>Members</th>
+                    <th>Last sync</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {syncRows.map((r) => (
+                    <tr key={r.group_dn}>
+                      <td className="mono" title={r.group_dn}>
+                        {r.group_dn}
+                      </td>
+                      <td>
+                        <span
+                          className={`tag ${
+                            r.status === "ok" ? "ok" : "off"
+                          }`}
+                          title={r.error || ""}
+                        >
+                          {r.status}
+                        </span>
+                      </td>
+                      <td className="mono">{r.member_count}</td>
+                      <td className="muted">
+                        {r.last_synced_at
+                          ? new Date(r.last_synced_at).toLocaleString()
+                          : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </>

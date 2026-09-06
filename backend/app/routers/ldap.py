@@ -2,7 +2,9 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import PlainTextResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .. import crud, models, schemas
+from sqlalchemy import select
+
+from .. import crud, ldap_sync, models, schemas
 from ..database import get_db
 from ..radius_config import render_ldap_module
 
@@ -23,6 +25,7 @@ def _serialize(row: models.LdapSettings) -> schemas.LdapSettingsOut:
         group_membership_attribute=row.group_membership_attribute,
         cache_ttl=row.cache_ttl,
         net_timeout=row.net_timeout,
+        group_sync_interval=row.group_sync_interval,
         tls_require_cert=row.tls_require_cert,
         tls_min_version=row.tls_min_version,
         has_password=bool(row.bind_password),
@@ -54,3 +57,30 @@ async def download_ca(db: AsyncSession = Depends(get_db)):
     # CA cert is public; return the stored PEM (empty if none).
     row = await crud.get_ldap_settings(db)
     return row.ca_cert or ""
+
+
+@router.get("/sync")
+async def sync_status(db: AsyncSession = Depends(get_db)):
+    rows = (
+        await db.execute(
+            select(models.AdGroupSync).order_by(models.AdGroupSync.group_dn)
+        )
+    ).scalars().all()
+    return [
+        {
+            "group_dn": r.group_dn,
+            "status": r.status,
+            "member_count": r.member_count,
+            "error": r.error,
+            "last_synced_at": r.last_synced_at.isoformat() if r.last_synced_at else None,
+        }
+        for r in rows
+    ]
+
+
+@router.post("/sync")
+async def sync_now(db: AsyncSession = Depends(get_db)):
+    results = await ldap_sync.sync_all(db)
+    await crud.log(db, "sync", "ad_groups", f"{len(results)} groups")
+    await db.commit()
+    return {"synced": results}
