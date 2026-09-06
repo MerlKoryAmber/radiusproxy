@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -300,18 +300,27 @@ def _render_adgate_realm(realm: Realm) -> str:
         + "' AND username='%{Tmp-String-0}' LIMIT 1}"
     )
     status_q = "%{sql:SELECT status FROM ad_group_sync WHERE group_dn='" + g + "'}"
-    lines.append(f'{i}{i}if ("{member_q}" != "1") {{')
+    # &Tmp-String-1 carries the gate result for the decision log (radiuspanel_log).
+    lines.append(f'{i}{i}if ("{member_q}" == "1") {{')
+    lines.append(f'{i}{i}{i}update request {{ &Tmp-String-1 := "pass" }}')
+    lines.append(f"{i}{i}}}")
+    lines.append(f"{i}{i}else {{")
     lines.append(f'{i}{i}{i}# not in the locally-synced member list')
     lines.append(f'{i}{i}{i}if ("{status_q}" == "ok") {{')
+    lines.append(f'{i}{i}{i}{i}update request {{ &Tmp-String-1 := "reject" }}')
     lines.append(f"{i}{i}{i}{i}reject")
     lines.append(f"{i}{i}{i}}}")
     if realm.ad_fail_mode == "closed":
         lines.append(f"{i}{i}{i}else {{")
         lines.append(f"{i}{i}{i}{i}# fail-closed: no valid sync -> deny")
+        lines.append(f'{i}{i}{i}{i}update request {{ &Tmp-String-1 := "reject-failclosed" }}')
         lines.append(f"{i}{i}{i}{i}reject")
         lines.append(f"{i}{i}{i}}}")
     else:
-        lines.append(f"{i}{i}{i}# fail-open: no valid sync -> allow (ADR-0002)")
+        lines.append(f"{i}{i}{i}else {{")
+        lines.append(f"{i}{i}{i}{i}# fail-open: no valid sync -> allow (ADR-0002)")
+        lines.append(f'{i}{i}{i}{i}update request {{ &Tmp-String-1 := "skip-faildopen" }}')
+        lines.append(f"{i}{i}{i}}}")
     lines.append(f"{i}{i}}}")
     lines.append(f"{i}}}")
     return "\n".join(lines)
@@ -356,6 +365,28 @@ async def render_policy_conf(db: AsyncSession) -> str:
         for realm in gated:
             body.append(_render_adgate_realm(realm))
     parts.append("radiuspanel_adgate {\n" + "\n".join(body) + "\n}\n")
+
+    # Decision log — one row per request into proxy_decision (panel reads it).
+    # Wire radiuspanel_log into post-auth AND Post-Auth-Type REJECT of your site.
+    # User-Name is charset-guarded before the INSERT (injection defence); other
+    # fields are IPs / our own config / reply enum.
+    i = INDENT
+    insert = (
+        "%{sql:INSERT INTO proxy_decision "
+        "(nas_ip, packet_src_ip, username, realm, ad_result, reply) VALUES "
+        "('%{NAS-IP-Address}', '%{Packet-Src-IP-Address}', "
+        "'%{tolower:%{User-Name}}', '%{Realm}', "
+        "'%{%{Tmp-String-1}:-n-a}', '%{reply:Packet-Type}')}"
+    )
+    parts.append(
+        "radiuspanel_log {\n"
+        f"{i}if (&User-Name && \"%{{User-Name}}\" =~ /^[A-Za-z0-9._@-]+$/) {{\n"
+        f'{i}{i}if ("{insert}" == "1") {{\n'
+        f"{i}{i}{i}noop\n"
+        f"{i}{i}}}\n"
+        f"{i}}}\n"
+        "}\n"
+    )
     return "\n".join(parts)
 
 
@@ -507,17 +538,10 @@ async def apply_config(db: AsyncSession) -> ApplyResult:
             (Path(settings.ldap_conf_path), render_ldap_module(ldap_cfg))
         )
 
-    # The sql module is required only when the adgate actually uses %{sql:} —
-    # i.e. there is at least one gated realm. Otherwise adgate is a noop.
-    gated_count = (
-        await db.execute(
-            select(func.count())
-            .select_from(Realm)
-            .where(Realm.ad_group_check, Realm.enabled, Realm.required_ad_group != "")
-        )
-    ).scalar_one()
-    if gated_count:
-        targets.append((Path(settings.sql_conf_path), render_sql_module()))
+    # The sql module is always written: the adgate uses it for membership and
+    # radiuspanel_log uses it for the decision log. It points at the panel's own
+    # Postgres, which is always up alongside the backend.
+    targets.append((Path(settings.sql_conf_path), render_sql_module()))
 
     backups = [_write_with_backup(path, content) for path, content in targets]
 

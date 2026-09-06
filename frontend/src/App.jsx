@@ -5,7 +5,10 @@ import HomeServers from "./pages/HomeServers.jsx";
 import Pools from "./pages/Pools.jsx";
 import Realms from "./pages/Realms.jsx";
 import LdapSettings from "./pages/LdapSettings.jsx";
+import Decisions from "./pages/Decisions.jsx";
 import ConfigPreview from "./pages/ConfigPreview.jsx";
+import Access from "./pages/Access.jsx";
+import Login from "./pages/Login.jsx";
 
 const TABS = [
   { id: "clients", label: "Clients" },
@@ -13,18 +16,34 @@ const TABS = [
   { id: "pools", label: "Pools" },
   { id: "realms", label: "Realms" },
   { id: "ldap", label: "AD / LDAP" },
+  { id: "decisions", label: "Decision log" },
   { id: "config", label: "Config & apply" },
+  { id: "access", label: "Access" },
 ];
 
 export default function App() {
   const [tab, setTab] = useState("clients");
   const [toast, setToast] = useState(null);
   const [counts, setCounts] = useState({});
+  const [authState, setAuthState] = useState("checking"); // checking | ok | login
 
   const notify = useCallback((message, kind = "ok") => {
     setToast({ message, kind });
     setTimeout(() => setToast(null), 3500);
   }, []);
+
+  const checkAuth = useCallback(async () => {
+    try {
+      await api.auth.status();
+      setAuthState("ok");
+    } catch (e) {
+      setAuthState(e.message === "unauthorized" ? "login" : "ok");
+    }
+  }, []);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   const refreshCounts = useCallback(async () => {
     try {
@@ -46,8 +65,12 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    refreshCounts();
-  }, [refreshCounts, tab]);
+    if (authState === "ok") refreshCounts();
+  }, [refreshCounts, tab, authState]);
+
+  if (authState === "checking") return null;
+  if (authState === "login")
+    return <Login onLoggedIn={() => setAuthState("ok")} />;
 
   return (
     <div className="shell">
@@ -67,7 +90,7 @@ export default function App() {
               onClick={() => setTab(t.id)}
             >
               <span>{t.label}</span>
-              {counts[t.id] != null && t.id !== "config" && (
+              {counts[t.id] != null && (
                 <span className="count">{counts[t.id]}</span>
               )}
             </button>
@@ -85,7 +108,11 @@ export default function App() {
         {tab === "pools" && <Pools notify={notify} onChange={refreshCounts} />}
         {tab === "realms" && <Realms notify={notify} onChange={refreshCounts} />}
         {tab === "ldap" && <LdapSettings notify={notify} />}
+        {tab === "decisions" && <Decisions />}
         {tab === "config" && <ConfigPreview notify={notify} />}
+        {tab === "access" && (
+          <Access notify={notify} onAuthChange={checkAuth} />
+        )}
       </main>
 
       {toast && (

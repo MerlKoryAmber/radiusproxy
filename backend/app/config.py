@@ -54,6 +54,12 @@ class Settings(BaseSettings):
     # Leave empty to skip the reload (config file is still written).
     radius_reload_cmd: str = ""  # e.g. "systemctl reload freeradius"
 
+    # --- Auth (panel login) ---------------------------------------------
+    # Signs session tokens. CHANGE in production (env JWT_SECRET). Auth is
+    # off by default (toggle stored in the DB) — see AuthSettings.
+    jwt_secret: str = "dev-insecure-change-me"
+    auth_token_ttl: int = 28800  # seconds (8h)
+
     # --- API ------------------------------------------------------------
     cors_origins: str = "http://localhost:5173"
 

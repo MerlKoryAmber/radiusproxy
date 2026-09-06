@@ -264,6 +264,18 @@ async def update_ldap_settings(
     return row
 
 
+async def recent_decisions(
+    db: AsyncSession, limit: int = 100, username: str = "", realm: str = ""
+) -> list[models.ProxyDecision]:
+    q = select(models.ProxyDecision).order_by(models.ProxyDecision.id.desc())
+    if username:
+        q = q.where(models.ProxyDecision.username.ilike(f"%{username}%"))
+    if realm:
+        q = q.where(models.ProxyDecision.realm == realm)
+    res = await db.execute(q.limit(min(limit, 500)))
+    return list(res.scalars().all())
+
+
 async def recent_audit(db: AsyncSession, limit: int = 50) -> list[models.AuditLog]:
     res = await db.execute(
         select(models.AuditLog).order_by(models.AuditLog.id.desc()).limit(limit)

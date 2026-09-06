@@ -43,3 +43,8 @@
   (интервал `group_sync_interval`); `/api/ldap/sync` GET/POST; экран синка в UI.
   `render_sql_module` (rlm_sql→Postgres панели), `radiuspanel_adgate` per-realm:
   нормализация + injection-guard + `%{sql:}` членство + статус + fail_mode. IntegrityError→409.
+- **feat:** 5 — лог решений RADIUS. `ProxyDecision` + политика `radiuspanel_log`
+  (sql INSERT, guard User-Name), sql-модуль пишется всегда, `/api/decisions`, экран Decision log.
+- **feat:** 6 — авторизация панели (флаг off по умолчанию). `AuthSettings`+`User` (seed admin/admin),
+  `auth.py` (pbkdf2 + hmac-токен, stdlib), `/api/auth/*`, гейт роутеров `require_user`,
+  экран Login + Access (тумблер/смена пароля/logout), Bearer-токен в `api.js`.

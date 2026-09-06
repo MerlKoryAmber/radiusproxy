@@ -5,10 +5,21 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from . import auth as auth_mod
 from . import ldap_sync
 from .config import get_settings
 from .database import SessionLocal, init_models
-from .routers import clients, config, home_servers, ldap, pools, realms
+from .routers import (
+    auth,
+    clients,
+    config,
+    decisions,
+    home_servers,
+    ldap,
+    pools,
+    realms,
+)
+from fastapi import Depends
 
 settings = get_settings()
 
@@ -37,6 +48,8 @@ async def _group_sync_loop():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_models()
+    async with SessionLocal() as db:
+        await auth_mod.ensure_seed(db)
     task = asyncio.create_task(_group_sync_loop())
     yield
     task.cancel()
@@ -73,12 +86,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(clients.router)
-app.include_router(home_servers.router)
-app.include_router(pools.router)
-app.include_router(realms.router)
-app.include_router(ldap.router)
-app.include_router(config.router)
+app.include_router(auth.router)  # open (login/status)
+
+# All data/config routers require a valid token when auth is enabled.
+_guard = [Depends(auth_mod.require_user)]
+app.include_router(clients.router, dependencies=_guard)
+app.include_router(home_servers.router, dependencies=_guard)
+app.include_router(pools.router, dependencies=_guard)
+app.include_router(realms.router, dependencies=_guard)
+app.include_router(ldap.router, dependencies=_guard)
+app.include_router(decisions.router, dependencies=_guard)
+app.include_router(config.router, dependencies=_guard)
 
 
 @app.get("/api/health")
