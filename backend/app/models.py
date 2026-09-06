@@ -320,6 +320,53 @@ class AdGroupMember(Base):
     username: Mapped[str] = mapped_column(String(256), index=True)
 
 
+class AuthSettings(Base):
+    """Singleton (id=1). Whether the panel requires login. Off by default so
+    development stays open; flip to on for production (ADR-0002)."""
+
+    __tablename__ = "auth_settings"
+
+    id: Mapped[int] = mapped_column(primary_key=True, default=1)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class User(Base):
+    """Panel admin account. Seeded as admin/admin on first startup (§21
+    install-ready) — change the password before enabling auth in production."""
+
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String(256))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class ProxyDecision(Base):
+    """A per-request proxy/gate decision, written by FreeRADIUS via rlm_sql
+    (radiuspanel_log policy). The panel reads it for the decision-log screen.
+
+    Populated at runtime by FR, not by the panel API. Fields are what the log
+    policy can capture in post-auth/post-proxy.
+    """
+
+    __tablename__ = "proxy_decision"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+    nas_ip: Mapped[str] = mapped_column(String(64), default="")
+    packet_src_ip: Mapped[str] = mapped_column(String(64), default="")
+    username: Mapped[str] = mapped_column(String(256), default="", index=True)
+    realm: Mapped[str] = mapped_column(String(128), default="", index=True)
+    ad_result: Mapped[str] = mapped_column(String(32), default="")  # pass/reject/skip/n-a
+    reply: Mapped[str] = mapped_column(String(32), default="")  # Access-Accept/Reject/...
+    home_server: Mapped[str] = mapped_column(String(128), default="")
+
+
 class AuditLog(Base):
     """Who changed what, and when. Also records config applies."""
 

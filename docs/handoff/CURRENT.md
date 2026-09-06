@@ -50,8 +50,10 @@ FreeRADIUS Proxy Panel (`radiusproxy`) — веб-панель управлен�
    - **4a:** source-IP per-client + policy.d-скаффолд + одноразовый include (готово, `feature/policy-srcip`)
    - **4b:** синк AD-групп (ldap3 + планировщик + таблицы) + sql-гейт (готово, `feature/ad-sync`);
      **хвост:** реальный синк членов не проверен (на 192.168.0.178 нет AD) — тест на AD-хосте.
-5. Аудит-логи решений в Postgres (`sql`) + экран
-6. Экран авторизации панели (флаг, off на dev)
+5. Аудит-логи решений в Postgres (`sql`) + экран (готово, `feature/logs-auth`);
+   **хвост:** реальная запись строк требует RADIUS-трафика (radclient/NAS) — не проверено без него.
+6. Экран авторизации панели (флаг off) — готово, `feature/logs-auth`. seed admin/admin,
+   pbkdf2+hmac-токен. **Прод:** сменить пароль + JWT_SECRET (env) до включения.
 
 **Решения по куску 4 (2026-09-06):** вариант A (policy.d + include); source-IP per-client;
 группы синкать раз ~30 мин в панель и сравнивать локально (не per-packet AD); FR ставится
