@@ -61,7 +61,9 @@
   ещё CA-файл (`ldap_ca_path`) и ldap-модуль (`ldap_conf_path`). `_write_with_backup` каждый,
   `radius_check_cmd` валидирует, `_rollback` всех при провале, затем `radius_reload_cmd`.
   Возвращает `ApplyResult(written_paths, validated, ...)`.
-- `ConfigValidationError(output)`. Хелперы: `_quote`, `_quote_secret`, `_run`, `_Backup`.
+- `ConfigValidationError(output)`. Хелперы: `_quote`, `_quote_secret`, `_Backup`.
+- `_run(cmd)` = `asyncio.to_thread(subprocess.run)` — **не** `create_subprocess_exec`
+  (под uvloop конфликтует с двойным форком демона FreeRADIUS → apply висел).
 
 ### API-эндпоинты
 

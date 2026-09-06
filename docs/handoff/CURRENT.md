@@ -45,7 +45,8 @@ FreeRADIUS Proxy Panel (`radiusproxy`) — веб-панель управлен�
 2. ~~Clients / clients.conf~~ (готово, main)
 3. ~~AD/LDAP: CA-сертификат + require_cert (LDAPS)~~ + ldap в apply (готово, `feature/ldap-tls`)
 4. Policy-гейт (обсуждён, ADR-0002):
-   - **шаг 0:** FreeRADIUS 3.2 в backend-контейнере (готово, `feature/radius-stack`)
+   - **шаг 0:** FreeRADIUS 3.2 в backend-контейнере (готово+проверено, `feature/radius-stack`);
+     apply валидирует+reload реальный FR за ~1с. `_run` через `asyncio.to_thread` (uvloop-фикс).
    - **4a:** source-IP per-client + policy.d-скаффолд + одноразовый include
    - **4b:** синк AD-групп в панель (планировщик + ldap3 + таблица) + sql-гейт (сравнение локально)
 5. Аудит-логи решений в Postgres (`sql`) + экран
@@ -63,6 +64,8 @@ FreeRADIUS Proxy Panel (`radiusproxy`) — веб-панель управлен�
   на существующих таблицах НЕ мигрируются (нужен drop БД или Alembic).
 - `bind_password` (AD) в БД плейнтекстом — шифрование до прода (ADR-0001).
 - Дефолтные креды в `docker-compose.yml` (`radpanel/radpanel`) — только для локали, не прод.
+- **Reload FR = pkill+restart**, оставляет defunct-зомби (init:true убран — ломал apply).
+  Косметика; при желании — proper reaper/HUP позже. Также `freeradius -HUP` не перечитывает proxy.conf.
 
 ## Деплой-сервер (тест)
 
