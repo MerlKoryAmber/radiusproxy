@@ -30,7 +30,7 @@ docker compose -f "$INSTALL_DIR/docker-compose.yml" up -d --build
 
 log "waiting for health…"
 for _ in $(seq 1 60); do
-    if curl -fsS -o /dev/null http://localhost:8080/ 2>/dev/null \
+    if curl -fsSk -o /dev/null https://localhost/ 2>/dev/null \
        && curl -fsS -o /dev/null http://localhost:8000/api/health 2>/dev/null; then
         log "panel is up."
         exit 0

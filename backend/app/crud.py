@@ -293,6 +293,26 @@ async def update_ldap_settings(
     return row
 
 
+async def get_tls_settings(db: AsyncSession) -> models.TlsSettings:
+    row = await db.get(models.TlsSettings, 1)
+    if row is None:
+        row = models.TlsSettings(id=1)
+        db.add(row)
+        await db.commit()
+        await db.refresh(row)
+    return row
+
+
+async def get_auth_settings(db: AsyncSession) -> models.AuthSettings:
+    row = await db.get(models.AuthSettings, 1)
+    if row is None:
+        row = models.AuthSettings(id=1)
+        db.add(row)
+        await db.commit()
+        await db.refresh(row)
+    return row
+
+
 async def recent_decisions(
     db: AsyncSession, limit: int = 100, username: str = "", realm: str = ""
 ) -> list[models.ProxyDecision]:

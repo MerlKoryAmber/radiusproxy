@@ -5,6 +5,13 @@ services:
       POSTGRES_USER: radpanel
       POSTGRES_PASSWORD: radpanel
       POSTGRES_DB: radpanel
+      # Containers must NOT use any host HTTP proxy — outbound traffic stays local.
+      no_proxy: "*"
+      NO_PROXY: "*"
+      http_proxy: ""
+      https_proxy: ""
+      HTTP_PROXY: ""
+      HTTPS_PROXY: ""
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -20,7 +27,7 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql+asyncpg://radpanel:radpanel@db:5432/radpanel
-      CORS_ORIGINS: http://localhost:8080
+      CORS_ORIGINS: https://localhost
       # FreeRADIUS runs in this container; the panel writes straight into its
       # real config tree and validates/reloads it.
       PROXY_CONF_PATH: /etc/freeradius/3.0/proxy.conf
@@ -31,10 +38,23 @@ services:
       SQL_CONF_PATH: /etc/freeradius/3.0/mods-enabled/sql
       RADIUS_CHECK_CMD: "freeradius -XC"
       RADIUS_RELOAD_CMD: "/usr/local/bin/radius-reload.sh"
+      # Panel HTTPS cert/key are written here (shared with the frontend nginx).
+      TLS_CERT_DIR: /certs
       # Secrets at rest are encrypted with this key. CHANGE for production
       # (a long random string); if it changes, stored secrets can't be decrypted.
       APP_ENCRYPTION_KEY: "dev-insecure-change-me"
       JWT_SECRET: "dev-insecure-change-me"
+      # Host IPs shown read-only in Settings (install.sh fills this via .env).
+      HOST_ADDRESSES: "${HOST_ADDRESSES:-}"
+      # No host proxy inside the container.
+      no_proxy: "*"
+      NO_PROXY: "*"
+      http_proxy: ""
+      https_proxy: ""
+      HTTP_PROXY: ""
+      HTTPS_PROXY: ""
+    volumes:
+      - panelcerts:/certs
     ports:
       - "8000:8000"
       - "1812:1812/udp"
@@ -44,8 +64,19 @@ services:
     build: ./frontend
     depends_on:
       - backend
+    environment:
+      no_proxy: "*"
+      NO_PROXY: "*"
+      http_proxy: ""
+      https_proxy: ""
+      HTTP_PROXY: ""
+      HTTPS_PROXY: ""
+    volumes:
+      - panelcerts:/etc/nginx/certs
     ports:
-      - "8080:80"
+      - "80:80"
+      - "443:443"
 
 volumes:
   pgdata:
+  panelcerts:

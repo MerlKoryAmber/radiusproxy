@@ -62,6 +62,11 @@ FreeRADIUS Proxy Panel (`radiusproxy`) — веб-панель управлен�
 9. **Rules (ADR-0004)** — `feature/rules`: ordered маршрутизация (client[+username wildcard]→pool+AD-гейт,
    first-match), routing/AD убраны с Client, AD-группа по cn + автокомплит из каталога, reorder.
    Хвост: реальный AD/трафик не проверены (нет AD/NAS) — каталог/членство/гейт тестируются на AD-хосте.
+10. **Секреты at-rest (ADR-0005)** — Fernet/`APP_ENCRYPTION_KEY`, write-only API.
+11. **HTTPS/access/dashboard (ADR-0006)** — `feature/https-access`: self-signed HTTPS (80/443),
+    замена cert (Settings→TLS), IP-ограничение (Settings→Access), no-proxy, Host read-only, **Dashboard**.
+    Доступ теперь `https://<host>` (self-signed). Порт 8080 не публикуется. `.env HOST_ADDRESSES`.
+    Прод: заменить cert; задать `APP_ENCRYPTION_KEY`/`JWT_SECRET`.
 
 **Решения по куску 4 (2026-09-06):** вариант A (policy.d + include); source-IP per-client;
 группы синкать раз ~30 мин в панель и сравнивать локально (не per-packet AD); FR ставится

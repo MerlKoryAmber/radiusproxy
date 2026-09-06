@@ -9,3 +9,4 @@
 | [0003](0003-routing-by-client.md) | 2026-09-06 | Маршрут по клиенту (не realm); Home→Target server; AD-гейт на клиенте; realm авто per-pool | Accepted |
 | [0004](0004-rules-based-routing.md) | 2026-09-07 | Ordered Rules (client[+username wildcard]→pool+AD-гейт); AD-группа по cn; каталог+автокомплит | Accepted |
 | [0005](0005-secrets-at-rest.md) | 2026-09-07 | Шифрование секретов at-rest (Fernet, APP_ENCRYPTION_KEY); секреты write-only в API | Accepted |
+| [0006](0006-https-access-dashboard.md) | 2026-09-07 | HTTPS self-signed + замена cert; IP-ограничение; no-proxy; host read-only; Dashboard | Accepted |

@@ -66,6 +66,9 @@ class Settings(BaseSettings):
     # changes, previously-encrypted secrets can no longer be decrypted.
     app_encryption_key: str = "dev-insecure-change-me"
 
+    # Panel TLS cert/key are written here (shared volume the frontend nginx reads).
+    tls_cert_dir: str = "/certs"
+
     # --- API ------------------------------------------------------------
     cors_origins: str = "http://localhost:5173"
 

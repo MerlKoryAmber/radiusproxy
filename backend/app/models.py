@@ -343,13 +343,27 @@ class AdGroupMember(Base):
 
 
 class AuthSettings(Base):
-    """Singleton (id=1). Whether the panel requires login. Off by default so
-    development stays open; flip to on for production (ADR-0002)."""
+    """Singleton (id=1). Panel access controls: login requirement + IP allowlist."""
 
     __tablename__ = "auth_settings"
 
     id: Mapped[int] = mapped_column(primary_key=True, default=1)
     enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Newline/comma-separated IPs or CIDRs allowed to reach /api. Empty = all.
+    # Loopback is always allowed (anti-lockout).
+    ip_allowlist: Mapped[str] = mapped_column(Text, default="")
+
+
+class TlsSettings(Base):
+    """Singleton (id=1). Panel HTTPS certificate. Key encrypted at rest; both
+    are materialised to the shared cert volume that nginx serves."""
+
+    __tablename__ = "tls_settings"
+
+    id: Mapped[int] = mapped_column(primary_key=True, default=1)
+    cert_pem: Mapped[str] = mapped_column(Text, default="")
+    key_pem: Mapped[str] = mapped_column(EncryptedStr, default="")
+    is_self_signed: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
 class User(Base):

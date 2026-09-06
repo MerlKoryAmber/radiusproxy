@@ -4,7 +4,7 @@
 Обновлять **перед каждым push** (см. §22 CLAUDE.md). Читать после handoff и перед
 началом задачи. Если что-то тут расходится с кодом — код прав, а скелет чинить.
 
-**Обновлено:** 2026-09-07 МСК · ветка на момент правки: `feature/secret-encryption`
+**Обновлено:** 2026-09-07 МСК · ветка на момент правки: `feature/https-access`
 
 ---
 
@@ -16,7 +16,10 @@
 - **FreeRADIUS 3.2 в backend-контейнере** (Debian bookworm) — панель пишет в реальный
   `/etc/freeradius/3.0`, валидирует `freeradius -XC`, перезагружает
   (`radius-reload.sh`). `entrypoint.sh` стартует FR (если конфиг валиден) + uvicorn.
-- Деплой: `docker compose up -d --build` (db / backend :8000+1812/1813udp / frontend :8080).
+- **HTTPS:** backend генерит self-signed cert в БД+том `panelcerts`; frontend nginx `443 ssl`
+  + `80→443`, авто-reload по inotify при смене cert. Наружу **80/443** (не 8080).
+- Деплой: `docker compose up -d --build` (db / backend :8000+1812/1813udp / frontend :80+:443).
+  Все сервисы с пустым `http(s)_proxy`/`no_proxy=*` (не ходят во внешний прокси).
 
 ## Backend `backend/app/`
 
@@ -32,6 +35,7 @@
 | `ldap_sync.py` | `ldap3`: каталог всех групп (cn+dn → `AdGroupCatalog`) + членство групп из правил по DN (`AdGroupMember`/`AdGroupSync`) |
 | `auth.py` | авторизация панели (stdlib): pbkdf2-хэш, hmac-токен, `ensure_seed` (admin/admin), `require_user` (гейт при `AuthSettings.enabled`) |
 | `crypto.py` | Fernet шифрование секретов at-rest (ключ из `APP_ENCRYPTION_KEY`); `encrypt/decrypt`, формат `enc:<token>` (ADR-0005) |
+| `tls.py` | self-signed генерация + валидация cert/key + `host_addresses()` (ADR-0006) |
 | `radius_config.py` | **весь FR-синтаксис**: рендереры + apply/validate/rollback |
 | `routers/*.py` | HTTP-эндпоинты на сущность |
 
@@ -58,7 +62,8 @@
 - `AdGroupMember` — (group_dn, username uniq) — локальный список членов; читает FR sql-гейт.
 - `ProxyDecision` — лог решений RADIUS (пишет FR через `radiuspanel_log`/sql): created_at,
   nas_ip, packet_src_ip, username, realm, ad_result, reply, home_server.
-- `AuthSettings` — singleton: `enabled` (флаг логина, off по умолчанию).
+- `AuthSettings` — singleton: `enabled` (флаг логина) + `ip_allowlist` (IP/CIDR-ограничение доступа).
+- `TlsSettings` — singleton: `cert_pem`, `key_pem`(EncryptedStr), `is_self_signed` (HTTPS панели).
 - `User` — админ панели (username, password_hash pbkdf2); seed `admin/admin`.
 - `AuditLog` — actor, action, entity, entity_ref, detail, created_at.
 
@@ -82,7 +87,7 @@
 
 ### API-эндпоинты
 
-- `/api/clients` GET/POST/PUT{id}/DELETE{id} — `_serialize` + target_pool_name (`routers/clients.py`)
+- `/api/clients` GET/POST/PUT{id}/DELETE{id} — secret write-only (`has_secret`) (`routers/clients.py`)
 - `/api/target-servers` GET/POST/PUT/DELETE — secret write-only (`has_secret`, пустой=не менять) (`routers/targets.py`)
 - `/api/pools` GET/POST/PUT/DELETE — members по target_server (`routers/pools.py`)
 - `/api/rules` GET/POST/PUT/DELETE + POST `/reorder` (ids по порядку) (`routers/rules.py`)
@@ -90,7 +95,10 @@
 - `/api/config/preview`, `/preview.conf`, `/clients-preview.conf`, `/policy-preview.conf`, `/apply` (POST), `/audit` (`routers/config.py`)
 - `/api/decisions` GET (лог решений, фильтры username/realm) (`routers/decisions.py`)
 - `/api/auth/status|login|settings|password` (`routers/auth.py`) — **открыт**; остальные data/config-роутеры под `Depends(require_user)` (гейт при auth on)
-- `/api/health` (`main.py`)
+- `/api/dashboard` GET — сводка (`routers/dashboard.py`)
+- `/api/system/access` GET/PUT (ip_allowlist) · `/tls` GET/PUT + `/tls/self-signed` POST · `/host` GET (`routers/system.py`)
+- `/api/health` (`main.py`). **Middleware:** IP-allowlist на `/api` (loopback всегда, пусто=все).
+
 
 ## Frontend `frontend/src/`
 
@@ -107,11 +115,12 @@
 | `pages/LdapSettings.jsx` | форма AD/LDAP + превью + синк (`embedded` внутри Settings) |
 | `pages/ConfigPreview.jsx` | превью proxy.conf + apply (показывает `written_paths`) |
 | `pages/Decisions.jsx` | лог решений RADIUS (фильтр по user) |
-| `pages/Settings.jsx` | настройки панели: под-вкладки **Access** (тумблер auth) + **AD / LDAP** (`<LdapSettings embedded/>`). Смена пароля — в топбар-меню |
+| `pages/Dashboard.jsx` | сводка (счётчики, статусы FR/AD/apply/security, последние решения) |
+| `pages/Settings.jsx` | под-вкладки **Access** (login + IP-allowlist), **AD/LDAP**, **TLS** (замена cert), **Host** (read-only IP). Пароль — в топбар-меню |
 | `pages/Login.jsx` | экран входа (показывается при auth on и 401) |
 | `styles.css` | дизайн Interros (navy+gold), классы ниже |
 
-**TABS:** clients → targets → pools → **rules** → decisions → config → settings (Access + AD/LDAP под-вкладки). Маршрут: **ordered Rules** (client[+username]→pool+AD-гейт, first-match, ADR-0004).
+**TABS:** **dashboard** → clients → targets → pools → rules → decisions → config → settings (Access/AD-LDAP/TLS/Host под-вкладки). Маршрут: ordered Rules (ADR-0004). HTTPS + IP-allowlist + no-proxy (ADR-0006).
 
 ## Скрипты деплоя (`scripts/`)
 

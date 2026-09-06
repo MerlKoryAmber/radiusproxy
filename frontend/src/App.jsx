@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { api, setToken } from "./api.js";
 import { UserMenu } from "./components.jsx";
+import Dashboard from "./pages/Dashboard.jsx";
 import Clients from "./pages/Clients.jsx";
 import TargetServers from "./pages/TargetServers.jsx";
 import Pools from "./pages/Pools.jsx";
@@ -11,6 +12,7 @@ import Settings from "./pages/Settings.jsx";
 import Login from "./pages/Login.jsx";
 
 const TABS = [
+  { id: "dashboard", label: "Dashboard" },
   { id: "clients", label: "Clients" },
   { id: "targets", label: "Target servers" },
   { id: "pools", label: "Pools" },
@@ -21,7 +23,7 @@ const TABS = [
 ];
 
 export default function App() {
-  const [tab, setTab] = useState("clients");
+  const [tab, setTab] = useState("dashboard");
   const [toast, setToast] = useState(null);
   const [counts, setCounts] = useState({});
   const [authState, setAuthState] = useState("checking"); // checking | ok | login
@@ -119,6 +121,7 @@ export default function App() {
         </div>
 
         <div className="content">
+          {tab === "dashboard" && <Dashboard />}
           {tab === "clients" && (
             <Clients notify={notify} onChange={refreshCounts} />
           )}
