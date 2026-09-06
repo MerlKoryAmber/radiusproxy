@@ -48,3 +48,6 @@
 - **feat:** 6 — авторизация панели (флаг off по умолчанию). `AuthSettings`+`User` (seed admin/admin),
   `auth.py` (pbkdf2 + hmac-токен, stdlib), `/api/auth/*`, гейт роутеров `require_user`,
   экран Login + Access (тумблер/смена пароля/logout), Bearer-токен в `api.js`.
+- **feat(frontend):** топбар с именем пользователя + дропдаун (UserMenu); смена пароля через
+  всплывающую модалку с подтверждением (new+confirm). Настройки панели вынесены в раздел
+  **Settings** (Access переименован); shell перестроен на `.main-area/.topbar/.content`.
