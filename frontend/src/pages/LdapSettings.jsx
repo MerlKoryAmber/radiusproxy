@@ -8,6 +8,7 @@ export default function LdapSettings({ notify }) {
   const [password, setPassword] = useState("");
   const [hasCa, setHasCa] = useState(false);
   const [caCert, setCaCert] = useState("");
+  const [caFileName, setCaFileName] = useState("");
   const [saving, setSaving] = useState(false);
   const [preview, setPreview] = useState("");
 
@@ -40,6 +41,7 @@ export default function LdapSettings({ notify }) {
   const onCaFile = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setCaFileName(file.name);
     const reader = new FileReader();
     reader.onload = () => setCaCert(String(reader.result || ""));
     reader.readAsText(file);
@@ -52,6 +54,7 @@ export default function LdapSettings({ notify }) {
       await api.ldap.update({ ...form, bind_password: password, ca_cert: caCert });
       setPassword("");
       setCaCert("");
+      setCaFileName("");
       notify("AD / LDAP settings saved");
       await load();
     } catch (e) {
@@ -240,12 +243,27 @@ export default function LdapSettings({ notify }) {
                 : "upload the CA that signed the DC cert (LDAPS needs it)"
             }
           >
-            <input
-              type="file"
-              accept=".pem,.crt,.cer,.txt"
-              onChange={onCaFile}
-              style={{ marginBottom: 8 }}
-            />
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 8,
+              }}
+            >
+              <label className="btn ghost sm" style={{ margin: 0 }}>
+                Choose file…
+                <input
+                  type="file"
+                  accept=".pem,.crt,.cer,.txt"
+                  onChange={onCaFile}
+                  hidden
+                />
+              </label>
+              <span className="muted" style={{ fontSize: 12 }}>
+                {caFileName || "no file selected"}
+              </span>
+            </div>
             <textarea
               value={caCert}
               onChange={(e) => setCaCert(e.target.value)}
