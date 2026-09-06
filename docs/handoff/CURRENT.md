@@ -3,7 +3,7 @@
 Живой срез для следующего агента/сессии. Держать актуальным перед каждым смысловым
 push (§6/§10 CLAUDE.md). Время — **МСК (UTC+3)**.
 
-**Обновлено:** 2026-09-06 МСК
+**Обновлено:** 2026-09-07 МСК
 
 ---
 
@@ -63,9 +63,13 @@ FreeRADIUS Proxy Panel (`radiusproxy`) — веб-панель управлен�
    first-match), routing/AD убраны с Client, AD-группа по cn + автокомплит из каталога, reorder.
    Хвост: реальный AD/трафик не проверены (нет AD/NAS) — каталог/членство/гейт тестируются на AD-хосте.
 10. **Секреты at-rest (ADR-0005)** — Fernet/`APP_ENCRYPTION_KEY`, write-only API.
-11. **HTTPS/access/dashboard (ADR-0006)** — `feature/https-access`: self-signed HTTPS (80/443),
-    замена cert (Settings→TLS), IP-ограничение (Settings→Access), no-proxy, Host read-only, **Dashboard**.
+11. **HTTPS/access/dashboard (ADR-0006)** — **в main** (мерж `feature/https-access`,
+    развёрнуто+проверено на 192.168.0.178 через curl): self-signed HTTPS (80/443),
+    замена cert (Settings→TLS, live nginx-reload по inotify), IP-ограничение (Settings→Access,
+    реальный IP клиента через `X-Real-IP`), **анти-локаут** (PUT отклоняет список без своего IP →400,
+    мусор →422), no-proxy (`no_proxy=*`), Host read-only, **Dashboard**.
     Доступ теперь `https://<host>` (self-signed). Порт 8080 не публикуется. `.env HOST_ADDRESSES`.
+    **Восстановление при локауте:** `docker compose exec db psql -U radpanel -d radpanel -c "UPDATE auth_settings SET ip_allowlist=''"`.
     Прод: заменить cert; задать `APP_ENCRYPTION_KEY`/`JWT_SECRET`.
 
 **Решения по куску 4 (2026-09-06):** вариант A (policy.d + include); source-IP per-client;
@@ -84,6 +88,9 @@ FreeRADIUS Proxy Panel (`radiusproxy`) — веб-панель управлен�
 - Дефолтные креды в `docker-compose.yml` (`radpanel/radpanel`) — только для локали, не прод.
 - **Reload FR = pkill+restart**, оставляет defunct-зомби (init:true убран — ломал apply).
   Косметика; при желании — proper reaper/HUP позже. Также `freeradius -HUP` не перечитывает proxy.conf.
+- **Exec-бит `.sh` на Windows:** checkout сбрасывает 755→644; `git merge`/commit может
+  занести не-exec скрипты. На Win-машине `git config core.filemode false`; после мержа
+  проверять `git ls-files -s '*.sh'` и чинить `git update-index --chmod=+x` (см. `.gitattributes` eol=lf).
 
 ## Деплой-сервер (тест)
 
