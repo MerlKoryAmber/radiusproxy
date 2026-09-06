@@ -66,6 +66,45 @@ async def delete_home_server(db: AsyncSession, hs: models.HomeServer) -> None:
     await db.commit()
 
 
+# --------------------------- Clients (NAS) --------------------------------
+async def list_clients(db: AsyncSession) -> list[models.Client]:
+    res = await db.execute(select(models.Client).order_by(models.Client.name))
+    return list(res.scalars().all())
+
+
+async def get_client(db: AsyncSession, client_id: int) -> models.Client | None:
+    return await db.get(models.Client, client_id)
+
+
+async def create_client(
+    db: AsyncSession, data: schemas.ClientCreate
+) -> models.Client:
+    client = models.Client(**data.model_dump())
+    db.add(client)
+    await db.flush()
+    await log(db, "create", "client", client.name)
+    await db.commit()
+    await db.refresh(client)
+    return client
+
+
+async def update_client(
+    db: AsyncSession, client: models.Client, data: schemas.ClientUpdate
+) -> models.Client:
+    for k, v in data.model_dump().items():
+        setattr(client, k, v)
+    await log(db, "update", "client", client.name)
+    await db.commit()
+    await db.refresh(client)
+    return client
+
+
+async def delete_client(db: AsyncSession, client: models.Client) -> None:
+    await log(db, "delete", "client", client.name)
+    await db.delete(client)
+    await db.commit()
+
+
 # --------------------------- Pools ----------------------------------------
 async def list_pools(db: AsyncSession) -> list[models.HomeServerPool]:
     res = await db.execute(

@@ -22,6 +22,11 @@ class Settings(BaseSettings):
     # /etc/raddb/proxy.conf (RHEL). In dev it stays local.
     proxy_conf_path: str = "./generated/proxy.conf"
 
+    # Where the rendered clients.conf is written (the request originators / NAS).
+    # On the FreeRADIUS host usually /etc/freeradius/3.0/clients.conf (Debian)
+    # or /etc/raddb/clients.conf (RHEL).
+    clients_conf_path: str = "./generated/clients.conf"
+
     # Command used to validate config before applying. `radiusd -XC` (or
     # `freeradius -XC`) does a dry-run parse and exits non-zero on error.
     # Leave empty to skip validation (e.g. when the panel runs off-host).

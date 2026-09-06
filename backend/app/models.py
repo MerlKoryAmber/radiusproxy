@@ -37,6 +37,12 @@ POOL_TYPES = (
 )
 # status_check strategies.
 STATUS_CHECK_TYPES = ("none", "status-server", "request")
+# clients.conf `nas_type` (affects status-check dictionary). "other" is safe.
+NAS_TYPES = ("other", "cisco", "juniper", "mikrotik", "aruba", "ruckus")
+# clients.conf `proto`.
+CLIENT_PROTOS = ("udp", "tcp", "*")
+# require_message_authenticator tri-state (RFC 5080 / BlastRADIUS mitigation).
+MESSAGE_AUTH_MODES = ("no", "yes", "auto")
 # How the incoming User-Name is normalised before the AD lookup.
 #   none          -> use User-Name as received
 #   strip_realm   -> "user@realm"  -> "user"
@@ -176,6 +182,40 @@ class Realm(Base):
     )
     acct_pool: Mapped[HomeServerPool | None] = relationship(
         foreign_keys=[acct_pool_id]
+    )
+
+
+class Client(Base):
+    """A RADIUS client (NAS) allowed to send requests to us — the "from whom".
+
+    Rendered into FreeRADIUS `clients.conf` as a `client <name> { ... }` block.
+    These are the request originators: VMware UAG, VPN servers, WiFi controllers.
+    A request from an IP with no matching client is dropped by FreeRADIUS.
+    The shared secret here is NAS<->proxy, separate from the home_server secret.
+    """
+
+    __tablename__ = "clients"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    # ipaddr accepts a single IPv4/IPv6 or a CIDR (e.g. 10.0.5.0/24).
+    ipaddr: Mapped[str] = mapped_column(String(64))
+    secret: Mapped[str] = mapped_column(String(256))
+    shortname: Mapped[str] = mapped_column(String(64), default="")
+    nas_type: Mapped[str] = mapped_column(String(24), default="other")
+    proto: Mapped[str] = mapped_column(String(4), default="udp")
+    require_message_authenticator: Mapped[str] = mapped_column(
+        String(4), default="auto"
+    )
+
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    note: Mapped[str] = mapped_column(Text, default="")
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
 

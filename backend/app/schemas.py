@@ -5,7 +5,10 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from .models import (
     AD_FAIL_MODES,
+    CLIENT_PROTOS,
     HOME_SERVER_TYPES,
+    MESSAGE_AUTH_MODES,
+    NAS_TYPES,
     POOL_TYPES,
     STATUS_CHECK_TYPES,
     USERNAME_NORMALIZATIONS,
@@ -138,6 +141,53 @@ class RealmOut(RealmBase):
     acct_pool_name: str | None = None
 
 
+# --------------------------- Clients (NAS) --------------------------------
+class ClientBase(BaseModel):
+    name: str = Field(pattern=_NAME_RE, max_length=64)
+    ipaddr: str = Field(min_length=1, max_length=64)  # IP or CIDR
+    secret: str = Field(min_length=1, max_length=256)
+    shortname: str = Field(default="", max_length=64)
+    nas_type: str = "other"
+    proto: str = "udp"
+    require_message_authenticator: str = "auto"
+    enabled: bool = True
+    note: str = ""
+
+    @field_validator("nas_type")
+    @classmethod
+    def _valid_nas(cls, v: str) -> str:
+        if v not in NAS_TYPES:
+            raise ValueError(f"nas_type must be one of {NAS_TYPES}")
+        return v
+
+    @field_validator("proto")
+    @classmethod
+    def _valid_proto(cls, v: str) -> str:
+        if v not in CLIENT_PROTOS:
+            raise ValueError(f"proto must be one of {CLIENT_PROTOS}")
+        return v
+
+    @field_validator("require_message_authenticator")
+    @classmethod
+    def _valid_msgauth(cls, v: str) -> str:
+        if v not in MESSAGE_AUTH_MODES:
+            raise ValueError(f"must be one of {MESSAGE_AUTH_MODES}")
+        return v
+
+
+class ClientCreate(ClientBase):
+    pass
+
+
+class ClientUpdate(ClientBase):
+    pass
+
+
+class ClientOut(ClientBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+
+
 # --------------------------- LDAP / AD ------------------------------------
 class LdapSettingsBase(BaseModel):
     enabled: bool = False
@@ -171,7 +221,7 @@ class ConfigPreview(BaseModel):
 
 
 class ApplyResponse(BaseModel):
-    written_path: str
+    written_paths: list[str]
     validated: bool
     validation_output: str
     reloaded: bool
