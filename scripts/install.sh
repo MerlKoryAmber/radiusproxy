@@ -93,7 +93,7 @@ clone_or_update() {
 wait_healthy() {
     log "waiting for the panel to come up…"
     for _ in $(seq 1 60); do
-        if curl -fsS -o /dev/null http://localhost:8080/ 2>/dev/null \
+        if curl -fsSk -o /dev/null https://localhost/ 2>/dev/null \
            && curl -fsS -o /dev/null http://localhost:8000/api/health 2>/dev/null; then
             return 0
         fi
@@ -103,9 +103,17 @@ wait_healthy() {
     return 1
 }
 
+write_env() {
+    # Host IPs shown read-only in the panel (the container can't see host NICs).
+    local addrs
+    addrs="$(hostname -I 2>/dev/null | tr ' ' ',' | sed 's/,$//')"
+    printf 'HOST_ADDRESSES=%s\n' "$addrs" > "$INSTALL_DIR/.env"
+}
+
 ensure_git
 ensure_docker
 clone_or_update
+write_env
 
 log "building and starting the stack (this can take a few minutes)…"
 docker compose -f "$INSTALL_DIR/docker-compose.yml" up -d --build
@@ -117,16 +125,17 @@ cat <<DONE
 
 $(printf '\033[1;32m[install] FreeRADIUS Proxy Panel is up.\033[0m')
 
-  Panel UI : http://${ip}:8080
+  Panel UI : https://${ip}   (self-signed cert — browser will warn; replace it in Settings → TLS)
   API      : http://${ip}:8000
   RADIUS   : ${ip}:1812/udp (auth), ${ip}:1813/udp (acct)
   Install  : ${INSTALL_DIR}
 
   Panel login is OFF by default (open). Default admin: admin / admin —
   change it (top-right user menu) and enable login in Settings before prod.
+  Restrict access by IP in Settings → Access if needed.
 
-  Firewall (if enabled): open 8080/tcp and 1812-1813/udp, e.g.
-    firewall-cmd --add-port=8080/tcp --add-port=1812-1813/udp --permanent && firewall-cmd --reload
+  Firewall (if enabled): open 80,443/tcp and 1812-1813/udp, e.g.
+    firewall-cmd --add-service=http --add-service=https --add-port=1812-1813/udp --permanent && firewall-cmd --reload
 
   Update    : sudo ${INSTALL_DIR}/scripts/update.sh
   Uninstall : sudo ${INSTALL_DIR}/scripts/uninstall.sh

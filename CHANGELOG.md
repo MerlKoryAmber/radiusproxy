@@ -5,6 +5,15 @@
 
 ## [Unreleased]
 
+### 2026-09-07 МСК (2)
+
+- **feat(ADR-0006):** **HTTPS** — self-signed cert из коробки (backend генерит в БД+том,
+  nginx `443 ssl` + `80→443`, авто-reload по inotify). **Замена сертификата** в Settings→TLS
+  (`/api/system/tls`, валидация, key шифруется). **Ограничение доступа по IP** (Settings→Access,
+  `ip_allowlist`, middleware на `/api`, loopback всегда). **Host read-only** (Settings→Host).
+  **Контейнеры без host-прокси** (`no_proxy=*`). **Dashboard** — сводка (`/api/dashboard`).
+  Порты наружу 80/443 (не 8080). install.sh: `.env HOST_ADDRESSES`, https-health, firewall 80/443.
+
 ### 2026-09-07 МСК
 
 - **feat(ops):** скрипты `scripts/install.sh` / `update.sh` / `uninstall.sh`. install

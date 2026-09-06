@@ -203,6 +203,33 @@ class AdGroupOut(BaseModel):
     dn: str
 
 
+# --------------------------- System / access ------------------------------
+class AccessSettingsIn(BaseModel):
+    ip_allowlist: str = Field(default="", max_length=8192)
+
+
+class AccessSettingsOut(BaseModel):
+    ip_allowlist: str = ""
+
+
+class TlsReplaceIn(BaseModel):
+    cert_pem: str = Field(min_length=1)
+    key_pem: str = Field(min_length=1)
+
+
+class TlsOut(BaseModel):
+    has_cert: bool = False
+    is_self_signed: bool = True
+    subject: str = ""
+    issuer: str = ""
+    not_after: str = ""
+
+
+class HostInfoOut(BaseModel):
+    hostname: str = ""
+    addresses: list[str] = []
+
+
 # --------------------------- LDAP / AD ------------------------------------
 class LdapSettingsBase(BaseModel):
     enabled: bool = False

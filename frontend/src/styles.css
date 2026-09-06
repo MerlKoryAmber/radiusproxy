@@ -197,6 +197,26 @@ a { color: var(--accent); }
 .settings-section legend + * { clear: both; }
 .field-hint { margin: 6px 0 0; font-size: 12px; color: var(--muted); line-height: 1.4; }
 
+/* ---- dashboard ---- */
+.cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; }
+.card {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow-sm);
+  display: flex; flex-direction: column; gap: 4px;
+}
+.card b { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; color: var(--text); }
+.card .muted { font-size: 12px; }
+.dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.dash-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.dash-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 13px; }
+.dash-row > span:first-child { color: var(--muted); }
+.section-heading { font-size: 15px; color: var(--text); }
+
+@media (max-width: 900px) {
+  .cards { grid-template-columns: repeat(2, 1fr); }
+  .dash-grid { grid-template-columns: 1fr; }
+}
+
 /* ---- sub-tabs (Settings) ---- */
 .subtabs { display: flex; gap: 4px; margin-bottom: 16px; }
 .subtab {

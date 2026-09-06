@@ -95,6 +95,25 @@ export const api = {
   decisions: {
     list: (params = "") => request(`/decisions${params}`),
   },
+  dashboard: {
+    get: () => request("/dashboard"),
+  },
+  system: {
+    getAccess: () => request("/system/access"),
+    setAccess: (ip_allowlist) =>
+      request("/system/access", {
+        method: "PUT",
+        body: JSON.stringify({ ip_allowlist }),
+      }),
+    getTls: () => request("/system/tls"),
+    replaceTls: (cert_pem, key_pem) =>
+      request("/system/tls", {
+        method: "PUT",
+        body: JSON.stringify({ cert_pem, key_pem }),
+      }),
+    regenTls: () => request("/system/tls/self-signed", { method: "POST" }),
+    host: () => request("/system/host"),
+  },
   auth: {
     status: () => request("/auth/status"),
     login: (username, password) =>
