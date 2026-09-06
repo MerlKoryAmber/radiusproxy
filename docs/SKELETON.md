@@ -4,7 +4,7 @@
 Обновлять **перед каждым push** (см. §22 CLAUDE.md). Читать после handoff и перед
 началом задачи. Если что-то тут расходится с кодом — код прав, а скелет чинить.
 
-**Обновлено:** 2026-09-06 МСК · ветка на момент правки: `feature/ldap-tls`
+**Обновлено:** 2026-09-06 МСК · ветка на момент правки: `feature/radius-stack`
 
 ---
 
@@ -13,14 +13,18 @@
 - Backend: FastAPI + SQLAlchemy 2.0 async + Pydantic 2. БД: Postgres 16 (asyncpg) /
   SQLite (aiosqlite) fallback. Схема — `Base.metadata.create_all` на старте (**нет Alembic**).
 - Frontend: React 18 + Vite 6, nginx. Fetch-обёртка `/api` → backend.
-- Деплой: `docker compose up -d --build` (db / backend :8000 / frontend :8080).
+- **FreeRADIUS 3.2 в backend-контейнере** (Debian bookworm) — панель пишет в реальный
+  `/etc/freeradius/3.0`, валидирует `freeradius -XC`, перезагружает
+  (`radius-reload.sh`). `entrypoint.sh` стартует FR (если конфиг валиден) + uvicorn.
+- Деплой: `docker compose up -d --build` (db / backend :8000+1812/1813udp / frontend :8080).
 
 ## Backend `backend/app/`
 
 | Файл | Роль |
 |------|------|
 | `main.py` | FastAPI app, lifespan → `init_models()`, CORS, include роутеров, `/api/health` |
-| `config.py` | `Settings` (env): `database_url`, `proxy_conf_path`, `clients_conf_path`, `ldap_conf_path`, `ldap_ca_path`, `radius_check_cmd`, `radius_reload_cmd`, `cors_origins`. `get_settings()` (lru_cache) |
+| `config.py` | `Settings` (env): `database_url`, `proxy_conf_path`, `clients_conf_path`, `ldap_conf_path`, `ldap_ca_path`, `radius_check_cmd`, `radius_reload_cmd`, `cors_origins`. В compose пути = реальный `/etc/freeradius/3.0/*`, check=`freeradius -XC`, reload=`radius-reload.sh`. `get_settings()` (lru_cache) |
+| `Dockerfile` / `entrypoint.sh` / `radius-reload.sh` | backend-образ = panel + FreeRADIUS 3.2 (+ ldap/postgresql/utils). Панель управляет локальным FR |
 | `database.py` | async engine, `SessionLocal`, `Base`, `get_db()`, `init_models()` (create_all) |
 | `models.py` | ORM-таблицы + константы-enum |
 | `schemas.py` | Pydantic in/out + валидаторы (зеркалят ограничения FR) |
