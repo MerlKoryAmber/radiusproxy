@@ -93,14 +93,14 @@ async def sync_all(db: AsyncSession) -> list[dict]:
     if not cfg or not cfg.enabled:
         return results
 
-    realms = (
+    wanted = (
         await db.execute(
-            select(models.Realm.required_ad_group)
-            .where(models.Realm.ad_group_check, models.Realm.enabled)
-            .where(models.Realm.required_ad_group != "")
+            select(models.Client.required_ad_group)
+            .where(models.Client.ad_group_check, models.Client.enabled)
+            .where(models.Client.required_ad_group != "")
         )
     ).scalars().all()
-    groups = sorted({g for g in realms if g})
+    groups = sorted({g for g in wanted if g})
 
     for group_dn in groups:
         row = (

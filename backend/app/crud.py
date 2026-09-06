@@ -27,53 +27,64 @@ async def log(
     )
 
 
-# --------------------------- Home servers ---------------------------------
-async def list_home_servers(db: AsyncSession) -> list[models.HomeServer]:
-    res = await db.execute(select(models.HomeServer).order_by(models.HomeServer.name))
+# --------------------------- Target servers -------------------------------
+async def list_target_servers(db: AsyncSession) -> list[models.TargetServer]:
+    res = await db.execute(
+        select(models.TargetServer).order_by(models.TargetServer.name)
+    )
     return list(res.scalars().all())
 
 
-async def get_home_server(db: AsyncSession, hs_id: int) -> models.HomeServer | None:
-    return await db.get(models.HomeServer, hs_id)
+async def get_target_server(db: AsyncSession, ts_id: int) -> models.TargetServer | None:
+    return await db.get(models.TargetServer, ts_id)
 
 
-async def create_home_server(
-    db: AsyncSession, data: schemas.HomeServerCreate
-) -> models.HomeServer:
-    hs = models.HomeServer(**data.model_dump())
-    db.add(hs)
+async def create_target_server(
+    db: AsyncSession, data: schemas.TargetServerCreate
+) -> models.TargetServer:
+    ts = models.TargetServer(**data.model_dump())
+    db.add(ts)
     await db.flush()
-    await log(db, "create", "home_server", hs.name)
+    await log(db, "create", "target_server", ts.name)
     await db.commit()
-    await db.refresh(hs)
-    return hs
+    await db.refresh(ts)
+    return ts
 
 
-async def update_home_server(
-    db: AsyncSession, hs: models.HomeServer, data: schemas.HomeServerUpdate
-) -> models.HomeServer:
+async def update_target_server(
+    db: AsyncSession, ts: models.TargetServer, data: schemas.TargetServerUpdate
+) -> models.TargetServer:
     for k, v in data.model_dump().items():
-        setattr(hs, k, v)
-    await log(db, "update", "home_server", hs.name)
+        setattr(ts, k, v)
+    await log(db, "update", "target_server", ts.name)
     await db.commit()
-    await db.refresh(hs)
-    return hs
+    await db.refresh(ts)
+    return ts
 
 
-async def delete_home_server(db: AsyncSession, hs: models.HomeServer) -> None:
-    await log(db, "delete", "home_server", hs.name)
-    await db.delete(hs)
+async def delete_target_server(db: AsyncSession, ts: models.TargetServer) -> None:
+    await log(db, "delete", "target_server", ts.name)
+    await db.delete(ts)
     await db.commit()
 
 
 # --------------------------- Clients (NAS) --------------------------------
 async def list_clients(db: AsyncSession) -> list[models.Client]:
-    res = await db.execute(select(models.Client).order_by(models.Client.name))
+    res = await db.execute(
+        select(models.Client)
+        .options(selectinload(models.Client.target_pool))
+        .order_by(models.Client.name)
+    )
     return list(res.scalars().all())
 
 
 async def get_client(db: AsyncSession, client_id: int) -> models.Client | None:
-    return await db.get(models.Client, client_id)
+    res = await db.execute(
+        select(models.Client)
+        .where(models.Client.id == client_id)
+        .options(selectinload(models.Client.target_pool))
+    )
+    return res.scalar_one_or_none()
 
 
 async def create_client(
@@ -84,8 +95,7 @@ async def create_client(
     await db.flush()
     await log(db, "create", "client", client.name)
     await db.commit()
-    await db.refresh(client)
-    return client
+    return await get_client(db, client.id)  # type: ignore[return-value]
 
 
 async def update_client(
@@ -95,8 +105,7 @@ async def update_client(
         setattr(client, k, v)
     await log(db, "update", "client", client.name)
     await db.commit()
-    await db.refresh(client)
-    return client
+    return await get_client(db, client.id)  # type: ignore[return-value]
 
 
 async def delete_client(db: AsyncSession, client: models.Client) -> None:
@@ -111,7 +120,7 @@ async def list_pools(db: AsyncSession) -> list[models.HomeServerPool]:
         select(models.HomeServerPool)
         .options(
             selectinload(models.HomeServerPool.members).selectinload(
-                models.PoolMember.home_server
+                models.PoolMember.target_server
             )
         )
         .order_by(models.HomeServerPool.name)
@@ -125,7 +134,7 @@ async def get_pool(db: AsyncSession, pool_id: int) -> models.HomeServerPool | No
         .where(models.HomeServerPool.id == pool_id)
         .options(
             selectinload(models.HomeServerPool.members).selectinload(
-                models.PoolMember.home_server
+                models.PoolMember.target_server
             )
         )
     )
@@ -138,10 +147,10 @@ async def _set_members(
     await db.execute(
         delete(models.PoolMember).where(models.PoolMember.pool_id == pool.id)
     )
-    for position, hs_id in enumerate(member_ids):
+    for position, ts_id in enumerate(member_ids):
         db.add(
             models.PoolMember(
-                pool_id=pool.id, home_server_id=hs_id, position=position
+                pool_id=pool.id, target_server_id=ts_id, position=position
             )
         )
 
@@ -177,56 +186,6 @@ async def update_pool(
 async def delete_pool(db: AsyncSession, pool: models.HomeServerPool) -> None:
     await log(db, "delete", "pool", pool.name)
     await db.delete(pool)
-    await db.commit()
-
-
-# --------------------------- Realms ---------------------------------------
-async def list_realms(db: AsyncSession) -> list[models.Realm]:
-    res = await db.execute(
-        select(models.Realm)
-        .options(
-            selectinload(models.Realm.auth_pool),
-            selectinload(models.Realm.acct_pool),
-        )
-        .order_by(models.Realm.name)
-    )
-    return list(res.scalars().all())
-
-
-async def get_realm(db: AsyncSession, realm_id: int) -> models.Realm | None:
-    res = await db.execute(
-        select(models.Realm)
-        .where(models.Realm.id == realm_id)
-        .options(
-            selectinload(models.Realm.auth_pool),
-            selectinload(models.Realm.acct_pool),
-        )
-    )
-    return res.scalar_one_or_none()
-
-
-async def create_realm(db: AsyncSession, data: schemas.RealmCreate) -> models.Realm:
-    realm = models.Realm(**data.model_dump())
-    db.add(realm)
-    await db.flush()
-    await log(db, "create", "realm", realm.name)
-    await db.commit()
-    return await get_realm(db, realm.id)  # type: ignore[return-value]
-
-
-async def update_realm(
-    db: AsyncSession, realm: models.Realm, data: schemas.RealmUpdate
-) -> models.Realm:
-    for k, v in data.model_dump().items():
-        setattr(realm, k, v)
-    await log(db, "update", "realm", realm.name)
-    await db.commit()
-    return await get_realm(db, realm.id)  # type: ignore[return-value]
-
-
-async def delete_realm(db: AsyncSession, realm: models.Realm) -> None:
-    await log(db, "delete", "realm", realm.name)
-    await db.delete(realm)
     await db.commit()
 
 

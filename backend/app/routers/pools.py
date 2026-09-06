@@ -17,9 +17,9 @@ def _serialize(pool: models.HomeServerPool) -> schemas.PoolOut:
         note=pool.note,
         members=[
             schemas.PoolMemberOut(
-                home_server_id=m.home_server_id,
+                target_server_id=m.target_server_id,
                 position=m.position,
-                name=m.home_server.name,
+                name=m.target_server.name,
             )
             for m in members
         ],

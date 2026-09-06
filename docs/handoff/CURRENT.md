@@ -54,6 +54,9 @@ FreeRADIUS Proxy Panel (`radiusproxy`) — веб-панель управлен�
    **хвост:** реальная запись строк требует RADIUS-трафика (radclient/NAS) — не проверено без него.
 6. Экран авторизации панели (флаг off) — готово, `feature/logs-auth`. seed admin/admin,
    pbkdf2+hmac-токен. **Прод:** сменить пароль + JWT_SECRET (env) до включения.
+7. **Маршрут по клиенту (ADR-0003)** — готово, `feature/routing-by-client`: Home→Target server,
+   Client→target_pool + AD-гейт на клиенте, Realm удалён (генерится per-pool), топбар/юзер-меню.
+   Хвост: реальный AD/трафик по-прежнему не проверены (нет AD/NAS).
 
 **Решения по куску 4 (2026-09-06):** вариант A (policy.d + include); source-IP per-client;
 группы синкать раз ~30 мин в панель и сравнивать локально (не per-packet AD); FR ставится

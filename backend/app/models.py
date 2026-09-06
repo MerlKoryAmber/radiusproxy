@@ -5,9 +5,10 @@ These tables are the panel's *own* store. They are rendered into a FreeRADIUS
 proxying — it reads the generated file.
 
 Mapping to proxy.conf:
-    HomeServer      -> home_server { ... }
+    TargetServer    -> home_server { ... }   (FR syntax keeps "home_server")
     HomeServerPool  -> home_server_pool { ... }  (ordered members)
-    Realm           -> realm { ... }
+    (realm blocks are auto-generated per pool for proxying; routing is chosen
+     per Client, not by User-Name — see ADR-0003)
 """
 from datetime import datetime
 
@@ -25,8 +26,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .database import Base
 
-# FreeRADIUS home_server "type" values we expose.
-HOME_SERVER_TYPES = ("auth", "acct", "auth+acct", "coa")
+# FreeRADIUS home_server "type" values we expose (target servers).
+TARGET_SERVER_TYPES = ("auth", "acct", "auth+acct", "coa")
 # home_server_pool "type" (load-balancing strategy) values.
 POOL_TYPES = (
     "fail-over",
@@ -54,8 +55,11 @@ AD_FAIL_MODES = ("open", "closed")
 TLS_REQUIRE_CERT = ("never", "allow", "try", "demand", "hard")
 
 
-class HomeServer(Base):
-    __tablename__ = "home_servers"
+class TargetServer(Base):
+    """An upstream RADIUS server we proxy to. Rendered as `home_server {}` in
+    proxy.conf (FR syntax). UI/domain name: "target server" (ADR-0003)."""
+
+    __tablename__ = "target_servers"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     # `name` becomes the identifier in `home_server <name> { }`.
@@ -86,7 +90,7 @@ class HomeServer(Base):
     )
 
     memberships: Mapped[list["PoolMember"]] = relationship(
-        back_populates="home_server", cascade="all, delete-orphan"
+        back_populates="target_server", cascade="all, delete-orphan"
     )
 
 
@@ -121,70 +125,20 @@ class PoolMember(Base):
 
     __tablename__ = "pool_members"
     __table_args__ = (
-        UniqueConstraint("pool_id", "home_server_id", name="uq_pool_member"),
+        UniqueConstraint("pool_id", "target_server_id", name="uq_pool_member"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     pool_id: Mapped[int] = mapped_column(
         ForeignKey("home_server_pools.id", ondelete="CASCADE")
     )
-    home_server_id: Mapped[int] = mapped_column(
-        ForeignKey("home_servers.id", ondelete="CASCADE")
+    target_server_id: Mapped[int] = mapped_column(
+        ForeignKey("target_servers.id", ondelete="CASCADE")
     )
     position: Mapped[int] = mapped_column(Integer, default=0)
 
     pool: Mapped[HomeServerPool] = relationship(back_populates="members")
-    home_server: Mapped[HomeServer] = relationship(back_populates="memberships")
-
-
-class Realm(Base):
-    __tablename__ = "realms"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    # `name` is the realm suffix, e.g. "example.com" or DEFAULT / NULL.
-    name: Mapped[str] = mapped_column(String(128), unique=True, index=True)
-
-    # A realm points at a pool for auth and/or acct. When acct_pool is null
-    # and auth_pool is set, we render a single `pool = <auth_pool>`.
-    auth_pool_id: Mapped[int | None] = mapped_column(
-        ForeignKey("home_server_pools.id", ondelete="SET NULL"), nullable=True
-    )
-    acct_pool_id: Mapped[int | None] = mapped_column(
-        ForeignKey("home_server_pools.id", ondelete="SET NULL"), nullable=True
-    )
-
-    # If true, keep the realm suffix on the User-Name when proxying.
-    nostrip: Mapped[bool] = mapped_column(Boolean, default=False)
-
-    # --- AD group gate (ADR-0001) -----------------------------------------
-    # When ad_group_check is on, the proxy checks that the request's user is a
-    # member of `required_ad_group` in AD *before* proxying this realm. The
-    # group is per realm. Uses the global LdapSettings connection.
-    ad_group_check: Mapped[bool] = mapped_column(Boolean, default=False)
-    required_ad_group: Mapped[str] = mapped_column(String(512), default="")
-    username_normalization: Mapped[str] = mapped_column(
-        String(24), default="none"
-    )
-    # Per-realm override of the AD-unreachable behaviour. "open" = proxy anyway
-    # (default, ADR-0001), "closed" = reject when AD is down.
-    ad_fail_mode: Mapped[str] = mapped_column(String(8), default="open")
-
-    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
-    note: Mapped[str] = mapped_column(Text, default="")
-
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
-
-    auth_pool: Mapped[HomeServerPool | None] = relationship(
-        foreign_keys=[auth_pool_id]
-    )
-    acct_pool: Mapped[HomeServerPool | None] = relationship(
-        foreign_keys=[acct_pool_id]
-    )
+    target_server: Mapped[TargetServer] = relationship(back_populates="memberships")
 
 
 class Client(Base):
@@ -214,6 +168,21 @@ class Client(Base):
     # as a custom client{} field read by policy.d/radiuspanel (%{client:...}).
     preserve_source_ip: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    # --- Routing (ADR-0003): request from THIS client -> this target pool ----
+    # Proxying is chosen by client, not by User-Name. The panel sets
+    # Proxy-To-Realm to this pool's auto-generated realm.
+    target_pool_id: Mapped[int | None] = mapped_column(
+        ForeignKey("home_server_pools.id", ondelete="SET NULL"), nullable=True
+    )
+
+    # --- AD group gate (per client, ADR-0003) -----------------------------
+    # Before proxying this client's requests, require the user to belong to
+    # `required_ad_group` (checked against the locally-synced list).
+    ad_group_check: Mapped[bool] = mapped_column(Boolean, default=False)
+    required_ad_group: Mapped[str] = mapped_column(String(512), default="")
+    username_normalization: Mapped[str] = mapped_column(String(24), default="none")
+    ad_fail_mode: Mapped[str] = mapped_column(String(8), default="open")
+
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     note: Mapped[str] = mapped_column(Text, default="")
 
@@ -222,6 +191,10 @@ class Client(Base):
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    target_pool: Mapped["HomeServerPool | None"] = relationship(
+        foreign_keys=[target_pool_id]
     )
 
 

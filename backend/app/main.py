@@ -14,10 +14,9 @@ from .routers import (
     clients,
     config,
     decisions,
-    home_servers,
     ldap,
     pools,
-    realms,
+    targets,
 )
 from fastapi import Depends
 
@@ -91,9 +90,8 @@ app.include_router(auth.router)  # open (login/status)
 # All data/config routers require a valid token when auth is enabled.
 _guard = [Depends(auth_mod.require_user)]
 app.include_router(clients.router, dependencies=_guard)
-app.include_router(home_servers.router, dependencies=_guard)
+app.include_router(targets.router, dependencies=_guard)
 app.include_router(pools.router, dependencies=_guard)
-app.include_router(realms.router, dependencies=_guard)
 app.include_router(ldap.router, dependencies=_guard)
 app.include_router(decisions.router, dependencies=_guard)
 app.include_router(config.router, dependencies=_guard)

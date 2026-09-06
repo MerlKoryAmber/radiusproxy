@@ -6,11 +6,11 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from .models import (
     AD_FAIL_MODES,
     CLIENT_PROTOS,
-    HOME_SERVER_TYPES,
     MESSAGE_AUTH_MODES,
     NAS_TYPES,
     POOL_TYPES,
     STATUS_CHECK_TYPES,
+    TARGET_SERVER_TYPES,
     TLS_REQUIRE_CERT,
     USERNAME_NORMALIZATIONS,
 )
@@ -18,8 +18,8 @@ from .models import (
 _NAME_RE = r"^[A-Za-z0-9_.\-]+$"
 
 
-# --------------------------- Home servers ---------------------------------
-class HomeServerBase(BaseModel):
+# --------------------------- Target servers -------------------------------
+class TargetServerBase(BaseModel):
     name: str = Field(pattern=_NAME_RE, max_length=64)
     type: str = "auth"
     ipaddr: str = Field(max_length=128)
@@ -37,8 +37,8 @@ class HomeServerBase(BaseModel):
     @field_validator("type")
     @classmethod
     def _valid_type(cls, v: str) -> str:
-        if v not in HOME_SERVER_TYPES:
-            raise ValueError(f"type must be one of {HOME_SERVER_TYPES}")
+        if v not in TARGET_SERVER_TYPES:
+            raise ValueError(f"type must be one of {TARGET_SERVER_TYPES}")
         return v
 
     @field_validator("status_check")
@@ -49,15 +49,15 @@ class HomeServerBase(BaseModel):
         return v
 
 
-class HomeServerCreate(HomeServerBase):
+class TargetServerCreate(TargetServerBase):
     pass
 
 
-class HomeServerUpdate(HomeServerBase):
+class TargetServerUpdate(TargetServerBase):
     pass
 
 
-class HomeServerOut(HomeServerBase):
+class TargetServerOut(TargetServerBase):
     model_config = ConfigDict(from_attributes=True)
     id: int
 
@@ -78,7 +78,7 @@ class PoolBase(BaseModel):
 
 
 class PoolCreate(PoolBase):
-    # Ordered list of home_server ids that make up the pool.
+    # Ordered list of target server ids that make up the pool.
     member_ids: list[int] = []
 
 
@@ -88,7 +88,7 @@ class PoolUpdate(PoolBase):
 
 class PoolMemberOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    home_server_id: int
+    target_server_id: int
     position: int
     name: str
 
@@ -97,49 +97,6 @@ class PoolOut(PoolBase):
     model_config = ConfigDict(from_attributes=True)
     id: int
     members: list[PoolMemberOut] = []
-
-
-# --------------------------- Realms ---------------------------------------
-class RealmBase(BaseModel):
-    name: str = Field(pattern=_NAME_RE, max_length=128)
-    auth_pool_id: int | None = None
-    acct_pool_id: int | None = None
-    nostrip: bool = False
-    ad_group_check: bool = False
-    required_ad_group: str = Field(default="", max_length=512)
-    username_normalization: str = "none"
-    ad_fail_mode: str = "open"
-    enabled: bool = True
-    note: str = ""
-
-    @field_validator("username_normalization")
-    @classmethod
-    def _valid_norm(cls, v: str) -> str:
-        if v not in USERNAME_NORMALIZATIONS:
-            raise ValueError(f"must be one of {USERNAME_NORMALIZATIONS}")
-        return v
-
-    @field_validator("ad_fail_mode")
-    @classmethod
-    def _valid_fail(cls, v: str) -> str:
-        if v not in AD_FAIL_MODES:
-            raise ValueError(f"must be one of {AD_FAIL_MODES}")
-        return v
-
-
-class RealmCreate(RealmBase):
-    pass
-
-
-class RealmUpdate(RealmBase):
-    pass
-
-
-class RealmOut(RealmBase):
-    model_config = ConfigDict(from_attributes=True)
-    id: int
-    auth_pool_name: str | None = None
-    acct_pool_name: str | None = None
 
 
 # --------------------------- Clients (NAS) --------------------------------
@@ -152,6 +109,13 @@ class ClientBase(BaseModel):
     proto: str = "udp"
     require_message_authenticator: str = "auto"
     preserve_source_ip: bool = False
+    # Routing: requests from this client are proxied to this target pool.
+    target_pool_id: int | None = None
+    # AD group gate (per client).
+    ad_group_check: bool = False
+    required_ad_group: str = Field(default="", max_length=512)
+    username_normalization: str = "none"
+    ad_fail_mode: str = "open"
     enabled: bool = True
     note: str = ""
 
@@ -176,6 +140,20 @@ class ClientBase(BaseModel):
             raise ValueError(f"must be one of {MESSAGE_AUTH_MODES}")
         return v
 
+    @field_validator("username_normalization")
+    @classmethod
+    def _valid_norm(cls, v: str) -> str:
+        if v not in USERNAME_NORMALIZATIONS:
+            raise ValueError(f"must be one of {USERNAME_NORMALIZATIONS}")
+        return v
+
+    @field_validator("ad_fail_mode")
+    @classmethod
+    def _valid_fail(cls, v: str) -> str:
+        if v not in AD_FAIL_MODES:
+            raise ValueError(f"must be one of {AD_FAIL_MODES}")
+        return v
+
 
 class ClientCreate(ClientBase):
     pass
@@ -188,6 +166,7 @@ class ClientUpdate(ClientBase):
 class ClientOut(ClientBase):
     model_config = ConfigDict(from_attributes=True)
     id: int
+    target_pool_name: str | None = None
 
 
 # --------------------------- LDAP / AD ------------------------------------

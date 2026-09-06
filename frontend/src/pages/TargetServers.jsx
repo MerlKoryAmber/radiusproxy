@@ -18,14 +18,14 @@ const BLANK = {
   note: "",
 };
 
-export default function HomeServers({ notify, onChange }) {
+export default function TargetServers({ notify, onChange }) {
   const [rows, setRows] = useState(null);
   const [editing, setEditing] = useState(null); // object or null
   const [form, setForm] = useState(BLANK);
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
-    setRows(await api.homeServers.list());
+    setRows(await api.targetServers.list());
   };
   useEffect(() => {
     load();
@@ -54,11 +54,11 @@ export default function HomeServers({ notify, onChange }) {
     setSaving(true);
     try {
       if (editing.id) {
-        await api.homeServers.update(editing.id, form);
-        notify(`Home server ${form.name} updated`);
+        await api.targetServers.update(editing.id, form);
+        notify(`Target server ${form.name} updated`);
       } else {
-        await api.homeServers.create(form);
-        notify(`Home server ${form.name} created`);
+        await api.targetServers.create(form);
+        notify(`Target server ${form.name} created`);
       }
       setEditing(null);
       await load();
@@ -71,10 +71,10 @@ export default function HomeServers({ notify, onChange }) {
   };
 
   const remove = async (r) => {
-    if (!confirm(`Delete home server "${r.name}"?`)) return;
+    if (!confirm(`Delete target server "${r.name}"?`)) return;
     try {
-      await api.homeServers.remove(r.id);
-      notify(`Home server ${r.name} deleted`);
+      await api.targetServers.remove(r.id);
+      notify(`Target server ${r.name} deleted`);
       await load();
       onChange?.();
     } catch (e) {
@@ -88,14 +88,14 @@ export default function HomeServers({ notify, onChange }) {
     <>
       <div className="page-head">
         <div>
-          <h1>Home servers</h1>
+          <h1>Target servers</h1>
           <p>
             Upstream RADIUS servers requests are proxied to. Each becomes a{" "}
             <span className="mono">home_server</span> block.
           </p>
         </div>
         <button className="btn primary" onClick={openNew}>
-          Add home server
+          Add target server
         </button>
       </div>
 
@@ -103,11 +103,11 @@ export default function HomeServers({ notify, onChange }) {
         <Empty
           action={
             <button className="btn primary" onClick={openNew}>
-              Add home server
+              Add target server
             </button>
           }
         >
-          No home servers yet. Add the upstream servers you want to proxy to.
+          No target servers yet. Add the upstream servers you want to proxy to.
         </Empty>
       ) : (
         <div className="table-wrap">
@@ -154,7 +154,7 @@ export default function HomeServers({ notify, onChange }) {
 
       {editing && (
         <Modal
-          title={editing.id ? `Edit ${editing.name}` : "Add home server"}
+          title={editing.id ? `Edit ${editing.name}` : "Add target server"}
           onClose={() => setEditing(null)}
         >
           <div className="grid-2">
