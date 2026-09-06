@@ -28,6 +28,7 @@ from .models import (
     HomeServerPool,
     LdapSettings,
     PoolMember,
+    Rule,
     TargetServer,
 )
 
@@ -193,12 +194,9 @@ def render_client(c: Client) -> str:
         f"{INDENT}require_message_authenticator = "
         f"{c.require_message_authenticator}"
     )
-    # Custom fields read by policy.d/radiuspanel via %{client:...}.
+    # Custom field read by policy.d/radiuspanel via %{client:preserve_source_ip}.
     if c.preserve_source_ip:
         lines.append(f"{INDENT}preserve_source_ip = yes")
-    # Routing: which pool's realm this client proxies to (radiuspanel_route).
-    if c.target_pool is not None:
-        lines.append(f"{INDENT}target_pool = {c.target_pool.name}")
     lines.append("}")
     return "\n".join(lines)
 
@@ -206,10 +204,7 @@ def render_client(c: Client) -> str:
 async def render_clients_conf(db: AsyncSession) -> str:
     rows = (
         await db.execute(
-            select(Client)
-            .where(Client.enabled)
-            .options(selectinload(Client.target_pool))
-            .order_by(Client.name)
+            select(Client).where(Client.enabled).order_by(Client.name)
         )
     ).scalars().all()
     parts = [CLIENTS_HEADER.format(ts=datetime.now(timezone.utc).isoformat())]
@@ -229,9 +224,9 @@ POLICY_HEADER = """#
 # DO NOT EDIT BY HAND. Overwritten on the next apply.
 # Target: FreeRADIUS 3.2.x. Named policies for the panel. Wire them into your
 # virtual server ONCE (they are not called automatically):
-#   authorize {{ ... radiuspanel_route radiuspanel_adgate ... }}
+#   authorize {{ ... radiuspanel_route ... }}   (ordered rules: route + AD gate)
 #   pre-proxy {{ ... radiuspanel_srcip ... }}
-#   post-auth {{ ... radiuspanel_log ... }}   (also in Post-Auth-Type REJECT)
+#   post-auth {{ ... radiuspanel_log ... }}     (also in Post-Auth-Type REJECT)
 #
 """
 
@@ -241,8 +236,8 @@ SQL_HEADER = """#
 # Generated: {ts}
 #
 # DO NOT EDIT BY HAND. Overwritten on the next apply.
-# Points at the panel's own Postgres. Used only by radiuspanel_adgate via the
-# %{{sql:...}} xlat to check locally-synced AD group membership (ADR-0002).
+# Points at the panel's own Postgres. Used by radiuspanel_route (AD gate) and
+# radiuspanel_log via the %{{sql:...}} xlat (ADR-0002/0004).
 #
 """
 
@@ -285,73 +280,126 @@ def _normalized_username(mode: str) -> str:
     return "%{tolower:%{User-Name}}"
 
 
-def _render_adgate_client(client: Client) -> str:
-    g = _sql_lit(client.required_ad_group)
-    i = INDENT
-    norm = _normalized_username(client.username_normalization)
-    sn = client.shortname or client.name
-    lines = [f'{i}if (&Client-Shortname == "{sn}") {{']
-    if client.username_normalization == "strip_ntdomain":
-        lines.append(f'{i}{i}if (&User-Name =~ /^[^\\\\]*\\\\(.+)$/) {{ }}')
-    lines.append(f'{i}{i}update request {{ &Tmp-String-0 := "{norm}" }}')
-    # Injection guard: only expected username characters reach the sql xlat.
-    lines.append(f"{i}{i}if (&Tmp-String-0 !~ /^[a-z0-9._@-]+$/) {{")
-    lines.append(f"{i}{i}{i}reject")
-    lines.append(f"{i}{i}}}")
+def _wildcard_to_regex(pattern: str) -> str:
+    """Glob → anchored regex. `*` becomes `.*`; everything else is escaped."""
+    out = []
+    for ch in pattern:
+        if ch == "*":
+            out.append(".*")
+        elif ch in ".^$+?()[]{}|\\/":
+            out.append("\\" + ch)
+        else:
+            out.append(ch)
+    return "^" + "".join(out) + "$"
+
+
+def _render_gate_body(rule: Rule, depth: int) -> list[str]:
+    """AD group gate lines for a rule (inside its if-block). Keyed by the group
+    DN; sets &Tmp-String-1 to the result for the decision log."""
+    g = _sql_lit(rule.required_ad_group_dn)
+    i = INDENT * depth
+    norm = _normalized_username(rule.username_normalization)
+    lines = []
+    if rule.username_normalization == "strip_ntdomain":
+        lines.append(f'{i}if (&User-Name =~ /^[^\\\\]*\\\\(.+)$/) {{ }}')
+    lines.append(f'{i}update request {{ &Tmp-String-0 := "{norm}" }}')
+    lines.append(f"{i}if (&Tmp-String-0 !~ /^[a-z0-9._@-]+$/) {{")
+    lines.append(f'{i}{INDENT}update request {{ &Tmp-String-1 := "reject-baduser" }}')
+    lines.append(f"{i}{INDENT}reject")
+    lines.append(f"{i}}}")
     member_q = (
         "%{sql:SELECT 1 FROM ad_group_member WHERE group_dn='" + g
         + "' AND username='%{Tmp-String-0}' LIMIT 1}"
     )
     status_q = "%{sql:SELECT status FROM ad_group_sync WHERE group_dn='" + g + "'}"
-    # &Tmp-String-1 carries the gate result for the decision log (radiuspanel_log).
-    lines.append(f'{i}{i}if ("{member_q}" == "1") {{')
-    lines.append(f'{i}{i}{i}update request {{ &Tmp-String-1 := "pass" }}')
-    lines.append(f"{i}{i}}}")
-    lines.append(f"{i}{i}else {{")
-    lines.append(f'{i}{i}{i}# not in the locally-synced member list')
-    lines.append(f'{i}{i}{i}if ("{status_q}" == "ok") {{')
-    lines.append(f'{i}{i}{i}{i}update request {{ &Tmp-String-1 := "reject" }}')
-    lines.append(f"{i}{i}{i}{i}reject")
-    lines.append(f"{i}{i}{i}}}")
-    if client.ad_fail_mode == "closed":
-        lines.append(f"{i}{i}{i}else {{")
-        lines.append(f"{i}{i}{i}{i}# fail-closed: no valid sync -> deny")
-        lines.append(f'{i}{i}{i}{i}update request {{ &Tmp-String-1 := "reject-failclosed" }}')
-        lines.append(f"{i}{i}{i}{i}reject")
-        lines.append(f"{i}{i}{i}}}")
-    else:
-        lines.append(f"{i}{i}{i}else {{")
-        lines.append(f"{i}{i}{i}{i}# fail-open: no valid sync -> allow (ADR-0002)")
-        lines.append(f'{i}{i}{i}{i}update request {{ &Tmp-String-1 := "skip-faildopen" }}')
-        lines.append(f"{i}{i}{i}}}")
-    lines.append(f"{i}{i}}}")
+    lines.append(f'{i}if ("{member_q}" == "1") {{')
+    lines.append(f'{i}{INDENT}update request {{ &Tmp-String-1 := "pass" }}')
     lines.append(f"{i}}}")
-    return "\n".join(lines)
+    lines.append(f"{i}else {{")
+    lines.append(f'{i}{INDENT}if ("{status_q}" == "ok") {{')
+    lines.append(f'{i}{INDENT*2}update request {{ &Tmp-String-1 := "reject" }}')
+    lines.append(f"{i}{INDENT*2}reject")
+    lines.append(f"{i}{INDENT}}}")
+    if rule.ad_fail_mode == "closed":
+        lines.append(f"{i}{INDENT}else {{")
+        lines.append(f'{i}{INDENT*2}update request {{ &Tmp-String-1 := "reject-failclosed" }}')
+        lines.append(f"{i}{INDENT*2}reject")
+        lines.append(f"{i}{INDENT}}}")
+    else:
+        lines.append(f"{i}{INDENT}else {{")
+        lines.append(f'{i}{INDENT*2}update request {{ &Tmp-String-1 := "skip-faildopen" }}')
+        lines.append(f"{i}{INDENT}}}")
+    lines.append(f"{i}}}")
+    return lines
+
+
+def _render_rule(rule: Rule, first: bool) -> list[str]:
+    """One rule as an if/elsif block: match client [+ username], route to pool,
+    run the AD gate. First-match-wins via the elsif chain (ADR-0004)."""
+    i = INDENT
+    kw = "if" if first else "elsif"
+    sn = (rule.client.shortname or rule.client.name) if rule.client else ""
+    cond = f'&Client-Shortname == "{sn}"'
+    if rule.match_username:
+        cond += f' && &User-Name =~ /{_wildcard_to_regex(rule.match_username)}/i'
+    lines = [f"{i}{kw} ({cond}) {{"]
+    lines.append(f'{i}{i}# rule: {rule.name or ("#" + str(rule.id))}')
+    if rule.target_pool is not None:
+        lines.append(f"{i}{i}update control {{")
+        lines.append(f'{i}{i}{i}&Proxy-To-Realm := "{rule.target_pool.name}"')
+        lines.append(f"{i}{i}}}")
+    else:
+        lines.append(f'{i}{i}update request {{ &Tmp-String-1 := "reject-nopool" }}')
+        lines.append(f"{i}{i}reject")
+        lines.append(f"{i}}}")
+        return lines
+    if rule.ad_group_check and rule.required_ad_group_dn:
+        lines += _render_gate_body(rule, 2)
+    else:
+        lines.append(f'{i}{i}update request {{ &Tmp-String-1 := "pass" }}')
+    lines.append(f"{i}}}")
+    return lines
 
 
 async def render_policy_conf(db: AsyncSession) -> str:
     """Render policy.d/radiuspanel — named unlang policies.
 
-    radiuspanel_srcip: preserve originator IP for proxied requests (per-client,
-    keyed on the client's preserve_source_ip flag). Runs in pre-proxy.
-    radiuspanel_adgate: AD group gate per realm — checks the locally-synced
-    membership (ad_group_member) via the sql xlat; on no-valid-sync it honours
-    the realm's fail mode (ADR-0002).
+    radiuspanel_route: ordered rules (ADR-0004) — first match by client [+
+    username wildcard] routes to its pool and runs the AD gate (sql membership
+    + fail mode). No match -> reject.
+    radiuspanel_srcip: preserve originator IP (per-client). radiuspanel_log:
+    decision row into proxy_decision.
     """
     parts = [POLICY_HEADER.format(ts=datetime.now(timezone.utc).isoformat())]
 
-    # Routing by client (ADR-0003): set Proxy-To-Realm from the client's pool.
-    # Call radiuspanel_route in authorize. User-Name plays no part in routing.
-    parts.append(
-        "radiuspanel_route {\n"
-        f"{INDENT}# Route this client's request to its target pool.\n"
-        f'{INDENT}if ("%{{client:target_pool}}") {{\n'
-        f"{INDENT}{INDENT}update control {{\n"
-        f'{INDENT}{INDENT}{INDENT}&Proxy-To-Realm := "%{{client:target_pool}}"\n'
-        f"{INDENT}{INDENT}}}\n"
-        f"{INDENT}}}\n"
-        "}\n"
-    )
+    # Ordered rules (ADR-0004): first match wins. Each rule matches a client
+    # (optionally + a username wildcard), routes to its pool and runs the AD
+    # gate. Call radiuspanel_route in authorize. No match -> reject.
+    rules = (
+        await db.execute(
+            select(Rule)
+            .where(Rule.enabled)
+            .options(selectinload(Rule.client), selectinload(Rule.target_pool))
+            .order_by(Rule.position)
+        )
+    ).scalars().all()
+    rules = [r for r in rules if r.client and r.client.enabled]
+
+    route_body: list[str] = []
+    if not rules:
+        route_body.append(f"{INDENT}# no rules — nothing is proxied")
+        route_body.append(f'{INDENT}update request {{ &Tmp-String-1 := "no-rule" }}')
+        route_body.append(f"{INDENT}reject")
+    else:
+        for idx, rule in enumerate(rules):
+            route_body += _render_rule(rule, first=(idx == 0))
+        route_body.append(f"{INDENT}else {{")
+        route_body.append(
+            f'{INDENT}{INDENT}update request {{ &Tmp-String-1 := "no-rule" }}'
+        )
+        route_body.append(f"{INDENT}{INDENT}reject")
+        route_body.append(f"{INDENT}}}")
+    parts.append("radiuspanel_route {\n" + "\n".join(route_body) + "\n}\n")
 
     parts.append(
         "radiuspanel_srcip {\n"
@@ -366,22 +414,6 @@ async def render_policy_conf(db: AsyncSession) -> str:
         f"{INDENT}}}\n"
         "}\n"
     )
-
-    gated = (
-        await db.execute(
-            select(Client)
-            .where(Client.ad_group_check, Client.enabled, Client.required_ad_group != "")
-            .order_by(Client.name)
-        )
-    ).scalars().all()
-
-    body = [f"{INDENT}# AD group gate per client — locally-synced membership (ADR-0002/3)"]
-    if not gated:
-        body.append(f"{INDENT}noop")
-    else:
-        for client in gated:
-            body.append(_render_adgate_client(client))
-    parts.append("radiuspanel_adgate {\n" + "\n".join(body) + "\n}\n")
 
     # Decision log — one row per request into proxy_decision (panel reads it).
     # Wire radiuspanel_log into post-auth AND Post-Auth-Type REJECT of your site.

@@ -60,6 +60,16 @@ export const api = {
       request(`/clients/${id}`, { method: "PUT", body: JSON.stringify(body) }),
     remove: (id) => request(`/clients/${id}`, { method: "DELETE" }),
   },
+  rules: {
+    list: () => request("/rules"),
+    create: (body) =>
+      request("/rules", { method: "POST", body: JSON.stringify(body) }),
+    update: (id, body) =>
+      request(`/rules/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+    remove: (id) => request(`/rules/${id}`, { method: "DELETE" }),
+    reorder: (ids) =>
+      request("/rules/reorder", { method: "POST", body: JSON.stringify({ ids }) }),
+  },
   pools: {
     list: () => request("/pools"),
     create: (body) =>
@@ -75,6 +85,7 @@ export const api = {
     previewUrl: "/api/ldap/preview.conf",
     syncStatus: () => request("/ldap/sync"),
     syncNow: () => request("/ldap/sync", { method: "POST" }),
+    groups: (q) => request(`/ldap/groups?q=${encodeURIComponent(q || "")}`),
   },
   config: {
     preview: () => request("/config/preview"),

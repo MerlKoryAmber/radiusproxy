@@ -109,13 +109,6 @@ class ClientBase(BaseModel):
     proto: str = "udp"
     require_message_authenticator: str = "auto"
     preserve_source_ip: bool = False
-    # Routing: requests from this client are proxied to this target pool.
-    target_pool_id: int | None = None
-    # AD group gate (per client).
-    ad_group_check: bool = False
-    required_ad_group: str = Field(default="", max_length=512)
-    username_normalization: str = "none"
-    ad_fail_mode: str = "open"
     enabled: bool = True
     note: str = ""
 
@@ -140,6 +133,34 @@ class ClientBase(BaseModel):
             raise ValueError(f"must be one of {MESSAGE_AUTH_MODES}")
         return v
 
+
+class ClientCreate(ClientBase):
+    pass
+
+
+class ClientUpdate(ClientBase):
+    pass
+
+
+class ClientOut(ClientBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+
+
+# --------------------------- Rules (routing) ------------------------------
+class RuleBase(BaseModel):
+    name: str = Field(default="", max_length=128)
+    client_id: int
+    match_username: str = Field(default="", max_length=256)  # wildcard, "" = any
+    target_pool_id: int | None = None
+    ad_group_check: bool = False
+    required_ad_group: str = Field(default="", max_length=256)  # cn
+    required_ad_group_dn: str = Field(default="", max_length=512)
+    username_normalization: str = "none"
+    ad_fail_mode: str = "open"
+    enabled: bool = True
+    note: str = ""
+
     @field_validator("username_normalization")
     @classmethod
     def _valid_norm(cls, v: str) -> str:
@@ -155,18 +176,29 @@ class ClientBase(BaseModel):
         return v
 
 
-class ClientCreate(ClientBase):
+class RuleCreate(RuleBase):
     pass
 
 
-class ClientUpdate(ClientBase):
+class RuleUpdate(RuleBase):
     pass
 
 
-class ClientOut(ClientBase):
+class RuleOut(RuleBase):
     model_config = ConfigDict(from_attributes=True)
     id: int
+    position: int
+    client_name: str | None = None
     target_pool_name: str | None = None
+
+
+class RuleReorder(BaseModel):
+    ids: list[int]  # rule ids in the desired top→bottom order
+
+
+class AdGroupOut(BaseModel):
+    cn: str
+    dn: str
 
 
 # --------------------------- LDAP / AD ------------------------------------

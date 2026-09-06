@@ -1,7 +1,7 @@
 """Database operations. Kept thin and explicit rather than a generic base
 class, so each entity's quirks (pool ordering, realm pool names) stay readable.
 """
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -70,21 +70,12 @@ async def delete_target_server(db: AsyncSession, ts: models.TargetServer) -> Non
 
 # --------------------------- Clients (NAS) --------------------------------
 async def list_clients(db: AsyncSession) -> list[models.Client]:
-    res = await db.execute(
-        select(models.Client)
-        .options(selectinload(models.Client.target_pool))
-        .order_by(models.Client.name)
-    )
+    res = await db.execute(select(models.Client).order_by(models.Client.name))
     return list(res.scalars().all())
 
 
 async def get_client(db: AsyncSession, client_id: int) -> models.Client | None:
-    res = await db.execute(
-        select(models.Client)
-        .where(models.Client.id == client_id)
-        .options(selectinload(models.Client.target_pool))
-    )
-    return res.scalar_one_or_none()
+    return await db.get(models.Client, client_id)
 
 
 async def create_client(
@@ -95,7 +86,8 @@ async def create_client(
     await db.flush()
     await log(db, "create", "client", client.name)
     await db.commit()
-    return await get_client(db, client.id)  # type: ignore[return-value]
+    await db.refresh(client)
+    return client
 
 
 async def update_client(
@@ -105,13 +97,83 @@ async def update_client(
         setattr(client, k, v)
     await log(db, "update", "client", client.name)
     await db.commit()
-    return await get_client(db, client.id)  # type: ignore[return-value]
+    await db.refresh(client)
+    return client
 
 
 async def delete_client(db: AsyncSession, client: models.Client) -> None:
     await log(db, "delete", "client", client.name)
     await db.delete(client)
     await db.commit()
+
+
+# --------------------------- Rules (routing) ------------------------------
+def _rule_opts():
+    return (
+        selectinload(models.Rule.client),
+        selectinload(models.Rule.target_pool),
+    )
+
+
+async def list_rules(db: AsyncSession) -> list[models.Rule]:
+    res = await db.execute(
+        select(models.Rule).options(*_rule_opts()).order_by(models.Rule.position)
+    )
+    return list(res.scalars().all())
+
+
+async def get_rule(db: AsyncSession, rule_id: int) -> models.Rule | None:
+    res = await db.execute(
+        select(models.Rule).where(models.Rule.id == rule_id).options(*_rule_opts())
+    )
+    return res.scalar_one_or_none()
+
+
+async def create_rule(db: AsyncSession, data: schemas.RuleCreate) -> models.Rule:
+    maxpos = (
+        await db.execute(select(func.coalesce(func.max(models.Rule.position), 0)))
+    ).scalar_one()
+    rule = models.Rule(position=int(maxpos) + 1, **data.model_dump())
+    db.add(rule)
+    await db.flush()
+    await log(db, "create", "rule", rule.name or f"#{rule.id}")
+    await db.commit()
+    return await get_rule(db, rule.id)  # type: ignore[return-value]
+
+
+async def update_rule(
+    db: AsyncSession, rule: models.Rule, data: schemas.RuleUpdate
+) -> models.Rule:
+    for k, v in data.model_dump().items():
+        setattr(rule, k, v)
+    await log(db, "update", "rule", rule.name or f"#{rule.id}")
+    await db.commit()
+    return await get_rule(db, rule.id)  # type: ignore[return-value]
+
+
+async def delete_rule(db: AsyncSession, rule: models.Rule) -> None:
+    await log(db, "delete", "rule", rule.name or f"#{rule.id}")
+    await db.delete(rule)
+    await db.commit()
+
+
+async def reorder_rules(db: AsyncSession, ids: list[int]) -> None:
+    for pos, rid in enumerate(ids, start=1):
+        r = await db.get(models.Rule, rid)
+        if r is not None:
+            r.position = pos
+    await log(db, "reorder", "rules", f"{len(ids)} rules")
+    await db.commit()
+
+
+async def search_groups(
+    db: AsyncSession, q: str = "", limit: int = 20
+) -> list[models.AdGroupCatalog]:
+    stmt = select(models.AdGroupCatalog).order_by(models.AdGroupCatalog.cn)
+    if q:
+        stmt = stmt.where(models.AdGroupCatalog.cn.ilike(f"%{q}%"))
+    res = await db.execute(stmt.limit(min(limit, 50)))
+    return list(res.scalars().all())
 
 
 # --------------------------- Pools ----------------------------------------
