@@ -5,6 +5,14 @@
 
 ## [Unreleased]
 
+### 2026-09-07 МСК
+
+- **feat(ops):** скрипты `scripts/install.sh` / `update.sh` / `uninstall.sh`. install
+  ставит docker+compose+git при отсутствии, клонит репо, собирает и поднимает панель
+  (+ FreeRADIUS + Postgres), ждёт health; update = pull+rebuild; uninstall = down -v (--keep-data/--purge).
+- **feat(frontend):** AD/LDAP перенесён в **Settings** (под-вкладки Access + AD/LDAP);
+  отдельный пункт nav убран.
+
 ### 2026-09-06 МСК
 
 - **docs:** добавлен `CLAUDE.md` — метод работы с ИИ-агентом (взят из `MerlKoryAmber/2fa`,
