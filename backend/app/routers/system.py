@@ -1,6 +1,7 @@
+import ipaddress
 import socket
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .. import crud, schemas, tls
@@ -11,6 +12,13 @@ router = APIRouter(prefix="/api/system", tags=["system"])
 settings = get_settings()
 
 
+def _caller_ip(request: Request) -> str:
+    xff = request.headers.get("x-real-ip") or request.headers.get("x-forwarded-for")
+    if xff:
+        return xff.split(",")[0].strip()
+    return request.client.host if request.client else ""
+
+
 # --- IP access allowlist ---------------------------------------------------
 @router.get("/access", response_model=schemas.AccessSettingsOut)
 async def get_access(db: AsyncSession = Depends(get_db)):
@@ -19,7 +27,39 @@ async def get_access(db: AsyncSession = Depends(get_db)):
 
 
 @router.put("/access", response_model=schemas.AccessSettingsOut)
-async def set_access(data: schemas.AccessSettingsIn, db: AsyncSession = Depends(get_db)):
+async def set_access(
+    data: schemas.AccessSettingsIn,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    entries = [
+        e.strip()
+        for e in (data.ip_allowlist or "").replace(",", "\n").splitlines()
+        if e.strip()
+    ]
+    # Validate every entry parses; reject garbage so a typo can't lock everyone out.
+    nets = []
+    for e in entries:
+        try:
+            nets.append(ipaddress.ip_network(e, strict=False))
+        except ValueError:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                f"invalid IP/CIDR: {e!r}",
+            )
+    # Anti-lockout: a non-empty list must still admit the caller's own IP.
+    if nets:
+        ip = _caller_ip(request)
+        try:
+            addr = ipaddress.ip_address(ip)
+            covered = addr.is_loopback or any(addr in n for n in nets)
+        except ValueError:
+            covered = False
+        if not covered:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                f"this allowlist would lock you out — add your own IP ({ip or 'unknown'})",
+            )
     row = await crud.get_auth_settings(db)
     row.ip_allowlist = data.ip_allowlist
     await crud.log(db, "update", "access", "ip_allowlist")

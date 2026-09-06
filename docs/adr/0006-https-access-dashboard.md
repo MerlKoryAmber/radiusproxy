@@ -14,7 +14,13 @@
    регенерит. Ключ шифруется, не отдаётся.
 3. **IP-ограничение доступа (Settings→Access).** `AuthSettings.ip_allowlist`
    (IP/CIDR, по строкам). Middleware в `main.py` проверяет `X-Real-IP` на `/api`;
-   не в списке → 403. **Loopback всегда разрешён**, пустой список = всем (анти-локаут).
+   не в списке → 403. Пустой список = всем. Реальный IP клиента доходит через
+   nginx (`X-Real-IP $remote_addr`, docker DNAT сохраняет source для внешних).
+   **Анти-локаут:** `PUT /api/system/access` отклоняет (400) непустой список,
+   не покрывающий IP самого вызывающего; мусорные записи → 422. Loopback всегда
+   разрешён (но в docker хост-локальный трафик виден как gateway моста, не 127.0.0.1).
+   **Восстановление при локауте** (последний рубеж, с хоста):
+   `docker compose exec db psql -U radpanel -d radpanel -c "UPDATE auth_settings SET ip_allowlist=''"`.
 4. **Контейнеры без host-прокси.** Во всех сервисах compose `http(s)_proxy=""`,
    `no_proxy=*` — трафик не уходит во внешний прокси.
 5. **Смена IP хоста — только показ** (Settings→Host, read-only). Реальная смена =

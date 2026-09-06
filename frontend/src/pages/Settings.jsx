@@ -72,7 +72,7 @@ function AccessSettings({ notify, onAuthChange }) {
         <legend>IP access restriction</legend>
         <Field
           label="Allowed IPs / CIDRs"
-          hint="one per line (e.g. 10.0.0.0/24, 192.168.1.5). Empty = allow all. Loopback always allowed."
+          hint="one per line (e.g. 10.0.0.0/24, 192.168.1.5). Empty = allow all. Your own IP must be included or the save is rejected (anti-lockout)."
         >
           <textarea
             value={allow}
