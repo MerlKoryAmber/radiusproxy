@@ -1,0 +1,44 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: radpanel
+      POSTGRES_PASSWORD: radpanel
+      POSTGRES_DB: radpanel
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U radpanel"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://radpanel:radpanel@db:5432/radpanel
+      CORS_ORIGINS: http://localhost:8080
+      # Point these at your FreeRADIUS host to enable validate + reload.
+      # The generated file must land where FreeRADIUS reads it — mount that
+      # path into this container and set PROXY_CONF_PATH to match.
+      PROXY_CONF_PATH: /data/proxy.conf
+      # RADIUS_CHECK_CMD: "freeradius -XC"
+      # RADIUS_RELOAD_CMD: "systemctl reload freeradius"
+    volumes:
+      - proxycfg:/data
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+volumes:
+  pgdata:
+  proxycfg:
