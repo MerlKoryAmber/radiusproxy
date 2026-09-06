@@ -36,7 +36,7 @@ export default function TargetServers({ notify, onChange }) {
     setEditing({});
   };
   const openEdit = (r) => {
-    setForm({ ...r });
+    setForm({ ...BLANK, ...r, secret: "" });
     setEditing(r);
   };
 
@@ -187,11 +187,15 @@ export default function TargetServers({ notify, onChange }) {
               <input type="number" value={form.port} onChange={set("port")} />
             </Field>
           </div>
-          <Field label="Shared secret">
+          <Field
+            label="Shared secret"
+            hint={editing.id ? "leave blank to keep the stored secret" : undefined}
+          >
             <input
+              type="password"
               value={form.secret}
               onChange={set("secret")}
-              placeholder="testing123"
+              placeholder={editing.id ? "•••••••• (unchanged)" : "testing123"}
             />
           </Field>
           <div className="grid-2">

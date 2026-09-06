@@ -54,8 +54,12 @@ async def create_target_server(
 async def update_target_server(
     db: AsyncSession, ts: models.TargetServer, data: schemas.TargetServerUpdate
 ) -> models.TargetServer:
-    for k, v in data.model_dump().items():
+    payload = data.model_dump()
+    secret = payload.pop("secret", "")
+    for k, v in payload.items():
         setattr(ts, k, v)
+    if secret:  # empty = keep stored
+        ts.secret = secret
     await log(db, "update", "target_server", ts.name)
     await db.commit()
     await db.refresh(ts)
@@ -93,8 +97,12 @@ async def create_client(
 async def update_client(
     db: AsyncSession, client: models.Client, data: schemas.ClientUpdate
 ) -> models.Client:
-    for k, v in data.model_dump().items():
+    payload = data.model_dump()
+    secret = payload.pop("secret", "")
+    for k, v in payload.items():
         setattr(client, k, v)
+    if secret:  # empty = keep stored
+        client.secret = secret
     await log(db, "update", "client", client.name)
     await db.commit()
     await db.refresh(client)

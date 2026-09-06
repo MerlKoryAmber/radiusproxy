@@ -31,6 +31,10 @@ services:
       SQL_CONF_PATH: /etc/freeradius/3.0/mods-enabled/sql
       RADIUS_CHECK_CMD: "freeradius -XC"
       RADIUS_RELOAD_CMD: "/usr/local/bin/radius-reload.sh"
+      # Secrets at rest are encrypted with this key. CHANGE for production
+      # (a long random string); if it changes, stored secrets can't be decrypted.
+      APP_ENCRYPTION_KEY: "dev-insecure-change-me"
+      JWT_SECRET: "dev-insecure-change-me"
     ports:
       - "8000:8000"
       - "1812:1812/udp"

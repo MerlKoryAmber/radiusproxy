@@ -22,9 +22,25 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
+from sqlalchemy import TypeDecorator
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from . import crypto
 from .database import Base
+
+
+class EncryptedStr(TypeDecorator):
+    """Transparently encrypts a string column at rest (Fernet). In Python the
+    attribute is cleartext; in the DB it is stored as `enc:<token>`."""
+
+    impl = Text
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        return crypto.encrypt(value)
+
+    def process_result_value(self, value, dialect):
+        return crypto.decrypt(value)
 
 # FreeRADIUS home_server "type" values we expose (target servers).
 TARGET_SERVER_TYPES = ("auth", "acct", "auth+acct", "coa")
@@ -67,7 +83,7 @@ class TargetServer(Base):
     type: Mapped[str] = mapped_column(String(16), default="auth")
     ipaddr: Mapped[str] = mapped_column(String(128))  # IPv4/IPv6/hostname
     port: Mapped[int] = mapped_column(Integer, default=1812)
-    secret: Mapped[str] = mapped_column(String(256))
+    secret: Mapped[str] = mapped_column(EncryptedStr)  # NAS<->target, encrypted
 
     # Common tuning knobs (sane FreeRADIUS defaults).
     require_message_authenticator: Mapped[bool] = mapped_column(
@@ -156,7 +172,7 @@ class Client(Base):
     name: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     # ipaddr accepts a single IPv4/IPv6 or a CIDR (e.g. 10.0.5.0/24).
     ipaddr: Mapped[str] = mapped_column(String(64))
-    secret: Mapped[str] = mapped_column(String(256))
+    secret: Mapped[str] = mapped_column(EncryptedStr)  # NAS<->proxy, encrypted
     shortname: Mapped[str] = mapped_column(String(64), default="")
     nas_type: Mapped[str] = mapped_column(String(24), default="other")
     proto: Mapped[str] = mapped_column(String(4), default="udp")
@@ -252,7 +268,7 @@ class LdapSettings(Base):
 
     # Bind (service) account used to search AD.
     bind_dn: Mapped[str] = mapped_column(String(512), default="")
-    bind_password: Mapped[str] = mapped_column(String(512), default="")
+    bind_password: Mapped[str] = mapped_column(EncryptedStr, default="")
 
     base_dn: Mapped[str] = mapped_column(String(512), default="")
 

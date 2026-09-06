@@ -4,7 +4,7 @@
 Обновлять **перед каждым push** (см. §22 CLAUDE.md). Читать после handoff и перед
 началом задачи. Если что-то тут расходится с кодом — код прав, а скелет чинить.
 
-**Обновлено:** 2026-09-07 МСК · ветка на момент правки: `feature/rules`
+**Обновлено:** 2026-09-07 МСК · ветка на момент правки: `feature/secret-encryption`
 
 ---
 
@@ -26,23 +26,24 @@
 | `config.py` | `Settings` (env): `database_url`, `proxy_conf_path`, `clients_conf_path`, `ldap_conf_path`, `ldap_ca_path`, `radius_check_cmd`, `radius_reload_cmd`, `cors_origins`. В compose пути = реальный `/etc/freeradius/3.0/*`, check=`freeradius -XC`, reload=`radius-reload.sh`. `get_settings()` (lru_cache) |
 | `Dockerfile` / `entrypoint.sh` / `radius-reload.sh` | backend-образ = panel + FreeRADIUS 3.2 (+ ldap/postgresql/utils). Панель управляет локальным FR |
 | `database.py` | async engine, `SessionLocal`, `Base`, `get_db()`, `init_models()` (create_all) |
-| `models.py` | ORM-таблицы + константы-enum |
+| `models.py` | ORM-таблицы + константы-enum + `EncryptedStr` (TypeDecorator, шифрует секреты в БД) |
 | `schemas.py` | Pydantic in/out + валидаторы (зеркалят ограничения FR) |
 | `crud.py` | тонкие операции на сущность + `log()` (audit) |
 | `ldap_sync.py` | `ldap3`: каталог всех групп (cn+dn → `AdGroupCatalog`) + членство групп из правил по DN (`AdGroupMember`/`AdGroupSync`) |
 | `auth.py` | авторизация панели (stdlib): pbkdf2-хэш, hmac-токен, `ensure_seed` (admin/admin), `require_user` (гейт при `AuthSettings.enabled`) |
+| `crypto.py` | Fernet шифрование секретов at-rest (ключ из `APP_ENCRYPTION_KEY`); `encrypt/decrypt`, формат `enc:<token>` (ADR-0005) |
 | `radius_config.py` | **весь FR-синтаксис**: рендереры + apply/validate/rollback |
 | `routers/*.py` | HTTP-эндпоинты на сущность |
 
 ### Модель (`models.py`)
 
 - `TargetServer` — upstream (куда) → `home_server{}` (FR-синтаксис). Поля: name, type, ipaddr,
-  port, secret, require_message_authenticator, status_check, response_window, zombie_period,
+  port, **secret (EncryptedStr)**, require_message_authenticator, status_check, response_window, zombie_period,
   revive_interval, check_interval, enabled, note. rel: `memberships`.
 - `HomeServerPool` — `home_server_pool{}`. name, type, enabled, note. rel: `members` (ordered).
 - `PoolMember` — упорядоченное членство (pool_id, **target_server_id**, position). uq(pool,ts).
-- `Client` — NAS (от кого) → `client{}`. name, ipaddr(/CIDR), secret, shortname, nas_type,
-  proto, require_message_authenticator, **preserve_source_ip**, enabled, note. (routing/AD-гейт
+- `Client` — NAS (от кого) → `client{}`. name, ipaddr(/CIDR), **secret (EncryptedStr)**, shortname,
+  nas_type, proto, require_message_authenticator, **preserve_source_ip**, enabled, note. (routing/AD-гейт
   переехали на Rule — ADR-0004).
 - `Rule` — **ordered** маршрут (ADR-0004, first-match). position, name, client_id,
   **match_username** (wildcard, ""=any), target_pool_id, ad_group_check, required_ad_group(cn),
@@ -82,7 +83,7 @@
 ### API-эндпоинты
 
 - `/api/clients` GET/POST/PUT{id}/DELETE{id} — `_serialize` + target_pool_name (`routers/clients.py`)
-- `/api/target-servers` GET/POST/PUT/DELETE (`routers/targets.py`)
+- `/api/target-servers` GET/POST/PUT/DELETE — secret write-only (`has_secret`, пустой=не менять) (`routers/targets.py`)
 - `/api/pools` GET/POST/PUT/DELETE — members по target_server (`routers/pools.py`)
 - `/api/rules` GET/POST/PUT/DELETE + POST `/reorder` (ids по порядку) (`routers/rules.py`)
 - `/api/ldap` GET/PUT + `/preview.conf` + `/ca.pem` + `/sync` GET/POST + `/groups?q=` (автокомплит из каталога) (`routers/ldap.py`)

@@ -73,7 +73,9 @@ FreeRADIUS Proxy Panel (`radiusproxy`) — веб-панель управлен�
 - Нет тестов (`backend`/`frontend`), нет гейта `make verify` — §4 верификация вручную.
 - **Нет Alembic:** схема через `create_all` — новые таблицы создаются, но новые колонки
   на существующих таблицах НЕ мигрируются (нужен drop БД или Alembic).
-- `bind_password` (AD) в БД плейнтекстом — шифрование до прода (ADR-0001).
+- ~~секреты в БД плейнтекстом~~ — **зашифрованы** (ADR-0005, Fernet/`APP_ENCRYPTION_KEY`),
+  секреты write-only в API. Прод: задать `APP_ENCRYPTION_KEY`/`JWT_SECRET` в env (не дев-дефолт);
+  ротация ключа = пере-шифрование (пока нет).
 - Дефолтные креды в `docker-compose.yml` (`radpanel/radpanel`) — только для локали, не прод.
 - **Reload FR = pkill+restart**, оставляет defunct-зомби (init:true убран — ломал apply).
   Косметика; при желании — proper reaper/HUP позже. Также `freeradius -HUP` не перечитывает proxy.conf.
