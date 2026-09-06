@@ -24,7 +24,6 @@ class TargetServerBase(BaseModel):
     type: str = "auth"
     ipaddr: str = Field(max_length=128)
     port: int = Field(default=1812, ge=1, le=65535)
-    secret: str = Field(min_length=1, max_length=256)
     require_message_authenticator: bool = False
     status_check: str = "status-server"
     response_window: int = Field(default=20, ge=1, le=120)
@@ -50,16 +49,18 @@ class TargetServerBase(BaseModel):
 
 
 class TargetServerCreate(TargetServerBase):
-    pass
+    secret: str = Field(min_length=1, max_length=256)
 
 
 class TargetServerUpdate(TargetServerBase):
-    pass
+    # Empty = keep the stored secret (write-only).
+    secret: str = Field(default="", max_length=256)
 
 
 class TargetServerOut(TargetServerBase):
     model_config = ConfigDict(from_attributes=True)
     id: int
+    has_secret: bool = False
 
 
 # --------------------------- Pools ----------------------------------------
@@ -103,7 +104,6 @@ class PoolOut(PoolBase):
 class ClientBase(BaseModel):
     name: str = Field(pattern=_NAME_RE, max_length=64)
     ipaddr: str = Field(min_length=1, max_length=64)  # IP or CIDR
-    secret: str = Field(min_length=1, max_length=256)
     shortname: str = Field(default="", max_length=64)
     nas_type: str = "other"
     proto: str = "udp"
@@ -135,16 +135,18 @@ class ClientBase(BaseModel):
 
 
 class ClientCreate(ClientBase):
-    pass
+    secret: str = Field(min_length=1, max_length=256)
 
 
 class ClientUpdate(ClientBase):
-    pass
+    # Empty = keep the stored secret (write-only).
+    secret: str = Field(default="", max_length=256)
 
 
 class ClientOut(ClientBase):
     model_config = ConfigDict(from_attributes=True)
     id: int
+    has_secret: bool = False
 
 
 # --------------------------- Rules (routing) ------------------------------

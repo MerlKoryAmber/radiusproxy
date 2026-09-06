@@ -169,11 +169,19 @@ export default function Clients({ notify, onChange }) {
               placeholder="10.0.5.10"
             />
           </Field>
-          <Field label="Shared secret" hint="NAS ↔ proxy (separate from home_server)">
+          <Field
+            label="Shared secret"
+            hint={
+              editing.id
+                ? "leave blank to keep the stored secret"
+                : "NAS ↔ proxy (separate from target server)"
+            }
+          >
             <input
+              type="password"
               value={form.secret}
               onChange={set("secret")}
-              placeholder="testing123"
+              placeholder={editing.id ? "•••••••• (unchanged)" : "testing123"}
             />
           </Field>
           <div className="grid-2">

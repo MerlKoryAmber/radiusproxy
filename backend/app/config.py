@@ -60,6 +60,12 @@ class Settings(BaseSettings):
     jwt_secret: str = "dev-insecure-change-me"
     auth_token_ttl: int = 28800  # seconds (8h)
 
+    # --- Secret encryption at rest --------------------------------------
+    # Encrypts shared secrets / bind password stored in the DB (Fernet, derived
+    # from this key). CHANGE in production via env APP_ENCRYPTION_KEY. If it
+    # changes, previously-encrypted secrets can no longer be decrypted.
+    app_encryption_key: str = "dev-insecure-change-me"
+
     # --- API ------------------------------------------------------------
     cors_origins: str = "http://localhost:5173"
 

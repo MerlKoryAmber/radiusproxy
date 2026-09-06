@@ -17,6 +17,9 @@
   Routing/AD-гейт убраны с Client (Client = только NAS). AD-группа по **имени (cn)** с
   автокомплитом из засинканного **каталога групп** (`/api/ldap/groups`); членство матчится по DN.
   Reorder (`/api/rules/reorder`), синк каталога всех групп + членства по правилам.
+- **security(ADR-0005):** секреты в БД теперь **шифруются** (Fernet, `APP_ENCRYPTION_KEY`)
+  через `EncryptedStr` (target/client secret, bind_password). Секреты **write-only** в API
+  (`has_secret`, пустое при update = не менять) — больше не возвращаются в GET. `cryptography` в deps.
 
 ### 2026-09-06 МСК
 
