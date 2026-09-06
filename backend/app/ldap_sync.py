@@ -76,15 +76,37 @@ def fetch_group_members(cfg: models.LdapSettings, group_dn: str) -> set[str]:
         conn.unbind()
 
 
-def _required_groups(db_sync_rows: list[str]) -> list[str]:  # pragma: no cover
-    return db_sync_rows
+def fetch_group_catalog(cfg: models.LdapSettings) -> list[tuple[str, str]]:
+    """Return (cn, dn) for every group under base_dn — for the autocomplete
+    catalog (no membership). Raises on connection/search failure."""
+    base = cfg.group_base_dn or cfg.base_dn
+    conn = _connect(cfg)
+    try:
+        out: list[tuple[str, str]] = []
+        entries = conn.extend.standard.paged_search(
+            search_base=base,
+            search_filter="(objectClass=group)",
+            search_scope=ldap3.SUBTREE,
+            attributes=["cn"],
+            paged_size=500,
+            generator=True,
+        )
+        for e in entries:
+            dn = e.get("dn")
+            cn = (e.get("attributes") or {}).get("cn")
+            if isinstance(cn, list):
+                cn = cn[0] if cn else None
+            if dn and cn:
+                out.append((str(cn), str(dn)))
+        return out
+    finally:
+        conn.unbind()
 
 
 async def sync_all(db: AsyncSession) -> list[dict]:
-    """Sync every gated realm's required group. Returns per-group results.
-
-    Uses asyncio.to_thread for the blocking ldap3 calls. Failures are recorded
-    per group (status=error) and leave the previously-synced members in place.
+    """Sync the AD group catalog (for autocomplete) + membership for the groups
+    used by rules. Blocking ldap3 runs via asyncio.to_thread; per-group failures
+    are recorded and leave the previous members in place (ADR-0002/0004).
     """
     import asyncio
 
@@ -93,11 +115,22 @@ async def sync_all(db: AsyncSession) -> list[dict]:
     if not cfg or not cfg.enabled:
         return results
 
+    # 1) Catalog of all groups (cn+dn) for autocomplete — best-effort.
+    try:
+        catalog = await asyncio.to_thread(fetch_group_catalog, cfg)
+        await db.execute(delete(models.AdGroupCatalog))
+        for cn, dn in catalog:
+            db.add(models.AdGroupCatalog(cn=cn, dn=dn))
+        results.append({"catalog": len(catalog)})
+    except Exception as exc:  # noqa: BLE001
+        results.append({"catalog": "error", "error": str(exc)})
+
+    # 2) Membership for the groups referenced by rules (by DN).
     wanted = (
         await db.execute(
-            select(models.Client.required_ad_group)
-            .where(models.Client.ad_group_check, models.Client.enabled)
-            .where(models.Client.required_ad_group != "")
+            select(models.Rule.required_ad_group_dn)
+            .where(models.Rule.ad_group_check, models.Rule.enabled)
+            .where(models.Rule.required_ad_group_dn != "")
         )
     ).scalars().all()
     groups = sorted({g for g in wanted if g})

@@ -166,22 +166,8 @@ class Client(Base):
     # When on, the srcip policy injects Packet-Src-IP into NAS-IP-Address (if
     # empty) before proxying, so the upstream sees the true originator. Rendered
     # as a custom client{} field read by policy.d/radiuspanel (%{client:...}).
+    # NAS-level property: inject Packet-Src-IP into NAS-IP-Address before proxy.
     preserve_source_ip: Mapped[bool] = mapped_column(Boolean, default=False)
-
-    # --- Routing (ADR-0003): request from THIS client -> this target pool ----
-    # Proxying is chosen by client, not by User-Name. The panel sets
-    # Proxy-To-Realm to this pool's auto-generated realm.
-    target_pool_id: Mapped[int | None] = mapped_column(
-        ForeignKey("home_server_pools.id", ondelete="SET NULL"), nullable=True
-    )
-
-    # --- AD group gate (per client, ADR-0003) -----------------------------
-    # Before proxying this client's requests, require the user to belong to
-    # `required_ad_group` (checked against the locally-synced list).
-    ad_group_check: Mapped[bool] = mapped_column(Boolean, default=False)
-    required_ad_group: Mapped[str] = mapped_column(String(512), default="")
-    username_normalization: Mapped[str] = mapped_column(String(24), default="none")
-    ad_fail_mode: Mapped[str] = mapped_column(String(8), default="open")
 
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     note: Mapped[str] = mapped_column(Text, default="")
@@ -193,9 +179,56 @@ class Client(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
+
+class Rule(Base):
+    """Ordered routing rule (ADR-0004). Evaluated top→bottom, first match wins.
+
+    Match: this client, optionally refined by a username wildcard. Action: proxy
+    to `target_pool` and (optionally) require an AD group. Routing/AD-gate live
+    here, not on Client. No rule matches → request is rejected (not proxied).
+    """
+
+    __tablename__ = "rules"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    position: Mapped[int] = mapped_column(Integer, default=0, index=True)
+    name: Mapped[str] = mapped_column(String(128), default="")
+
+    client_id: Mapped[int] = mapped_column(
+        ForeignKey("clients.id", ondelete="CASCADE")
+    )
+    # Empty = match any username for that client; else a wildcard (e.g. *@corp).
+    match_username: Mapped[str] = mapped_column(String(256), default="")
+
+    target_pool_id: Mapped[int | None] = mapped_column(
+        ForeignKey("home_server_pools.id", ondelete="SET NULL"), nullable=True
+    )
+
+    ad_group_check: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Group by common name (cn) for humans; DN kept for unambiguous matching.
+    required_ad_group: Mapped[str] = mapped_column(String(256), default="")
+    required_ad_group_dn: Mapped[str] = mapped_column(String(512), default="")
+    username_normalization: Mapped[str] = mapped_column(String(24), default="none")
+    ad_fail_mode: Mapped[str] = mapped_column(String(8), default="open")
+
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    note: Mapped[str] = mapped_column(Text, default="")
+
+    client: Mapped["Client"] = relationship(foreign_keys=[client_id])
     target_pool: Mapped["HomeServerPool | None"] = relationship(
         foreign_keys=[target_pool_id]
     )
+
+
+class AdGroupCatalog(Base):
+    """Catalog of AD groups (cn + DN) synced from AD, for the group autocomplete
+    (ADR-0004). Membership lives in AdGroupMember; this is just the name list."""
+
+    __tablename__ = "ad_group_catalog"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    dn: Mapped[str] = mapped_column(String(512), unique=True, index=True)
+    cn: Mapped[str] = mapped_column(String(256), index=True)
 
 
 class LdapSettings(Base):

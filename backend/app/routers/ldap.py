@@ -84,3 +84,9 @@ async def sync_now(db: AsyncSession = Depends(get_db)):
     await crud.log(db, "sync", "ad_groups", f"{len(results)} groups")
     await db.commit()
     return {"synced": results}
+
+
+@router.get("/groups", response_model=list[schemas.AdGroupOut])
+async def search_groups(q: str = "", db: AsyncSession = Depends(get_db)):
+    rows = await crud.search_groups(db, q=q)
+    return [schemas.AdGroupOut(cn=r.cn, dn=r.dn) for r in rows]

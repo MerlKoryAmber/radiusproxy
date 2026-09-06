@@ -59,6 +59,9 @@ FreeRADIUS Proxy Panel (`radiusproxy`) — веб-панель управлен�
    Хвост: реальный AD/трафик по-прежнему не проверены (нет AD/NAS).
 8. **Install/update/uninstall + AD/LDAP в Settings** — `feature/install-scripts`.
    `scripts/*.sh`; AD/LDAP под-вкладка Settings. Деплой-каталог по умолчанию `/opt/radiusproxy`.
+9. **Rules (ADR-0004)** — `feature/rules`: ordered маршрутизация (client[+username wildcard]→pool+AD-гейт,
+   first-match), routing/AD убраны с Client, AD-группа по cn + автокомплит из каталога, reorder.
+   Хвост: реальный AD/трафик не проверены (нет AD/NAS) — каталог/членство/гейт тестируются на AD-хосте.
 
 **Решения по куску 4 (2026-09-06):** вариант A (policy.d + include); source-IP per-client;
 группы синкать раз ~30 мин в панель и сравнивать локально (не per-packet AD); FR ставится

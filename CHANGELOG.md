@@ -12,6 +12,11 @@
   (+ FreeRADIUS + Postgres), ждёт health; update = pull+rebuild; uninstall = down -v (--keep-data/--purge).
 - **feat(frontend):** AD/LDAP перенесён в **Settings** (под-вкладки Access + AD/LDAP);
   отдельный пункт nav убран.
+- **feat(ADR-0004):** раздел **Rules** — упорядоченные правила маршрутизации (first-match):
+  клиент [+ username wildcard] → target-пул + AD-гейт. `radiuspanel_route` = if/elsif цепочка.
+  Routing/AD-гейт убраны с Client (Client = только NAS). AD-группа по **имени (cn)** с
+  автокомплитом из засинканного **каталога групп** (`/api/ldap/groups`); членство матчится по DN.
+  Reorder (`/api/rules/reorder`), синк каталога всех групп + членства по правилам.
 
 ### 2026-09-06 МСК
 

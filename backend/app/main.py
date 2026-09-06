@@ -16,6 +16,7 @@ from .routers import (
     decisions,
     ldap,
     pools,
+    rules,
     targets,
 )
 from fastapi import Depends
@@ -92,6 +93,7 @@ _guard = [Depends(auth_mod.require_user)]
 app.include_router(clients.router, dependencies=_guard)
 app.include_router(targets.router, dependencies=_guard)
 app.include_router(pools.router, dependencies=_guard)
+app.include_router(rules.router, dependencies=_guard)
 app.include_router(ldap.router, dependencies=_guard)
 app.include_router(decisions.router, dependencies=_guard)
 app.include_router(config.router, dependencies=_guard)
