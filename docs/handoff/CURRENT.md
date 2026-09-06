@@ -29,6 +29,10 @@ FreeRADIUS Proxy Panel (`radiusproxy`) — веб-панель управлен�
 - Проект в git: `github.com/MerlKoryAmber/radiusproxy`, ветка `main`.
 - `CLAUDE.md` — правила работы агента (адаптирован под этот проект).
 - `CHANGELOG.md`, `docs/handoff/CURRENT.md` — заведены.
+- **Дизайн Interros** (из соседнего 2fa) применён CSS-рескином `frontend/src/styles.css`
+  + `docs/design/DESIGN.md`. Ветка `feature/interros-skin` (НЕ в main — ждёт merge по команде).
+- **Развёрнуто на тесте:** CentOS Stream 9 `192.168.0.178`, docker-ce, `/root/radiusproxy`,
+  `docker compose up -d --build`; панель :8080, backend :8000, db healthy. Проверено в браузере.
 
 ## Хвосты (открыто)
 
@@ -37,6 +41,13 @@ FreeRADIUS Proxy Panel (`radiusproxy`) — веб-панель управлен�
 - Нет тестов (`backend`/`frontend`), нет гейта `make verify` — §4 верификация вручную.
 - Нет `docs/adr/` — реестр архитектурных решений (§10) при первом крупном решении.
 - Дефолтные креды в `docker-compose.yml` (`radpanel/radpanel`) — только для локали, не прод.
+
+## Деплой-сервер (тест)
+
+- CentOS Stream 9 `192.168.0.178`, root по SSH-ключу `~/.ssh/radiusproxy_ed25519`.
+- docker-ce 29.8.0 + compose; podman 5.8.5 тоже стоит (не используется). SELinux Enforcing.
+- Каталог `/root/radiusproxy`, обновление: `git pull && docker compose up -d --build`.
+- `/root/linotp-migrate` (46 МБ) чужие данные — не трогать без явного «да».
 
 ## Не делать
 
