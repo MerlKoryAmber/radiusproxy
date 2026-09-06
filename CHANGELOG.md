@@ -34,3 +34,7 @@
 - **feat(infra):** FreeRADIUS 3.2 в backend-контейнере (шаг 0 к policy-гейту) — панель
   пишет в реальный `/etc/freeradius/3.0`, `freeradius -XC` валидирует, `radius-reload.sh`
   перезагружает. compose: пути на raddb, порты 1812/1813 udp. Панель+FR на одном хосте.
+  `_run` через `asyncio.to_thread` (uvloop-фикс — apply висел). apply ~1с.
+- **feat:** 4a — сохранение source-IP per-client (`preserve_source_ip` на Client) +
+  `policy.d/radiuspanel` (`radiuspanel_srcip` рабочий, `radiuspanel_adgate` stub→4b).
+  apply пишет policy.d; `/api/config/policy-preview.conf`; чекбокс в UI Clients.

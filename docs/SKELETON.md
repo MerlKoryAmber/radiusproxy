@@ -4,7 +4,7 @@
 Обновлять **перед каждым push** (см. §22 CLAUDE.md). Читать после handoff и перед
 началом задачи. Если что-то тут расходится с кодом — код прав, а скелет чинить.
 
-**Обновлено:** 2026-09-06 МСК · ветка на момент правки: `feature/radius-stack`
+**Обновлено:** 2026-09-06 МСК · ветка на момент правки: `feature/policy-srcip`
 
 ---
 
@@ -42,7 +42,7 @@
 - `Realm` — `realm{}`. name, auth_pool_id, acct_pool_id, nostrip, enabled, note **+ AD-гейт:**
   `ad_group_check`, `required_ad_group`, `username_normalization`, `ad_fail_mode`. rel: auth_pool/acct_pool.
 - `Client` — NAS (от кого) → `client{}`. name, ipaddr(/CIDR), secret, shortname, nas_type,
-  proto, require_message_authenticator, enabled, note.
+  proto, require_message_authenticator, **preserve_source_ip** (custom client-поле для srcip-политики), enabled, note.
 - `LdapSettings` — **singleton (id=1)** AD-подключение → `mods-enabled/ldap`. enabled, server,
   port, use_ldaps, start_tls, bind_dn, bind_password(секрет), base_dn, group_base_dn,
   group_filter, group_membership_attribute, cache_ttl, net_timeout **+ TLS:** `ca_cert`(PEM,
@@ -55,10 +55,11 @@
 ### Рендереры + apply (`radius_config.py`)
 
 - `render_home_server`, `render_pool`, `render_realm` → `render_proxy_conf(db)` (proxy.conf).
-- `render_client` → `render_clients_conf(db)` (clients.conf).
+- `render_client` → `render_clients_conf(db)` (clients.conf; `preserve_source_ip = yes` custom-поле).
+- `render_policy_conf(db)` → `policy.d/radiuspanel`: `radiuspanel_srcip` (inject NAS-IP по `%{client:preserve_source_ip}`, pre-proxy) + `radiuspanel_adgate` (noop-stub, 4b). Вызовы в site — вручную один раз (ADR-0002 A).
 - `render_ldap_module(cfg, *, mask_password=False)` → mods-enabled/ldap (+ `tls{}` с ca_file/require_cert/min_version при use_ldaps|start_tls).
-- `apply_config(db)` → **multi-file**: [proxy.conf, clients.conf] + при `LdapSettings.enabled`
-  ещё CA-файл (`ldap_ca_path`) и ldap-модуль (`ldap_conf_path`). `_write_with_backup` каждый,
+- `apply_config(db)` → **multi-file**: [proxy.conf, clients.conf, policy.d/radiuspanel] + при
+  `LdapSettings.enabled` ещё CA-файл (`ldap_ca_path`) и ldap-модуль (`ldap_conf_path`). `_write_with_backup` каждый,
   `radius_check_cmd` валидирует, `_rollback` всех при провале, затем `radius_reload_cmd`.
   Возвращает `ApplyResult(written_paths, validated, ...)`.
 - `ConfigValidationError(output)`. Хелперы: `_quote`, `_quote_secret`, `_Backup`.
@@ -72,7 +73,7 @@
 - `/api/pools` GET/POST/PUT/DELETE (`routers/pools.py`)
 - `/api/realms` GET/POST/PUT/DELETE — `_serialize` через `model_validate` + имена пулов (`routers/realms.py`)
 - `/api/ldap` GET/PUT + `/api/ldap/preview.conf` (маска пароля) + `/api/ldap/ca.pem` (скачать CA) (`routers/ldap.py`)
-- `/api/config/preview`, `/preview.conf`, `/clients-preview.conf`, `/apply` (POST), `/audit` (`routers/config.py`)
+- `/api/config/preview`, `/preview.conf`, `/clients-preview.conf`, `/policy-preview.conf`, `/apply` (POST), `/audit` (`routers/config.py`)
 - `/api/health` (`main.py`)
 
 ## Frontend `frontend/src/`
@@ -99,8 +100,9 @@
 
 ## Файлы FR, которыми владеет панель (ADR-0001)
 
-`proxy.conf` ✓ · `clients.conf` ✓ · `mods-enabled/ldap` ✓ (+ CA-файл, в apply при enabled) ·
-policy `sites-enabled` (TODO) · `mods-enabled/sql` (TODO). Apply/валидация — на всём наборе.
+`proxy.conf` ✓ · `clients.conf` ✓ · `mods-enabled/ldap` ✓ (+ CA-файл, при enabled) ·
+`policy.d/radiuspanel` ✓ (srcip рабочий; adgate stub → 4b) · `mods-enabled/sql` (TODO, 4b).
+Вызовы policy в site — вручную один раз. Apply/валидация — на всём наборе.
 
 ## Паттерн добавления сущности
 

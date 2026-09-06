@@ -10,6 +10,7 @@ const BLANK = {
   nas_type: "other",
   proto: "udp",
   require_message_authenticator: "auto",
+  preserve_source_ip: false,
   enabled: true,
   note: "",
 };
@@ -207,6 +208,17 @@ export default function Clients({ notify, onChange }) {
               <option value="no">no</option>
             </select>
           </Field>
+          <div className="check" style={{ marginTop: 10 }}>
+            <input
+              id="preserve-srcip"
+              type="checkbox"
+              checked={form.preserve_source_ip}
+              onChange={set("preserve_source_ip")}
+            />
+            <label htmlFor="preserve-srcip" style={{ margin: 0 }}>
+              Preserve originator IP when proxying (inject NAS-IP-Address)
+            </label>
+          </div>
           <div className="check" style={{ marginTop: 10 }}>
             <input
               id="client-enabled"

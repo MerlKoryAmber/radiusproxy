@@ -8,6 +8,7 @@ from ..radius_config import (
     ConfigValidationError,
     apply_config,
     render_clients_conf,
+    render_policy_conf,
     render_proxy_conf,
 )
 
@@ -27,6 +28,11 @@ async def preview_raw(db: AsyncSession = Depends(get_db)):
 @router.get("/clients-preview.conf", response_class=PlainTextResponse)
 async def preview_clients(db: AsyncSession = Depends(get_db)):
     return await render_clients_conf(db)
+
+
+@router.get("/policy-preview.conf", response_class=PlainTextResponse)
+async def preview_policy(db: AsyncSession = Depends(get_db)):
+    return await render_policy_conf(db)
 
 
 @router.post("/apply", response_model=schemas.ApplyResponse)

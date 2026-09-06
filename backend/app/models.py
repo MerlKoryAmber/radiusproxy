@@ -209,6 +209,10 @@ class Client(Base):
     require_message_authenticator: Mapped[str] = mapped_column(
         String(4), default="auto"
     )
+    # When on, the srcip policy injects Packet-Src-IP into NAS-IP-Address (if
+    # empty) before proxying, so the upstream sees the true originator. Rendered
+    # as a custom client{} field read by policy.d/radiuspanel (%{client:...}).
+    preserve_source_ip: Mapped[bool] = mapped_column(Boolean, default=False)
 
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     note: Mapped[str] = mapped_column(Text, default="")
