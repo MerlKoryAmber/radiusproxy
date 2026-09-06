@@ -92,9 +92,9 @@
 | Файл | Роль |
 |------|------|
 | `main.jsx` | монтаж React |
-| `App.jsx` | shell: sidebar (бренд-лого `/logo.png`), nav TABS, toast, counts. Рендер страниц по `tab` |
+| `App.jsx` | shell: sidebar + **topbar** (`.topbar-title` + `UserMenu` справа), nav TABS, toast, counts. `authInfo` (user/enabled). Рендер страниц по `tab` |
 | `api.js` | `api.{clients,homeServers,pools,realms,ldap,decisions,auth,config}` + `request()` (Bearer-токен, 401→login), `getToken/setToken` |
-| `components.jsx` | `Modal`, `Field`, `Spinner`, `Empty`, `StatusDot` |
+| `components.jsx` | `Modal`, `Field`, `Spinner`, `Empty`, `StatusDot`, `UserMenu` (топбар-дропдаун), `ChangePasswordModal` (new+confirm) |
 | `pages/Clients.jsx` | CRUD клиентов (NAS) |
 | `pages/HomeServers.jsx` | CRUD home servers |
 | `pages/Pools.jsx` | CRUD пулов + порядок членов |
@@ -102,16 +102,17 @@
 | `pages/LdapSettings.jsx` | форма AD/LDAP + превью модуля |
 | `pages/ConfigPreview.jsx` | превью proxy.conf + apply (показывает `written_paths`) |
 | `pages/Decisions.jsx` | лог решений RADIUS (фильтр по user) |
-| `pages/Access.jsx` | тумблер auth + смена пароля admin + logout |
+| `pages/Settings.jsx` | настройки панели (тумблер auth). Смена пароля — в топбар-меню |
 | `pages/Login.jsx` | экран входа (показывается при auth on и 401) |
 | `styles.css` | дизайн Interros (navy+gold), классы ниже |
 
-**TABS:** clients → home-servers → pools → realms → ldap → decisions → config → access.
-**Auth-гейт (App.jsx):** на старте `api.auth.status()`; 401 → `<Login>`; иначе shell.
+**TABS:** clients → home-servers → pools → realms → ldap → decisions → config → settings.
+**Auth-гейт (App.jsx):** на старте `api.auth.status()`; 401 → `<Login>`; иначе shell. Имя юзера в топбаре → дропдаун (Change password с подтверждением / Log out).
 
 **CSS-словарь:** `.shell/.sidebar/.brand/.brand-mark/.nav`, `.page-head`, `.btn(.primary/.ghost/.danger/.sm)`,
 `.table-wrap/table/.tag(.ok/.off/.accent)/.dot-status`, `.overlay/.modal/.field(.hint)/.grid-2/.check/.modal-actions`,
-`.config-pane/pre.conf/.result/.empty/.toast/.spinner`.
+`.config-pane/pre.conf/.result/.empty/.toast/.spinner`, `.main-area/.topbar/.topbar-title/.content`,
+`.user-menu(.-btn/.-dropdown/.-item)/.who`, `.settings-section/legend/.field-hint`, `.login-page/.login-box`.
 
 ## Файлы FR, которыми владеет панель (ADR-0001)
 

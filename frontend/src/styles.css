@@ -144,6 +144,55 @@ a { color: var(--accent); }
 
 .main { flex: 1; padding: 28px clamp(16px, 3vw, 40px); min-width: 0; max-width: 1180px; }
 
+/* ---- main area + topbar ---- */
+.main-area { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.topbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  height: var(--topbar-h); min-height: var(--topbar-h);
+  padding: 0 clamp(16px, 3vw, 40px);
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  position: sticky; top: 0; z-index: 40;
+}
+.topbar-title { font-size: 14px; font-weight: 600; color: var(--text); }
+.content { padding: 28px clamp(16px, 3vw, 40px); min-width: 0; max-width: 1180px; }
+
+.user-menu { position: relative; flex-shrink: 0; }
+.user-menu-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 12px; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); background: var(--panel-2);
+  color: var(--text); font: 500 13px var(--sans); cursor: pointer;
+}
+.user-menu-btn:hover { border-color: var(--muted); }
+.user-menu-btn[aria-expanded="true"] { border-color: var(--ir-accent); }
+.who { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.user-menu-caret { color: var(--muted); font-size: 11px; }
+.user-menu-dropdown {
+  position: absolute; right: 0; top: calc(100% + 6px); min-width: 180px;
+  padding: 4px; border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--panel); box-shadow: var(--shadow-md); z-index: 60;
+}
+.user-menu-item {
+  display: block; width: 100%; text-align: left; padding: 8px 10px;
+  border: 0; border-radius: var(--radius-sm); background: transparent;
+  color: var(--text); font: 500 13px var(--sans); cursor: pointer;
+}
+.user-menu-item:hover { background: var(--panel-2); }
+
+/* ---- settings section ---- */
+.settings-section {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px 18px; margin: 0; max-width: 640px;
+  background: var(--panel); box-shadow: var(--shadow-sm);
+}
+.settings-section legend {
+  padding: 0 0 12px; margin: 0 0 8px; border: 0;
+  font-size: 13px; font-weight: 600; color: var(--text);
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.field-hint { margin: 6px 0 0; font-size: 12px; color: var(--muted); line-height: 1.4; }
+
 .page-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 22px; }
 .page-head h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 6px; color: var(--text); }
 .page-head p { margin: 0; color: var(--text-secondary); max-width: 62ch; line-height: 1.5; }
