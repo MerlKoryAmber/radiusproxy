@@ -2,9 +2,8 @@ import { useEffect, useState, useCallback } from "react";
 import { api, setToken } from "./api.js";
 import { UserMenu } from "./components.jsx";
 import Clients from "./pages/Clients.jsx";
-import HomeServers from "./pages/HomeServers.jsx";
+import TargetServers from "./pages/TargetServers.jsx";
 import Pools from "./pages/Pools.jsx";
-import Realms from "./pages/Realms.jsx";
 import LdapSettings from "./pages/LdapSettings.jsx";
 import Decisions from "./pages/Decisions.jsx";
 import ConfigPreview from "./pages/ConfigPreview.jsx";
@@ -13,9 +12,8 @@ import Login from "./pages/Login.jsx";
 
 const TABS = [
   { id: "clients", label: "Clients" },
-  { id: "home-servers", label: "Home servers" },
+  { id: "targets", label: "Target servers" },
   { id: "pools", label: "Pools" },
-  { id: "realms", label: "Realms" },
   { id: "ldap", label: "AD / LDAP" },
   { id: "decisions", label: "Decision log" },
   { id: "config", label: "Config & apply" },
@@ -51,17 +49,15 @@ export default function App() {
 
   const refreshCounts = useCallback(async () => {
     try {
-      const [clients, hs, pools, realms] = await Promise.all([
+      const [clients, ts, pools] = await Promise.all([
         api.clients.list(),
-        api.homeServers.list(),
+        api.targetServers.list(),
         api.pools.list(),
-        api.realms.list(),
       ]);
       setCounts({
         clients: clients.length,
-        "home-servers": hs.length,
+        targets: ts.length,
         pools: pools.length,
-        realms: realms.length,
       });
     } catch {
       /* backend not up yet — counts stay empty */
@@ -124,13 +120,10 @@ export default function App() {
           {tab === "clients" && (
             <Clients notify={notify} onChange={refreshCounts} />
           )}
-          {tab === "home-servers" && (
-            <HomeServers notify={notify} onChange={refreshCounts} />
+          {tab === "targets" && (
+            <TargetServers notify={notify} onChange={refreshCounts} />
           )}
           {tab === "pools" && <Pools notify={notify} onChange={refreshCounts} />}
-          {tab === "realms" && (
-            <Realms notify={notify} onChange={refreshCounts} />
-          )}
           {tab === "ldap" && <LdapSettings notify={notify} />}
           {tab === "decisions" && <Decisions />}
           {tab === "config" && <ConfigPreview notify={notify} />}

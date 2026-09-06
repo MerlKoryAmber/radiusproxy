@@ -4,7 +4,7 @@
 Обновлять **перед каждым push** (см. §22 CLAUDE.md). Читать после handoff и перед
 началом задачи. Если что-то тут расходится с кодом — код прав, а скелет чинить.
 
-**Обновлено:** 2026-09-06 МСК · ветка на момент правки: `feature/logs-auth`
+**Обновлено:** 2026-09-06 МСК · ветка на момент правки: `feature/routing-by-client`
 
 ---
 
@@ -36,15 +36,16 @@
 
 ### Модель (`models.py`)
 
-- `HomeServer` — upstream-таргет → `home_server{}`. Поля: name, type, ipaddr, port, secret,
-  require_message_authenticator, status_check, response_window, zombie_period, revive_interval,
-  check_interval, enabled, note. rel: `memberships`.
+- `TargetServer` — upstream (куда) → `home_server{}` (FR-синтаксис). Поля: name, type, ipaddr,
+  port, secret, require_message_authenticator, status_check, response_window, zombie_period,
+  revive_interval, check_interval, enabled, note. rel: `memberships`.
 - `HomeServerPool` — `home_server_pool{}`. name, type, enabled, note. rel: `members` (ordered).
-- `PoolMember` — упорядоченное членство (pool_id, home_server_id, position). uq(pool,hs).
-- `Realm` — `realm{}`. name, auth_pool_id, acct_pool_id, nostrip, enabled, note **+ AD-гейт:**
-  `ad_group_check`, `required_ad_group`, `username_normalization`, `ad_fail_mode`. rel: auth_pool/acct_pool.
-- `Client` — NAS (от кого) → `client{}`. name, ipaddr(/CIDR), secret, shortname, nas_type,
-  proto, require_message_authenticator, **preserve_source_ip** (custom client-поле для srcip-политики), enabled, note.
+- `PoolMember` — упорядоченное членство (pool_id, **target_server_id**, position). uq(pool,ts).
+- `Client` — NAS (от кого) → `client{}` + маршрут+гейт (ADR-0003). name, ipaddr(/CIDR), secret,
+  shortname, nas_type, proto, require_message_authenticator, **preserve_source_ip**,
+  **target_pool_id** (куда проксировать), **AD-гейт:** ad_group_check/required_ad_group/
+  username_normalization/ad_fail_mode. rel: target_pool.
+- (Realm как сущность **удалён** — realm генерится per-pool; маршрут по клиенту.)
 - `LdapSettings` — **singleton (id=1)** AD-подключение → `mods-enabled/ldap`. enabled, server,
   port, use_ldaps, start_tls, bind_dn, bind_password(секрет), base_dn, group_base_dn,
   group_filter, group_membership_attribute, cache_ttl, net_timeout, `group_sync_interval` **+ TLS:**
@@ -57,14 +58,14 @@
 - `User` — админ панели (username, password_hash pbkdf2); seed `admin/admin`.
 - `AuditLog` — actor, action, entity, entity_ref, detail, created_at.
 
-**Константы:** `HOME_SERVER_TYPES`, `POOL_TYPES`, `STATUS_CHECK_TYPES`, `USERNAME_NORMALIZATIONS`,
+**Константы:** `TARGET_SERVER_TYPES`, `POOL_TYPES`, `STATUS_CHECK_TYPES`, `USERNAME_NORMALIZATIONS`,
 `AD_FAIL_MODES`, `NAS_TYPES`, `CLIENT_PROTOS`, `MESSAGE_AUTH_MODES`, `TLS_REQUIRE_CERT`.
 
 ### Рендереры + apply (`radius_config.py`)
 
-- `render_home_server`, `render_pool`, `render_realm` → `render_proxy_conf(db)` (proxy.conf).
+- `render_home_server(TargetServer)`, `render_pool`, `render_realm_for_pool(name)` (realm=pool, nostrip) → `render_proxy_conf(db)` (proxy.conf; realm per pool, маршрут по клиенту).
 - `render_client` → `render_clients_conf(db)` (clients.conf; `preserve_source_ip = yes` custom-поле).
-- `render_policy_conf(db)` → `policy.d/radiuspanel`: `radiuspanel_srcip` (inject NAS-IP, pre-proxy) + `radiuspanel_adgate` (per-realm sql-гейт + пишет результат в `&Tmp-String-1`) + `radiuspanel_log` (INSERT решения в `proxy_decision`, guard User-Name). Вызовы в site — вручную (srcip→pre-proxy, adgate→authorize, log→post-auth/Post-Auth-Type REJECT).
+- `render_policy_conf(db)` → `policy.d/radiuspanel`: `radiuspanel_route` (маршрут по клиенту: Proxy-To-Realm := `%{client:target_pool}`) + `radiuspanel_srcip` + `radiuspanel_adgate` (**per-client**, ключ `&Client-Shortname`, sql-членство + fail_mode, результат в `&Tmp-String-1`) + `radiuspanel_log`. Вызовы в site вручную: authorize→route,adgate; pre-proxy→srcip; post-auth→log.
 - `render_sql_module()` → `mods-enabled/sql` (rlm_sql_postgresql → Postgres панели; только для adgate `%{sql:}`).
 - `render_ldap_module(cfg, *, mask_password=False)` → mods-enabled/ldap (+ `tls{}` с ca_file/require_cert/min_version при use_ldaps|start_tls).
 - `apply_config(db)` → **multi-file**: [proxy.conf, clients.conf, policy.d/radiuspanel] + при
@@ -77,10 +78,9 @@
 
 ### API-эндпоинты
 
-- `/api/clients` GET/POST/PUT{id}/DELETE{id} (`routers/clients.py`)
-- `/api/home-servers` GET/POST/PUT/DELETE (`routers/home_servers.py`)
-- `/api/pools` GET/POST/PUT/DELETE (`routers/pools.py`)
-- `/api/realms` GET/POST/PUT/DELETE — `_serialize` через `model_validate` + имена пулов (`routers/realms.py`)
+- `/api/clients` GET/POST/PUT{id}/DELETE{id} — `_serialize` + target_pool_name (`routers/clients.py`)
+- `/api/target-servers` GET/POST/PUT/DELETE (`routers/targets.py`)
+- `/api/pools` GET/POST/PUT/DELETE — members по target_server (`routers/pools.py`)
 - `/api/ldap` GET/PUT + `/preview.conf` (маска пароля) + `/ca.pem` (CA) + `/sync` GET(статус)/POST(синк сейчас) (`routers/ldap.py`)
 - `/api/config/preview`, `/preview.conf`, `/clients-preview.conf`, `/policy-preview.conf`, `/apply` (POST), `/audit` (`routers/config.py`)
 - `/api/decisions` GET (лог решений, фильтры username/realm) (`routers/decisions.py`)
@@ -95,18 +95,17 @@
 | `App.jsx` | shell: sidebar + **topbar** (`.topbar-title` + `UserMenu` справа), nav TABS, toast, counts. `authInfo` (user/enabled). Рендер страниц по `tab` |
 | `api.js` | `api.{clients,homeServers,pools,realms,ldap,decisions,auth,config}` + `request()` (Bearer-токен, 401→login), `getToken/setToken` |
 | `components.jsx` | `Modal`, `Field`, `Spinner`, `Empty`, `StatusDot`, `UserMenu` (топбар-дропдаун), `ChangePasswordModal` (new+confirm) |
-| `pages/Clients.jsx` | CRUD клиентов (NAS) |
-| `pages/HomeServers.jsx` | CRUD home servers |
-| `pages/Pools.jsx` | CRUD пулов + порядок членов |
-| `pages/Realms.jsx` | CRUD реалмов + поля AD-гейта (условно по чекбоксу) |
-| `pages/LdapSettings.jsx` | форма AD/LDAP + превью модуля |
+| `pages/Clients.jsx` | CRUD клиентов (NAS) + target-пул + AD-гейт |
+| `pages/TargetServers.jsx` | CRUD target servers |
+| `pages/Pools.jsx` | CRUD пулов + порядок членов (target servers) |
+| `pages/LdapSettings.jsx` | форма AD/LDAP + превью модуля + синк |
 | `pages/ConfigPreview.jsx` | превью proxy.conf + apply (показывает `written_paths`) |
 | `pages/Decisions.jsx` | лог решений RADIUS (фильтр по user) |
 | `pages/Settings.jsx` | настройки панели (тумблер auth). Смена пароля — в топбар-меню |
 | `pages/Login.jsx` | экран входа (показывается при auth on и 401) |
 | `styles.css` | дизайн Interros (navy+gold), классы ниже |
 
-**TABS:** clients → home-servers → pools → realms → ldap → decisions → config → settings.
+**TABS:** clients → targets → pools → ldap → decisions → config → settings. Маршрут: client→target_pool (не по User-Name, ADR-0003).
 **Auth-гейт (App.jsx):** на старте `api.auth.status()`; 401 → `<Login>`; иначе shell. Имя юзера в топбаре → дропдаун (Change password с подтверждением / Log out).
 
 **CSS-словарь:** `.shell/.sidebar/.brand/.brand-mark/.nav`, `.page-head`, `.btn(.primary/.ghost/.danger/.sm)`,

@@ -25,11 +25,10 @@ from sqlalchemy.orm import selectinload
 from .config import get_settings
 from .models import (
     Client,
-    HomeServer,
     HomeServerPool,
     LdapSettings,
     PoolMember,
-    Realm,
+    TargetServer,
 )
 
 settings = get_settings()
@@ -43,7 +42,8 @@ def _quote_secret(secret: str) -> str:
     return f'"{escaped}"'
 
 
-def render_home_server(hs: HomeServer) -> str:
+def render_home_server(hs: TargetServer) -> str:
+    # A "target server" renders as FreeRADIUS `home_server {}` (FR syntax).
     lines = [f"home_server {hs.name} {{"]
     lines.append(f"{INDENT}type = {hs.type}")
     lines.append(f"{INDENT}ipaddr = {hs.ipaddr}")
@@ -77,21 +77,16 @@ def render_pool(pool: HomeServerPool, member_names: list[str]) -> str:
     return "\n".join(lines)
 
 
-def render_realm(realm: Realm, auth_pool: str | None, acct_pool: str | None) -> str:
-    lines = [f"realm {realm.name} {{"]
-    if auth_pool and acct_pool and auth_pool == acct_pool:
-        lines.append(f"{INDENT}pool = {auth_pool}")
-    else:
-        if auth_pool:
-            lines.append(f"{INDENT}auth_pool = {auth_pool}")
-        if acct_pool:
-            lines.append(f"{INDENT}acct_pool = {acct_pool}")
-    if not auth_pool and not acct_pool:
-        lines.append(f"{INDENT}# WARNING: realm has no pool assigned")
-    if realm.nostrip:
-        lines.append(f"{INDENT}nostrip")
-    lines.append("}")
-    return "\n".join(lines)
+def render_realm_for_pool(pool_name: str) -> str:
+    """One realm per pool — pure proxy plumbing. Routing is chosen per client
+    (radiuspanel_route sets Proxy-To-Realm to this realm), not by User-Name, so
+    the realm name just mirrors the pool name (ADR-0003)."""
+    return (
+        f"realm {pool_name} {{\n"
+        f"{INDENT}pool = {pool_name}\n"
+        f"{INDENT}nostrip\n"
+        "}"
+    )
 
 
 def _quote(value: str) -> str:
@@ -198,9 +193,12 @@ def render_client(c: Client) -> str:
         f"{INDENT}require_message_authenticator = "
         f"{c.require_message_authenticator}"
     )
-    # Custom field read by policy.d/radiuspanel via %{client:preserve_source_ip}.
+    # Custom fields read by policy.d/radiuspanel via %{client:...}.
     if c.preserve_source_ip:
         lines.append(f"{INDENT}preserve_source_ip = yes")
+    # Routing: which pool's realm this client proxies to (radiuspanel_route).
+    if c.target_pool is not None:
+        lines.append(f"{INDENT}target_pool = {c.target_pool.name}")
     lines.append("}")
     return "\n".join(lines)
 
@@ -208,7 +206,10 @@ def render_client(c: Client) -> str:
 async def render_clients_conf(db: AsyncSession) -> str:
     rows = (
         await db.execute(
-            select(Client).where(Client.enabled).order_by(Client.name)
+            select(Client)
+            .where(Client.enabled)
+            .options(selectinload(Client.target_pool))
+            .order_by(Client.name)
         )
     ).scalars().all()
     parts = [CLIENTS_HEADER.format(ts=datetime.now(timezone.utc).isoformat())]
@@ -228,8 +229,9 @@ POLICY_HEADER = """#
 # DO NOT EDIT BY HAND. Overwritten on the next apply.
 # Target: FreeRADIUS 3.2.x. Named policies for the panel. Wire them into your
 # virtual server ONCE (they are not called automatically):
-#   authorize {{ ... radiuspanel_adgate ... }}
+#   authorize {{ ... radiuspanel_route radiuspanel_adgate ... }}
 #   pre-proxy {{ ... radiuspanel_srcip ... }}
+#   post-auth {{ ... radiuspanel_log ... }}   (also in Post-Auth-Type REJECT)
 #
 """
 
@@ -283,12 +285,13 @@ def _normalized_username(mode: str) -> str:
     return "%{tolower:%{User-Name}}"
 
 
-def _render_adgate_realm(realm: Realm) -> str:
-    g = _sql_lit(realm.required_ad_group)
+def _render_adgate_client(client: Client) -> str:
+    g = _sql_lit(client.required_ad_group)
     i = INDENT
-    norm = _normalized_username(realm.username_normalization)
-    lines = [f'{i}if (&Realm == "{realm.name}") {{']
-    if realm.username_normalization == "strip_ntdomain":
+    norm = _normalized_username(client.username_normalization)
+    sn = client.shortname or client.name
+    lines = [f'{i}if (&Client-Shortname == "{sn}") {{']
+    if client.username_normalization == "strip_ntdomain":
         lines.append(f'{i}{i}if (&User-Name =~ /^[^\\\\]*\\\\(.+)$/) {{ }}')
     lines.append(f'{i}{i}update request {{ &Tmp-String-0 := "{norm}" }}')
     # Injection guard: only expected username characters reach the sql xlat.
@@ -310,7 +313,7 @@ def _render_adgate_realm(realm: Realm) -> str:
     lines.append(f'{i}{i}{i}{i}update request {{ &Tmp-String-1 := "reject" }}')
     lines.append(f"{i}{i}{i}{i}reject")
     lines.append(f"{i}{i}{i}}}")
-    if realm.ad_fail_mode == "closed":
+    if client.ad_fail_mode == "closed":
         lines.append(f"{i}{i}{i}else {{")
         lines.append(f"{i}{i}{i}{i}# fail-closed: no valid sync -> deny")
         lines.append(f'{i}{i}{i}{i}update request {{ &Tmp-String-1 := "reject-failclosed" }}')
@@ -336,6 +339,20 @@ async def render_policy_conf(db: AsyncSession) -> str:
     the realm's fail mode (ADR-0002).
     """
     parts = [POLICY_HEADER.format(ts=datetime.now(timezone.utc).isoformat())]
+
+    # Routing by client (ADR-0003): set Proxy-To-Realm from the client's pool.
+    # Call radiuspanel_route in authorize. User-Name plays no part in routing.
+    parts.append(
+        "radiuspanel_route {\n"
+        f"{INDENT}# Route this client's request to its target pool.\n"
+        f'{INDENT}if ("%{{client:target_pool}}") {{\n'
+        f"{INDENT}{INDENT}update control {{\n"
+        f'{INDENT}{INDENT}{INDENT}&Proxy-To-Realm := "%{{client:target_pool}}"\n'
+        f"{INDENT}{INDENT}}}\n"
+        f"{INDENT}}}\n"
+        "}\n"
+    )
+
     parts.append(
         "radiuspanel_srcip {\n"
         f"{INDENT}# Inject the real originator IP if the NAS did not set one.\n"
@@ -352,18 +369,18 @@ async def render_policy_conf(db: AsyncSession) -> str:
 
     gated = (
         await db.execute(
-            select(Realm)
-            .where(Realm.ad_group_check, Realm.enabled, Realm.required_ad_group != "")
-            .order_by(Realm.name)
+            select(Client)
+            .where(Client.ad_group_check, Client.enabled, Client.required_ad_group != "")
+            .order_by(Client.name)
         )
     ).scalars().all()
 
-    body = [f"{INDENT}# AD group gate — checks locally-synced membership (ADR-0002)"]
+    body = [f"{INDENT}# AD group gate per client — locally-synced membership (ADR-0002/3)"]
     if not gated:
         body.append(f"{INDENT}noop")
     else:
-        for realm in gated:
-            body.append(_render_adgate_realm(realm))
+        for client in gated:
+            body.append(_render_adgate_client(client))
     parts.append("radiuspanel_adgate {\n" + "\n".join(body) + "\n}\n")
 
     # Decision log — one row per request into proxy_decision (panel reads it).
@@ -375,7 +392,7 @@ async def render_policy_conf(db: AsyncSession) -> str:
         "%{sql:INSERT INTO proxy_decision "
         "(nas_ip, packet_src_ip, username, realm, ad_result, reply) VALUES "
         "('%{NAS-IP-Address}', '%{Packet-Src-IP-Address}', "
-        "'%{tolower:%{User-Name}}', '%{Realm}', "
+        "'%{tolower:%{User-Name}}', '%{control:Proxy-To-Realm}', "
         "'%{%{Tmp-String-1}:-n-a}', '%{reply:Packet-Type}')}"
     )
     parts.append(
@@ -401,10 +418,17 @@ HEADER = """#
 
 
 async def render_proxy_conf(db: AsyncSession) -> str:
-    """Build the full proxy.conf text from the current DB state."""
-    hs_rows = (
+    """Build the full proxy.conf text from the current DB state.
+
+    Routing is per-client (ADR-0003): one realm is generated per pool as proxy
+    plumbing; the panel picks it via Proxy-To-Realm (radiuspanel_route), not by
+    User-Name suffix.
+    """
+    ts_rows = (
         await db.execute(
-            select(HomeServer).where(HomeServer.enabled).order_by(HomeServer.name)
+            select(TargetServer)
+            .where(TargetServer.enabled)
+            .order_by(TargetServer.name)
         )
     ).scalars().all()
 
@@ -414,41 +438,30 @@ async def render_proxy_conf(db: AsyncSession) -> str:
             .where(HomeServerPool.enabled)
             .options(
                 selectinload(HomeServerPool.members).selectinload(
-                    PoolMember.home_server
+                    PoolMember.target_server
                 )
             )
             .order_by(HomeServerPool.name)
         )
     ).scalars().all()
 
-    realm_rows = (
-        await db.execute(
-            select(Realm)
-            .where(Realm.enabled)
-            .options(selectinload(Realm.auth_pool), selectinload(Realm.acct_pool))
-            .order_by(Realm.name)
-        )
-    ).scalars().all()
-
     parts: list[str] = [HEADER.format(ts=datetime.now(timezone.utc).isoformat())]
 
-    parts.append("# ---- home servers ----\n")
-    for hs in hs_rows:
-        parts.append(render_home_server(hs))
+    parts.append("# ---- target servers ----\n")
+    for ts in ts_rows:
+        parts.append(render_home_server(ts))
         parts.append("")
 
-    parts.append("# ---- home server pools ----\n")
+    parts.append("# ---- pools ----\n")
     for pool in pool_rows:
         ordered = sorted(pool.members, key=lambda m: m.position)
-        names = [m.home_server.name for m in ordered if m.home_server.enabled]
+        names = [m.target_server.name for m in ordered if m.target_server.enabled]
         parts.append(render_pool(pool, names))
         parts.append("")
 
-    parts.append("# ---- realms ----\n")
-    for realm in realm_rows:
-        auth = realm.auth_pool.name if realm.auth_pool else None
-        acct = realm.acct_pool.name if realm.acct_pool else None
-        parts.append(render_realm(realm, auth, acct))
+    parts.append("# ---- realms (one per pool; routing chosen per client) ----\n")
+    for pool in pool_rows:
+        parts.append(render_realm_for_pool(pool.name))
         parts.append("")
 
     return "\n".join(parts).rstrip() + "\n"

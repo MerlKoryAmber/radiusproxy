@@ -41,16 +41,16 @@ async function request(path, options = {}) {
 }
 
 export const api = {
-  homeServers: {
-    list: () => request("/home-servers"),
+  targetServers: {
+    list: () => request("/target-servers"),
     create: (body) =>
-      request("/home-servers", { method: "POST", body: JSON.stringify(body) }),
+      request("/target-servers", { method: "POST", body: JSON.stringify(body) }),
     update: (id, body) =>
-      request(`/home-servers/${id}`, {
+      request(`/target-servers/${id}`, {
         method: "PUT",
         body: JSON.stringify(body),
       }),
-    remove: (id) => request(`/home-servers/${id}`, { method: "DELETE" }),
+    remove: (id) => request(`/target-servers/${id}`, { method: "DELETE" }),
   },
   clients: {
     list: () => request("/clients"),
@@ -67,14 +67,6 @@ export const api = {
     update: (id, body) =>
       request(`/pools/${id}`, { method: "PUT", body: JSON.stringify(body) }),
     remove: (id) => request(`/pools/${id}`, { method: "DELETE" }),
-  },
-  realms: {
-    list: () => request("/realms"),
-    create: (body) =>
-      request("/realms", { method: "POST", body: JSON.stringify(body) }),
-    update: (id, body) =>
-      request(`/realms/${id}`, { method: "PUT", body: JSON.stringify(body) }),
-    remove: (id) => request(`/realms/${id}`, { method: "DELETE" }),
   },
   ldap: {
     get: () => request("/ldap"),

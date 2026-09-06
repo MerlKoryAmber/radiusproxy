@@ -20,12 +20,12 @@ export default function Pools({ notify, onChange }) {
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
-    const [pools, hs] = await Promise.all([
+    const [pools, ts] = await Promise.all([
       api.pools.list(),
-      api.homeServers.list(),
+      api.targetServers.list(),
     ]);
     setRows(pools);
-    setServers(hs);
+    setServers(ts);
   };
   useEffect(() => {
     load();
@@ -43,7 +43,7 @@ export default function Pools({ notify, onChange }) {
       type: p.type,
       enabled: p.enabled,
       note: p.note || "",
-      member_ids: p.members.map((m) => m.home_server_id),
+      member_ids: p.members.map((m) => m.target_server_id),
     });
     setEditing(p);
   };
@@ -118,7 +118,7 @@ export default function Pools({ notify, onChange }) {
         <div>
           <h1>Pools</h1>
           <p>
-            Groups of home servers with a load-balancing strategy. For{" "}
+            Groups of target servers with a load-balancing strategy. For{" "}
             <span className="mono">fail-over</span>, order is priority — first
             listed is primary.
           </p>
@@ -136,7 +136,7 @@ export default function Pools({ notify, onChange }) {
             </button>
           }
         >
-          No pools yet. Create one and add home servers to it.
+          No pools yet. Create one and add target servers to it.
         </Empty>
       ) : (
         <div className="table-wrap">

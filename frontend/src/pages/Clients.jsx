@@ -11,18 +11,26 @@ const BLANK = {
   proto: "udp",
   require_message_authenticator: "auto",
   preserve_source_ip: false,
+  target_pool_id: null,
+  ad_group_check: false,
+  required_ad_group: "",
+  username_normalization: "none",
+  ad_fail_mode: "open",
   enabled: true,
   note: "",
 };
 
 export default function Clients({ notify, onChange }) {
   const [rows, setRows] = useState(null);
+  const [pools, setPools] = useState([]);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(BLANK);
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
-    setRows(await api.clients.list());
+    const [clients, p] = await Promise.all([api.clients.list(), api.pools.list()]);
+    setRows(clients);
+    setPools(p);
   };
   useEffect(() => {
     load();
@@ -40,6 +48,10 @@ export default function Clients({ notify, onChange }) {
   const set = (k) => (e) => {
     const v = e.target.type === "checkbox" ? e.target.checked : e.target.value;
     setForm((f) => ({ ...f, [k]: v }));
+  };
+  const setPool = (e) => {
+    const v = e.target.value === "" ? null : Number(e.target.value);
+    setForm((f) => ({ ...f, target_pool_id: v }));
   };
 
   const save = async () => {
@@ -112,8 +124,8 @@ export default function Clients({ notify, onChange }) {
               <tr>
                 <th>Name</th>
                 <th>Address / CIDR</th>
-                <th>Type</th>
-                <th>Msg-Auth</th>
+                <th>Target pool</th>
+                <th>AD gate</th>
                 <th>State</th>
                 <th></th>
               </tr>
@@ -123,10 +135,18 @@ export default function Clients({ notify, onChange }) {
                 <tr key={r.id}>
                   <td className="mono">{r.name}</td>
                   <td className="mono">{r.ipaddr}</td>
-                  <td>
-                    <span className="tag">{r.nas_type}</span>
+                  <td className="mono muted">
+                    {r.target_pool_name || "—"}
                   </td>
-                  <td className="muted">{r.require_message_authenticator}</td>
+                  <td>
+                    {r.ad_group_check ? (
+                      <span className="tag accent" title={r.required_ad_group}>
+                        {r.ad_fail_mode === "closed" ? "closed" : "open"}
+                      </span>
+                    ) : (
+                      <span className="tag off">off</span>
+                    )}
+                  </td>
                   <td>
                     <StatusDot on={r.enabled} />
                     {r.enabled ? "enabled" : "disabled"}
@@ -208,6 +228,20 @@ export default function Clients({ notify, onChange }) {
               <option value="no">no</option>
             </select>
           </Field>
+          <Field
+            label="Target pool"
+            hint="requests from this client are proxied here (routing is by client, not username)"
+          >
+            <select value={form.target_pool_id ?? ""} onChange={setPool}>
+              <option value="">— none (drop / no proxy) —</option>
+              {pools.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+
           <div className="check" style={{ marginTop: 10 }}>
             <input
               id="preserve-srcip"
@@ -219,6 +253,53 @@ export default function Clients({ notify, onChange }) {
               Preserve originator IP when proxying (inject NAS-IP-Address)
             </label>
           </div>
+
+          <div className="check" style={{ marginTop: 10 }}>
+            <input
+              id="ad-check"
+              type="checkbox"
+              checked={form.ad_group_check}
+              onChange={set("ad_group_check")}
+            />
+            <label htmlFor="ad-check" style={{ margin: 0 }}>
+              Check AD group membership before proxying
+            </label>
+          </div>
+          {form.ad_group_check && (
+            <>
+              <Field
+                label="Required AD group"
+                hint="DN the user must belong to, e.g. CN=vpn-users,OU=Groups,DC=corp,DC=example,DC=com"
+              >
+                <input
+                  value={form.required_ad_group}
+                  onChange={set("required_ad_group")}
+                  placeholder="CN=vpn-users,OU=Groups,DC=corp,DC=example,DC=com"
+                />
+              </Field>
+              <div className="grid-2">
+                <Field label="Username sent to AD">
+                  <select
+                    value={form.username_normalization}
+                    onChange={set("username_normalization")}
+                  >
+                    <option value="none">as received</option>
+                    <option value="strip_realm">strip @realm → user</option>
+                    <option value="strip_ntdomain">DOMAIN\\user → user</option>
+                  </select>
+                </Field>
+                <Field
+                  label="If AD list is unavailable"
+                  hint="open = proxy anyway; closed = reject"
+                >
+                  <select value={form.ad_fail_mode} onChange={set("ad_fail_mode")}>
+                    <option value="open">fail-open</option>
+                    <option value="closed">fail-closed</option>
+                  </select>
+                </Field>
+              </div>
+            </>
+          )}
           <div className="check" style={{ marginTop: 10 }}>
             <input
               id="client-enabled"

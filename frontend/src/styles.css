@@ -183,14 +183,18 @@ a { color: var(--accent); }
 /* ---- settings section ---- */
 .settings-section {
   border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 16px 18px; margin: 0; max-width: 640px;
+  padding: 14px 18px 18px; margin: 0; max-width: 640px;
   background: var(--panel); box-shadow: var(--shadow-sm);
 }
+/* legend floats full-width so it doesn't overlap the content below it */
 .settings-section legend {
-  padding: 0 0 12px; margin: 0 0 8px; border: 0;
-  font-size: 13px; font-weight: 600; color: var(--text);
+  float: left; width: 100%;
+  padding: 0 0 10px; margin: 0 0 14px; border: 0;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 12px; font-weight: 600; color: var(--muted);
   text-transform: uppercase; letter-spacing: 0.05em;
 }
+.settings-section legend + * { clear: both; }
 .field-hint { margin: 6px 0 0; font-size: 12px; color: var(--muted); line-height: 1.4; }
 
 .page-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 22px; }

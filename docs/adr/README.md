@@ -6,3 +6,4 @@
 |---|-----------|---------|--------|
 | [0001](0001-proxy-policy-scope-ad-gate-logs.md) | 2026-09-06 | Панель генерит policy/ldap/логи; AD-гейт per realm; логи в Postgres; fail-open | Accepted |
 | [0002](0002-policy-gate-local-group-sync.md) | 2026-09-06 | Co-located FreeRADIUS; policy.d+include; синк AD-групп локально; source-IP per-client | Accepted |
+| [0003](0003-routing-by-client.md) | 2026-09-06 | Маршрут по клиенту (не realm); Home→Target server; AD-гейт на клиенте; realm авто per-pool | Accepted |

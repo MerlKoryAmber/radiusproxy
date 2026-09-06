@@ -51,3 +51,8 @@
 - **feat(frontend):** топбар с именем пользователя + дропдаун (UserMenu); смена пароля через
   всплывающую модалку с подтверждением (new+confirm). Настройки панели вынесены в раздел
   **Settings** (Access переименован); shell перестроен на `.main-area/.topbar/.content`.
+- **refactor(ADR-0003):** маршрутизация **по клиенту**, не по realm. `Home server → Target server`
+  везде (`/api/target-servers`). `Client` += target_pool + AD-гейт (переехал с realm).
+  Realm-сущность/раздел удалены; realm генерится per-pool; `radiuspanel_route` ставит
+  Proxy-To-Realm по `%{client:target_pool}`; `radiuspanel_adgate` теперь per-client.
+  Fix: legend в Settings (наезд), сброс БД (переименование таблиц).
