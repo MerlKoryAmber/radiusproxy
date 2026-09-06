@@ -27,6 +27,7 @@ services:
       CLIENTS_CONF_PATH: /etc/freeradius/3.0/clients.conf
       LDAP_CONF_PATH: /etc/freeradius/3.0/mods-enabled/ldap
       LDAP_CA_PATH: /etc/freeradius/3.0/certs/ad-ca.pem
+      POLICY_CONF_PATH: /etc/freeradius/3.0/policy.d/radiuspanel
       RADIUS_CHECK_CMD: "freeradius -XC"
       RADIUS_RELOAD_CMD: "/usr/local/bin/radius-reload.sh"
     ports:
