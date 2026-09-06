@@ -5,7 +5,7 @@
 set -e
 
 if freeradius -XC >/dev/null 2>&1; then
-    freeradius && echo "[entrypoint] FreeRADIUS started"
+    freeradius </dev/null >/dev/null 2>&1 && echo "[entrypoint] FreeRADIUS started"
 else
     echo "[entrypoint] FreeRADIUS not started (config not valid yet — use the panel to apply)"
 fi

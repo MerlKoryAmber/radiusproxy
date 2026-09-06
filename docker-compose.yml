@@ -15,6 +15,9 @@ services:
 
   backend:
     build: ./backend
+    # tini as PID 1 reaps the FreeRADIUS daemon when it is restarted on reload,
+    # so killed instances don't linger as defunct zombies.
+    init: true
     depends_on:
       db:
         condition: service_healthy
