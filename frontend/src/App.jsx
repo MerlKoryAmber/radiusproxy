@@ -3,12 +3,14 @@ import { api } from "./api.js";
 import HomeServers from "./pages/HomeServers.jsx";
 import Pools from "./pages/Pools.jsx";
 import Realms from "./pages/Realms.jsx";
+import LdapSettings from "./pages/LdapSettings.jsx";
 import ConfigPreview from "./pages/ConfigPreview.jsx";
 
 const TABS = [
   { id: "home-servers", label: "Home servers" },
   { id: "pools", label: "Pools" },
   { id: "realms", label: "Realms" },
+  { id: "ldap", label: "AD / LDAP" },
   { id: "config", label: "Config & apply" },
 ];
 
@@ -47,7 +49,9 @@ export default function App() {
     <div className="shell">
       <aside className="sidebar">
         <div className="brand">
-          <span className="dot" />
+          <span className="brand-mark">
+            <img src="/logo.png" alt="" />
+          </span>
           <b>RADIUS Proxy</b>
           <span>3.2</span>
         </div>
@@ -73,6 +77,7 @@ export default function App() {
         )}
         {tab === "pools" && <Pools notify={notify} onChange={refreshCounts} />}
         {tab === "realms" && <Realms notify={notify} onChange={refreshCounts} />}
+        {tab === "ldap" && <LdapSettings notify={notify} />}
         {tab === "config" && <ConfigPreview notify={notify} />}
       </main>
 

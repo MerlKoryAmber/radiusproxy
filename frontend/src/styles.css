@@ -94,6 +94,17 @@ a { color: var(--accent); }
   box-shadow: 0 0 8px var(--ir-accent);
   flex-shrink: 0;
 }
+.brand-mark {
+  flex: 0 0 40px;
+  width: 40px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  background: #fff;
+  border: 1px solid var(--ir-accent);
+  border-radius: 6px;
+  padding: 2px;
+  overflow: hidden;
+}
+.brand-mark img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .brand b {
   font-weight: 600; letter-spacing: 0.14em; color: #fff;
 }

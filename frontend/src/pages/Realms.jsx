@@ -7,6 +7,10 @@ const BLANK = {
   auth_pool_id: null,
   acct_pool_id: null,
   nostrip: false,
+  ad_group_check: false,
+  required_ad_group: "",
+  username_normalization: "none",
+  ad_fail_mode: "open",
   enabled: true,
   note: "",
 };
@@ -40,6 +44,10 @@ export default function Realms({ notify, onChange }) {
       auth_pool_id: r.auth_pool_id,
       acct_pool_id: r.acct_pool_id,
       nostrip: r.nostrip,
+      ad_group_check: r.ad_group_check,
+      required_ad_group: r.required_ad_group || "",
+      username_normalization: r.username_normalization || "none",
+      ad_fail_mode: r.ad_fail_mode || "open",
       enabled: r.enabled,
       note: r.note || "",
     });
@@ -124,6 +132,7 @@ export default function Realms({ notify, onChange }) {
                 <th>Auth pool</th>
                 <th>Acct pool</th>
                 <th>Strip suffix</th>
+                <th>AD gate</th>
                 <th>State</th>
                 <th></th>
               </tr>
@@ -139,6 +148,15 @@ export default function Realms({ notify, onChange }) {
                       <span className="tag off">keep</span>
                     ) : (
                       <span className="tag">strip</span>
+                    )}
+                  </td>
+                  <td>
+                    {r.ad_group_check ? (
+                      <span className="tag accent" title={r.required_ad_group}>
+                        {r.ad_fail_mode === "closed" ? "closed" : "open"}
+                      </span>
+                    ) : (
+                      <span className="tag off">off</span>
                     )}
                   </td>
                   <td>
@@ -204,6 +222,55 @@ export default function Realms({ notify, onChange }) {
               Keep realm suffix on User-Name (nostrip)
             </label>
           </div>
+          <div className="check" style={{ marginTop: 10 }}>
+            <input
+              id="ad-check"
+              type="checkbox"
+              checked={form.ad_group_check}
+              onChange={set("ad_group_check")}
+            />
+            <label htmlFor="ad-check" style={{ margin: 0 }}>
+              Check AD group membership before proxying
+            </label>
+          </div>
+          {form.ad_group_check && (
+            <>
+              <Field
+                label="Required AD group"
+                hint="DN of the group the user must belong to, e.g. CN=vpn-users,OU=Groups,DC=corp,DC=example,DC=com"
+              >
+                <input
+                  value={form.required_ad_group}
+                  onChange={set("required_ad_group")}
+                  placeholder="CN=vpn-users,OU=Groups,DC=corp,DC=example,DC=com"
+                />
+              </Field>
+              <div className="grid-2">
+                <Field label="Username sent to AD">
+                  <select
+                    value={form.username_normalization}
+                    onChange={set("username_normalization")}
+                  >
+                    <option value="none">as received</option>
+                    <option value="strip_realm">strip @realm → user</option>
+                    <option value="strip_ntdomain">DOMAIN\\user → user</option>
+                  </select>
+                </Field>
+                <Field
+                  label="If AD is unreachable"
+                  hint="open = proxy anyway (default); closed = reject"
+                >
+                  <select
+                    value={form.ad_fail_mode}
+                    onChange={set("ad_fail_mode")}
+                  >
+                    <option value="open">fail-open</option>
+                    <option value="closed">fail-closed</option>
+                  </select>
+                </Field>
+              </div>
+            </>
+          )}
           <div className="check" style={{ marginTop: 10 }}>
             <input
               id="realm-enabled"
