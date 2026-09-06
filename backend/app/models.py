@@ -264,6 +264,9 @@ class LdapSettings(Base):
     # Cache membership to avoid an AD hit on every packet (seconds).
     cache_ttl: Mapped[int] = mapped_column(Integer, default=300)
     net_timeout: Mapped[int] = mapped_column(Integer, default=5)
+    # How often the panel pulls group membership from AD into its own DB (s).
+    # The FR gate then compares locally (ADR-0002) — AD outages don't block auth.
+    group_sync_interval: Mapped[int] = mapped_column(Integer, default=1800)
 
     # --- TLS (LDAPS / StartTLS) -------------------------------------------
     # Root/CA certificate (PEM) that signed the DC cert. Without it LDAPS
@@ -277,6 +280,44 @@ class LdapSettings(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+
+class AdGroupSync(Base):
+    """Per-group sync bookkeeping. One row per required AD group (by DN).
+
+    The panel pulls each gated realm's required group from AD on a schedule and
+    records the result here; the members land in AdGroupMember. The FR gate
+    reads the members locally, so a failed/stale sync never blocks auth — it
+    just means the list is as fresh as `last_synced_at` (ADR-0002).
+    """
+
+    __tablename__ = "ad_group_sync"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    group_dn: Mapped[str] = mapped_column(String(512), unique=True, index=True)
+    status: Mapped[str] = mapped_column(String(16), default="never")  # never/ok/error
+    member_count: Mapped[int] = mapped_column(Integer, default=0)
+    error: Mapped[str] = mapped_column(Text, default="")
+    last_synced_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
+class AdGroupMember(Base):
+    """A username known (at last sync) to belong to an AD group.
+
+    The FR `sql` gate looks up (group_dn, username) here. `username` is stored
+    lower-cased and normalised (sAMAccountName) to match the gate's lookup.
+    """
+
+    __tablename__ = "ad_group_member"
+    __table_args__ = (
+        UniqueConstraint("group_dn", "username", name="uq_group_member"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    group_dn: Mapped[str] = mapped_column(String(512), index=True)
+    username: Mapped[str] = mapped_column(String(256), index=True)
 
 
 class AuditLog(Base):

@@ -36,6 +36,15 @@ class Settings(BaseSettings):
     # policy.d snippet with the panel's named policies (radiuspanel_srcip/_adgate).
     policy_conf_path: str = "./generated/policy.d/radiuspanel"
 
+    # FR sql module (rlm_sql_postgresql) — the AD gate queries the panel's own
+    # Postgres for local group membership. Points at the same DB as the panel.
+    sql_conf_path: str = "./generated/mods-enabled/sql"
+    sql_db_host: str = "db"
+    sql_db_port: int = 5432
+    sql_db_login: str = "radpanel"
+    sql_db_password: str = "radpanel"
+    sql_db_name: str = "radpanel"
+
     # Command used to validate config before applying. `radiusd -XC` (or
     # `freeradius -XC`) does a dry-run parse and exits non-zero on error.
     # Leave empty to skip validation (e.g. when the panel runs off-host).

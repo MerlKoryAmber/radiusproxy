@@ -57,6 +57,8 @@ export const api = {
     update: (body) =>
       request("/ldap", { method: "PUT", body: JSON.stringify(body) }),
     previewUrl: "/api/ldap/preview.conf",
+    syncStatus: () => request("/ldap/sync"),
+    syncNow: () => request("/ldap/sync", { method: "POST" }),
   },
   config: {
     preview: () => request("/config/preview"),

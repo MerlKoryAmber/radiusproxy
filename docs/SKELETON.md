@@ -4,7 +4,7 @@
 Обновлять **перед каждым push** (см. §22 CLAUDE.md). Читать после handoff и перед
 началом задачи. Если что-то тут расходится с кодом — код прав, а скелет чинить.
 
-**Обновлено:** 2026-09-06 МСК · ветка на момент правки: `feature/policy-srcip`
+**Обновлено:** 2026-09-06 МСК · ветка на момент правки: `feature/ad-sync`
 
 ---
 
@@ -22,13 +22,14 @@
 
 | Файл | Роль |
 |------|------|
-| `main.py` | FastAPI app, lifespan → `init_models()`, CORS, include роутеров, `/api/health` |
+| `main.py` | FastAPI app, lifespan → `init_models()` + `_group_sync_loop` (планировщик синка), IntegrityError→409, CORS, include роутеров, `/api/health` |
 | `config.py` | `Settings` (env): `database_url`, `proxy_conf_path`, `clients_conf_path`, `ldap_conf_path`, `ldap_ca_path`, `radius_check_cmd`, `radius_reload_cmd`, `cors_origins`. В compose пути = реальный `/etc/freeradius/3.0/*`, check=`freeradius -XC`, reload=`radius-reload.sh`. `get_settings()` (lru_cache) |
 | `Dockerfile` / `entrypoint.sh` / `radius-reload.sh` | backend-образ = panel + FreeRADIUS 3.2 (+ ldap/postgresql/utils). Панель управляет локальным FR |
 | `database.py` | async engine, `SessionLocal`, `Base`, `get_db()`, `init_models()` (create_all) |
 | `models.py` | ORM-таблицы + константы-enum |
 | `schemas.py` | Pydantic in/out + валидаторы (зеркалят ограничения FR) |
 | `crud.py` | тонкие операции на сущность + `log()` (audit) |
+| `ldap_sync.py` | синк членов AD-групп через `ldap3` → `AdGroupMember`/`AdGroupSync` (ADR-0002) |
 | `radius_config.py` | **весь FR-синтаксис**: рендереры + apply/validate/rollback |
 | `routers/*.py` | HTTP-эндпоинты на сущность |
 
@@ -45,8 +46,10 @@
   proto, require_message_authenticator, **preserve_source_ip** (custom client-поле для srcip-политики), enabled, note.
 - `LdapSettings` — **singleton (id=1)** AD-подключение → `mods-enabled/ldap`. enabled, server,
   port, use_ldaps, start_tls, bind_dn, bind_password(секрет), base_dn, group_base_dn,
-  group_filter, group_membership_attribute, cache_ttl, net_timeout **+ TLS:** `ca_cert`(PEM,
-  публичный), `tls_require_cert`, `tls_min_version`.
+  group_filter, group_membership_attribute, cache_ttl, net_timeout, `group_sync_interval` **+ TLS:**
+  `ca_cert`(PEM), `tls_require_cert`, `tls_min_version`.
+- `AdGroupSync` — на группу (group_dn uniq): status(never/ok/error), member_count, error, last_synced_at.
+- `AdGroupMember` — (group_dn, username uniq) — локальный список членов; читает FR sql-гейт.
 - `AuditLog` — actor, action, entity, entity_ref, detail, created_at.
 
 **Константы:** `HOME_SERVER_TYPES`, `POOL_TYPES`, `STATUS_CHECK_TYPES`, `USERNAME_NORMALIZATIONS`,
@@ -56,7 +59,8 @@
 
 - `render_home_server`, `render_pool`, `render_realm` → `render_proxy_conf(db)` (proxy.conf).
 - `render_client` → `render_clients_conf(db)` (clients.conf; `preserve_source_ip = yes` custom-поле).
-- `render_policy_conf(db)` → `policy.d/radiuspanel`: `radiuspanel_srcip` (inject NAS-IP по `%{client:preserve_source_ip}`, pre-proxy) + `radiuspanel_adgate` (noop-stub, 4b). Вызовы в site — вручную один раз (ADR-0002 A).
+- `render_policy_conf(db)` → `policy.d/radiuspanel`: `radiuspanel_srcip` (inject NAS-IP по `%{client:preserve_source_ip}`, pre-proxy) + `radiuspanel_adgate` (per-realm: нормализация username + injection-guard + `%{sql:}` проверка членства в `ad_group_member` + статус `ad_group_sync` + fail_mode). Вызовы в site — вручную один раз (ADR-0002 A).
+- `render_sql_module()` → `mods-enabled/sql` (rlm_sql_postgresql → Postgres панели; только для adgate `%{sql:}`).
 - `render_ldap_module(cfg, *, mask_password=False)` → mods-enabled/ldap (+ `tls{}` с ca_file/require_cert/min_version при use_ldaps|start_tls).
 - `apply_config(db)` → **multi-file**: [proxy.conf, clients.conf, policy.d/radiuspanel] + при
   `LdapSettings.enabled` ещё CA-файл (`ldap_ca_path`) и ldap-модуль (`ldap_conf_path`). `_write_with_backup` каждый,
@@ -72,7 +76,7 @@
 - `/api/home-servers` GET/POST/PUT/DELETE (`routers/home_servers.py`)
 - `/api/pools` GET/POST/PUT/DELETE (`routers/pools.py`)
 - `/api/realms` GET/POST/PUT/DELETE — `_serialize` через `model_validate` + имена пулов (`routers/realms.py`)
-- `/api/ldap` GET/PUT + `/api/ldap/preview.conf` (маска пароля) + `/api/ldap/ca.pem` (скачать CA) (`routers/ldap.py`)
+- `/api/ldap` GET/PUT + `/preview.conf` (маска пароля) + `/ca.pem` (CA) + `/sync` GET(статус)/POST(синк сейчас) (`routers/ldap.py`)
 - `/api/config/preview`, `/preview.conf`, `/clients-preview.conf`, `/policy-preview.conf`, `/apply` (POST), `/audit` (`routers/config.py`)
 - `/api/health` (`main.py`)
 
@@ -101,7 +105,7 @@
 ## Файлы FR, которыми владеет панель (ADR-0001)
 
 `proxy.conf` ✓ · `clients.conf` ✓ · `mods-enabled/ldap` ✓ (+ CA-файл, при enabled) ·
-`policy.d/radiuspanel` ✓ (srcip рабочий; adgate stub → 4b) · `mods-enabled/sql` (TODO, 4b).
+`policy.d/radiuspanel` ✓ (srcip + adgate per-realm sql-гейт) · `mods-enabled/sql` ✓ (при gated-realm).
 Вызовы policy в site — вручную один раз. Apply/валидация — на всём наборе.
 
 ## Паттерн добавления сущности

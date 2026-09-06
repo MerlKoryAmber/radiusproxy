@@ -38,3 +38,8 @@
 - **feat:** 4a — сохранение source-IP per-client (`preserve_source_ip` на Client) +
   `policy.d/radiuspanel` (`radiuspanel_srcip` рабочий, `radiuspanel_adgate` stub→4b).
   apply пишет policy.d; `/api/config/policy-preview.conf`; чекбокс в UI Clients.
+- **feat:** 4b — синк AD-групп в панель + локальный sql-гейт. `ldap3`-синк
+  (`ldap_sync.py`) членов групп → `AdGroupMember`/`AdGroupSync`; планировщик в lifespan
+  (интервал `group_sync_interval`); `/api/ldap/sync` GET/POST; экран синка в UI.
+  `render_sql_module` (rlm_sql→Postgres панели), `radiuspanel_adgate` per-realm:
+  нормализация + injection-guard + `%{sql:}` членство + статус + fail_mode. IntegrityError→409.
