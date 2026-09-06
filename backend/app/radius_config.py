@@ -162,6 +162,15 @@ def render_ldap_module(cfg: LdapSettings, *, mask_password: bool = False) -> str
             )
         lines.append(f"{INDENT}}}")
     lines.append(f"{INDENT}# membership cache TTL (s): {cfg.cache_ttl}")
+    # Lazy connection pool: start=0 so FreeRADIUS boots even when AD is
+    # unreachable (fail-open philosophy — an AD outage must not stop the server).
+    lines.append(f"{INDENT}pool {{")
+    lines.append(f"{INDENT}{INDENT}start = 0")
+    lines.append(f"{INDENT}{INDENT}min = 0")
+    lines.append(f"{INDENT}{INDENT}spare = 1")
+    lines.append(f"{INDENT}{INDENT}max = 5")
+    lines.append(f"{INDENT}{INDENT}idle_timeout = 60")
+    lines.append(f"{INDENT}}}")
     lines.append("}")
     return "\n".join(lines) + "\n"
 
