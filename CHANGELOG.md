@@ -5,6 +5,13 @@
 
 ## [Unreleased]
 
+### 2026-09-10 МСК (3)
+
+- **fix(tls):** self-signed сертификат панели теперь с SAN на host-адреса
+  (IP из `HOST_ADDRESSES`, `localhost`, `127.0.0.1`, hostname) — раньше SAN был
+  только `DNS:radius-proxy-panel`, и браузер отвергал `https://<ip>` даже после
+  добавления серта в доверенные. Регенерация: `POST /api/system/tls/self-signed`.
+
 ### 2026-09-10 МСК (2)
 
 - **feat(ADR-0007):** импорт/экспорт конфигурации портируемым JSON (раздел
