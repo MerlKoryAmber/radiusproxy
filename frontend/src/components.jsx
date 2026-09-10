@@ -39,6 +39,37 @@ export function StatusDot({ on }) {
   return <span className={`dot-status ${on ? "on" : "off"}`} />;
 }
 
+// Styled file picker: a panel button that hides the native <input type=file>
+// and shows the chosen filename. Calls onFile(text, name) with the file's text.
+export function FileButton({ label = "Choose file", accept, onFile, disabled }) {
+  const ref = useRef(null);
+  const [name, setName] = useState("");
+  const pick = async (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setName(f.name);
+    try {
+      onFile(await f.text(), f.name);
+    } catch {
+      /* caller handles */
+    }
+  };
+  return (
+    <div className="filebtn">
+      <input ref={ref} type="file" accept={accept} onChange={pick} hidden />
+      <button
+        type="button"
+        className="btn ghost"
+        disabled={disabled}
+        onClick={() => ref.current?.click()}
+      >
+        {label}
+      </button>
+      <span className="filebtn-name">{name || "No file chosen"}</span>
+    </div>
+  );
+}
+
 export function UserMenu({ username, authEnabled, onLogout }) {
   const [open, setOpen] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);

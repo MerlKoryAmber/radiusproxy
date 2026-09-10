@@ -10,5 +10,10 @@ backend/generated/
 node_modules/
 dist/
 
+# Import/export bundles — contain real shared secrets, keep local only
+*nps-import*.json
+*-config-import*.json
+radiusproxy-config-*.json
+
 # OS
 .DS_Store

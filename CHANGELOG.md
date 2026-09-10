@@ -5,6 +5,15 @@
 
 ## [Unreleased]
 
+### 2026-09-10 МСК (4)
+
+- **fix(ui):** загрузка файлов — стилизованная кнопка (`FileButton`) вместо
+  нативного «Choose File». Применено в **Import / Export** (выбор JSON) и
+  **Settings → TLS**: сертификат и ключ теперь грузятся **файлами** (.pem/.crt/.key),
+  а не вставкой PEM-текста в textarea.
+- **chore:** `.gitignore` — импорт/экспорт-бандлы (`*nps-import*.json`,
+  `radiusproxy-config-*.json`) не кладём в гит (содержат реальные секреты).
+
 ### 2026-09-10 МСК (3)
 
 - **fix(tls):** self-signed сертификат панели теперь с SAN на host-адреса

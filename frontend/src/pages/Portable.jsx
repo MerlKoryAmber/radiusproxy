@@ -1,23 +1,22 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { api } from "../api.js";
+import { FileButton } from "../components.jsx";
 
 // Import / export of the panel's routing data (targets/pools/clients/rules)
 // as a portable, name-referenced JSON bundle (ADR-0007). Import is dry-run
 // first: upload → plan → confirm → apply. Secrets are not exported.
 export default function Portable({ notify, onChange }) {
   const [bundle, setBundle] = useState(null); // parsed uploaded file
-  const [fileName, setFileName] = useState("");
   const [plan, setPlan] = useState(null); // dry-run result
   const [applied, setApplied] = useState(null);
   const [busy, setBusy] = useState(false);
-  const fileRef = useRef(null);
+  const [fileKey, setFileKey] = useState(0); // bump to remount the file picker
 
   const reset = () => {
     setBundle(null);
-    setFileName("");
     setPlan(null);
     setApplied(null);
-    if (fileRef.current) fileRef.current.value = "";
+    setFileKey((k) => k + 1);
   };
 
   const doExport = async () => {
@@ -42,15 +41,11 @@ export default function Portable({ notify, onChange }) {
     }
   };
 
-  const onFile = async (e) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
+  const onFile = (text) => {
     setApplied(null);
     setPlan(null);
     try {
-      const parsed = JSON.parse(await f.text());
-      setBundle(parsed);
-      setFileName(f.name);
+      setBundle(JSON.parse(text));
     } catch {
       notify("Not valid JSON", "err");
       reset();
@@ -114,11 +109,12 @@ export default function Portable({ notify, onChange }) {
       <fieldset className="settings-section" style={{ marginBottom: 16 }}>
         <legend>Import from file</legend>
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <input
-            ref={fileRef}
-            type="file"
+          <FileButton
+            key={fileKey}
+            label="Choose JSON file"
             accept=".json,application/json"
-            onChange={onFile}
+            onFile={onFile}
+            disabled={busy}
           />
           <button className="btn" disabled={!bundle || busy} onClick={dryRun}>
             Dry-run
@@ -135,7 +131,6 @@ export default function Portable({ notify, onChange }) {
               Clear
             </button>
           )}
-          {fileName && <span className="muted mono">{fileName}</span>}
         </div>
         <p className="field-hint" style={{ marginTop: 8 }}>
           Dry-run shows what will be created/updated without writing. Matching is
