@@ -88,6 +88,8 @@ FreeRADIUS Proxy Panel (`radiusproxy`) — веб-панель управлен�
 - Дефолтные креды в `docker-compose.yml` (`radpanel/radpanel`) — только для локали, не прод.
 - **Reload FR = pkill+restart**, оставляет defunct-зомби (init:true убран — ломал apply).
   Косметика; при желании — proper reaper/HUP позже. Также `freeradius -HUP` не перечитывает proxy.conf.
+- **Автозапуск после ребута:** добавлен `restart: unless-stopped` (2026-09-10) — контейнеры
+  встают сами. До этого перезагрузка хоста оставляла панель лежать (Exited) до ручного `up -d`.
 - **Exec-бит `.sh` на Windows:** checkout сбрасывает 755→644; `git merge`/commit может
   занести не-exec скрипты. На Win-машине `git config core.filemode false`; после мержа
   проверять `git ls-files -s '*.sh'` и чинить `git update-index --chmod=+x` (см. `.gitattributes` eol=lf).
