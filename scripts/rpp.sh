@@ -195,29 +195,30 @@ HELP
 
 # --- menu ------------------------------------------------------------------
 show_menu() {
-    printf '\n  %sRADIUS PROXY PANEL%s  (%s)\n' "$C_ACCENT" "$C_OFF" "$REPO_ROOT"
+    local g="$C_ACCENT" o="$C_OFF"
+    printf '\n  %sRADIUS PROXY PANEL%s  (%s)\n' "$g" "$o" "$REPO_ROOT"
     cat <<M
 ————————————————————————————————
-   0. Exit
+  ${g} 0.${o} Exit
 ————————————————————————————————
-   1. Update (git pull + rebuild)
-   2. Update without pull
-   3. Uninstall (keep data)
-   4. Uninstall + volumes (PURGE)
+  ${g} 1.${o} Update (git pull + rebuild)
+  ${g} 2.${o} Update without pull
+  ${g} 3.${o} Uninstall (keep data)
+  ${g} 4.${o} Uninstall + volumes (PURGE)
 ————————————————————————————————
-   5. Set encryption / JWT secrets
-   6. Reset admin password
-   7. Set git token (private repo)
+  ${g} 5.${o} Set encryption / JWT secrets
+  ${g} 6.${o} Reset admin password
+  ${g} 7.${o} Set git token (private repo)
 ————————————————————————————————
-   8. Status
-   9. Start stack
-  10. Stop stack
-  11. Restart stack
-  12. Logs
+  ${g} 8.${o} Status
+  ${g} 9.${o} Start stack
+  ${g}10.${o} Stop stack
+  ${g}11.${o} Restart stack
+  ${g}12.${o} Logs
 ————————————————————————————————
-  13. Backup DB + config
-  14. Restore from backup
-  15. Panel URL / health
+  ${g}13.${o} Backup DB + config
+  ${g}14.${o} Restore from backup
+  ${g}15.${o} Panel URL / health
 ————————————————————————————————
 M
 }
