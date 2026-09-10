@@ -4,7 +4,7 @@
 Обновлять **перед каждым push** (см. §22 CLAUDE.md). Читать после handoff и перед
 началом задачи. Если что-то тут расходится с кодом — код прав, а скелет чинить.
 
-**Обновлено:** 2026-09-10 МСК · ветка на момент правки: `fix/compose-restart`
+**Обновлено:** 2026-09-10 МСК · ветка на момент правки: `feature/config-import`
 
 ---
 
@@ -38,6 +38,7 @@
 | `crypto.py` | Fernet шифрование секретов at-rest (ключ из `APP_ENCRYPTION_KEY`); `encrypt/decrypt`, формат `enc:<token>` (ADR-0005) |
 | `tls.py` | self-signed генерация + валидация cert/key + `host_addresses()` (ADR-0006) |
 | `radius_config.py` | **весь FR-синтаксис**: рендереры + apply/validate/rollback |
+| `portable.py` | импорт/экспорт портируемого JSON (ссылки по имени): `export_bundle` + `plan_and_apply` (dry-run/apply, ADR-0007) |
 | `routers/*.py` | HTTP-эндпоинты на сущность |
 
 ### Модель (`models.py`)
@@ -93,7 +94,7 @@
 - `/api/pools` GET/POST/PUT/DELETE — members по target_server (`routers/pools.py`)
 - `/api/rules` GET/POST/PUT/DELETE + POST `/reorder` (ids по порядку) (`routers/rules.py`)
 - `/api/ldap` GET/PUT + `/preview.conf` + `/ca.pem` + `/sync` GET/POST + `/groups?q=` (автокомплит из каталога) (`routers/ldap.py`)
-- `/api/config/preview`, `/preview.conf`, `/clients-preview.conf`, `/policy-preview.conf`, `/apply` (POST), `/audit` (`routers/config.py`)
+- `/api/config/preview`, `/preview.conf`, `/clients-preview.conf`, `/policy-preview.conf`, `/apply` (POST), `/audit`, `/export` GET, `/import` POST (`?dry_run=`) (`routers/config.py`)
 - `/api/decisions` GET (лог решений, фильтры username/realm) (`routers/decisions.py`)
 - `/api/auth/status|login|settings|password` (`routers/auth.py`) — **открыт**; остальные data/config-роутеры под `Depends(require_user)` (гейт при auth on)
 - `/api/dashboard` GET — сводка (`routers/dashboard.py`)
@@ -115,13 +116,14 @@
 | `pages/Rules.jsx` | ordered rules (up/down reorder) + модалка (client/username/pool/AD-гейт), `GroupPicker` автокомплит групп |
 | `pages/LdapSettings.jsx` | форма AD/LDAP + превью + синк (`embedded` внутри Settings) |
 | `pages/ConfigPreview.jsx` | превью proxy.conf + apply (показывает `written_paths`) |
+| `pages/Portable.jsx` | Import/Export: экспорт JSON (download) + импорт файла → dry-run план → применить (ADR-0007) |
 | `pages/Decisions.jsx` | лог решений RADIUS (фильтр по user) |
 | `pages/Dashboard.jsx` | сводка (счётчики, статусы FR/AD/apply/security, последние решения) |
 | `pages/Settings.jsx` | под-вкладки **Access** (login + IP-allowlist), **AD/LDAP**, **TLS** (замена cert), **Host** (read-only IP). Пароль — в топбар-меню |
 | `pages/Login.jsx` | экран входа (показывается при auth on и 401) |
 | `styles.css` | дизайн Interros (navy+gold), классы ниже |
 
-**TABS:** **dashboard** → clients → targets → pools → rules → decisions → config → settings (Access/AD-LDAP/TLS/Host под-вкладки). Маршрут: ordered Rules (ADR-0004). HTTPS + IP-allowlist + no-proxy (ADR-0006).
+**TABS:** **dashboard** → clients → targets → pools → rules → decisions → config → **portable** (Import/Export) → settings (Access/AD-LDAP/TLS/Host под-вкладки). Маршрут: ordered Rules (ADR-0004). HTTPS + IP-allowlist + no-proxy (ADR-0006). Импорт/экспорт JSON (ADR-0007).
 
 ## Скрипты деплоя (`scripts/`)
 

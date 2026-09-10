@@ -5,6 +5,16 @@
 
 ## [Unreleased]
 
+### 2026-09-10 МСК (2)
+
+- **feat(ADR-0007):** импорт/экспорт конфигурации портируемым JSON (раздел
+  **Import / Export**). Экспорт `GET /api/config/export` (targets/pools/clients/rules,
+  ссылки по имени, **без секретов**). Импорт `POST /api/config/import` с **dry-run**
+  (план create/update + проблемы, ничего не пишет) → **применить** (одна транзакция,
+  матч по имени). Секрет нужен только при создании нового target/client. Цель —
+  миграция из Windows NPS (`netsh nps export ... exportPSK=YES` + скрины).
+  Новый `backend/app/portable.py`, схемы Import*, страница `Portable.jsx`. Без сброса БД.
+
 ### 2026-09-10 МСК
 
 - **fix(ops):** `restart: unless-stopped` на db/backend/frontend — после ребута

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import PlainTextResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .. import crud, schemas
+from .. import crud, portable, schemas
 from ..database import get_db
 from ..radius_config import (
     ConfigValidationError,
@@ -54,6 +54,25 @@ async def apply(db: AsyncSession = Depends(get_db)):
     )
     await db.commit()
     return schemas.ApplyResponse(**result.__dict__)
+
+
+# --- portable import / export (ADR-0007) ----------------------------------
+@router.get("/export")
+async def export_config(db: AsyncSession = Depends(get_db)) -> dict:
+    """Current clients/targets/pools/rules as a name-referenced JSON bundle.
+    Secrets are NOT included (write-only at rest)."""
+    return await portable.export_bundle(db)
+
+
+@router.post("/import", response_model=schemas.ImportPlan)
+async def import_config(
+    bundle: schemas.ImportBundle,
+    dry_run: bool = True,
+    db: AsyncSession = Depends(get_db),
+):
+    """dry_run=true (default) → validate + plan without writing.
+    dry_run=false → apply the bundle (create/update by name) in one transaction."""
+    return await portable.plan_and_apply(db, bundle, dry_run=dry_run)
 
 
 @router.get("/audit")

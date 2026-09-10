@@ -282,3 +282,79 @@ class ApplyResponse(BaseModel):
     validation_output: str
     reloaded: bool
     reload_output: str
+
+
+# --------------------------- Import / export ------------------------------
+# Portable bundle: entities reference each other by NAME (not id) so the file
+# is human-readable and stable across DBs. Import resolves names → ids.
+class ImportTarget(TargetServerBase):
+    # Optional on import: required only when creating a new target.
+    secret: str = Field(default="", max_length=256)
+
+
+class ImportPool(PoolBase):
+    # Ordered target-server NAMES that make up the pool.
+    members: list[str] = []
+
+
+class ImportClient(ClientBase):
+    secret: str = Field(default="", max_length=256)
+
+
+class ImportRule(BaseModel):
+    # Name-based rule (RuleBase is id-based; mirror its fields + validators here).
+    name: str = Field(default="", max_length=128)
+    client: str = Field(max_length=64)  # client NAME
+    match_username: str = Field(default="", max_length=256)
+    target_pool: str | None = Field(default=None, max_length=64)  # pool NAME
+    ad_group_check: bool = False
+    required_ad_group: str = Field(default="", max_length=256)
+    required_ad_group_dn: str = Field(default="", max_length=512)
+    username_normalization: str = "none"
+    ad_fail_mode: str = "open"
+    enabled: bool = True
+    note: str = ""
+
+    @field_validator("username_normalization")
+    @classmethod
+    def _valid_norm(cls, v: str) -> str:
+        if v not in USERNAME_NORMALIZATIONS:
+            raise ValueError(f"must be one of {USERNAME_NORMALIZATIONS}")
+        return v
+
+    @field_validator("ad_fail_mode")
+    @classmethod
+    def _valid_fail(cls, v: str) -> str:
+        if v not in AD_FAIL_MODES:
+            raise ValueError(f"must be one of {AD_FAIL_MODES}")
+        return v
+
+
+class ImportBundle(BaseModel):
+    version: int = 1
+    source: str = ""
+    target_servers: list[ImportTarget] = []
+    pools: list[ImportPool] = []
+    clients: list[ImportClient] = []
+    rules: list[ImportRule] = []
+
+
+class ImportItem(BaseModel):
+    kind: str  # target_server | pool | client | rule
+    name: str
+    action: str  # create | update
+    note: str = ""
+
+
+class ImportProblem(BaseModel):
+    kind: str
+    name: str
+    error: str
+
+
+class ImportPlan(BaseModel):
+    dry_run: bool
+    applied: bool
+    items: list[ImportItem] = []
+    problems: list[ImportProblem] = []
+    counts: dict[str, int] = {}
