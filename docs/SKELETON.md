@@ -4,7 +4,7 @@
 Обновлять **перед каждым push** (см. §22 CLAUDE.md). Читать после handoff и перед
 началом задачи. Если что-то тут расходится с кодом — код прав, а скелет чинить.
 
-**Обновлено:** 2026-09-07 МСК · ветка на момент правки: `feature/https-access`
+**Обновлено:** 2026-09-10 МСК · ветка на момент правки: `fix/compose-restart`
 
 ---
 
@@ -19,6 +19,7 @@
 - **HTTPS:** backend генерит self-signed cert в БД+том `panelcerts`; frontend nginx `443 ssl`
   + `80→443`, авто-reload по inotify при смене cert. Наружу **80/443** (не 8080).
 - Деплой: `docker compose up -d --build` (db / backend :8000+1812/1813udp / frontend :80+:443).
+  Все сервисы `restart: unless-stopped` — встают сами после ребута хоста.
   Все сервисы с пустым `http(s)_proxy`/`no_proxy=*` (не ходят во внешний прокси).
 
 ## Backend `backend/app/`

@@ -1,6 +1,7 @@
 services:
   db:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_USER: radpanel
       POSTGRES_PASSWORD: radpanel
@@ -22,6 +23,7 @@ services:
 
   backend:
     build: ./backend
+    restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
@@ -62,6 +64,7 @@ services:
 
   frontend:
     build: ./frontend
+    restart: unless-stopped
     depends_on:
       - backend
     environment:
