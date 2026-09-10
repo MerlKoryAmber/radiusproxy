@@ -39,12 +39,15 @@ compose() { "$DOCKER" compose -f "$COMPOSE" "$@"; }
 # --- interaction (works under agents/pipes: /dev/tty if usable, else stdin) --
 _read() {  # _read VAR PROMPT [-s]
     local __var="$1" __prompt="$2" __silent="${3:-}" __src=/dev/stdin
-    if printf '' >/dev/tty 2>/dev/null; then __src=/dev/tty; fi
+    # Use the controlling terminal when there is one; group the probe so a
+    # missing /dev/tty (agents/pipes) can't leak a redirection error.
+    if { true >/dev/tty; } 2>/dev/null; then __src=/dev/tty; fi
+    printf '%s' "$__prompt" >&2
     if [ "$__silent" = "-s" ]; then
-        read -r -s -p "$__prompt" "$__var" <"$__src" >/dev/tty 2>&1 || true
-        printf '\n' >/dev/tty 2>/dev/null || true
+        read -r -s "$__var" <"$__src" || true
+        printf '\n' >&2
     else
-        read -r -p "$__prompt" "$__var" <"$__src" || true
+        read -r "$__var" <"$__src" || true
     fi
 }
 ask()        { local v; _read v "$1"; printf '%s' "$v"; }

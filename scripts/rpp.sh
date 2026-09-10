@@ -112,7 +112,9 @@ _svc() { command -v systemctl >/dev/null 2>&1 && systemctl "$1" "$UNIT" 2>/dev/n
 cmd_status() {
     echo "Install : $REPO_ROOT"
     echo "Git HEAD: $(git -C "$REPO_ROOT" log --oneline -1 2>/dev/null || echo '?')"
-    echo "Unit    : $(command -v systemctl >/dev/null 2>&1 && systemctl is-active "$UNIT" 2>/dev/null || echo n/a)"
+    local ustate="n/a"
+    command -v systemctl >/dev/null 2>&1 && ustate="$(systemctl is-active "$UNIT" 2>/dev/null || true)"
+    echo "Unit    : ${ustate:-inactive}"
     echo "Containers:"; compose ps 2>/dev/null || warn "compose not available"
     _health
 }
