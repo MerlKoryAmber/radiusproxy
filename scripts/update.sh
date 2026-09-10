@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 #
 # FreeRADIUS Proxy Panel — updater. Pulls the latest code and rebuilds the stack.
-#   sudo /opt/radiusproxy/scripts/update.sh
+#   sudo /opt/radiusproxy/scripts/update.sh [--no-pull]
+#
+#   --no-pull   rebuild the current checkout without git fetch/pull
 #
 # Config via env:
 #   BRANCH       branch to deploy (default: main)
@@ -13,6 +15,9 @@ die()  { printf '\033[1;31m[update] ERROR:\033[0m %s\n' "$*" >&2; exit 1; }
 
 [ "$(id -u)" -eq 0 ] || die "run as root (sudo)."
 
+NO_PULL=0
+for a in "$@"; do case "$a" in --no-pull) NO_PULL=1 ;; *) die "unknown option: $a" ;; esac; done
+
 BRANCH="${BRANCH:-main}"
 # Default INSTALL_DIR = repo root (parent of this scripts/ dir).
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -20,13 +25,20 @@ INSTALL_DIR="${INSTALL_DIR:-$(dirname "$SCRIPT_DIR")}"
 
 [ -d "$INSTALL_DIR/.git" ] || die "no git checkout at $INSTALL_DIR (set INSTALL_DIR)."
 
-log "updating $INSTALL_DIR (branch $BRANCH)…"
-git -C "$INSTALL_DIR" fetch --all --prune
-git -C "$INSTALL_DIR" checkout "$BRANCH"
-git -C "$INSTALL_DIR" pull --ff-only
+if [ "$NO_PULL" -eq 1 ]; then
+    log "rebuilding $INSTALL_DIR WITHOUT git pull…"
+else
+    log "updating $INSTALL_DIR (branch $BRANCH)…"
+    git -C "$INSTALL_DIR" fetch --all --prune
+    git -C "$INSTALL_DIR" checkout "$BRANCH"
+    git -C "$INSTALL_DIR" pull --ff-only
+fi
 
 log "rebuilding and restarting…"
 docker compose -f "$INSTALL_DIR/docker-compose.yml" up -d --build
+
+# Refresh the host CLI wrapper + systemd unit from the (possibly updated) tree.
+( INSTALL_DIR="$INSTALL_DIR" . "$SCRIPT_DIR/lib/common.sh"; ensure_cli; ensure_unit )
 
 log "waiting for health…"
 for _ in $(seq 1 60); do

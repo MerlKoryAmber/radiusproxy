@@ -118,6 +118,10 @@ write_env
 log "building and starting the stack (this can take a few minutes)…"
 docker compose -f "$INSTALL_DIR/docker-compose.yml" up -d --build
 
+# Install the host CLI (`rpp`) + systemd unit (subshell: don't clobber our log()).
+( INSTALL_DIR="$INSTALL_DIR" . "$INSTALL_DIR/scripts/lib/common.sh"; ensure_cli; ensure_unit ) \
+    && log "host CLI installed: rpp (menu) — try: sudo rpp" || warn "rpp CLI install skipped"
+
 wait_healthy || true
 
 ip="$(hostname -I 2>/dev/null | awk '{print $1}')"; ip="${ip:-<host-ip>}"
@@ -137,6 +141,7 @@ $(printf '\033[1;32m[install] FreeRADIUS Proxy Panel is up.\033[0m')
   Firewall (if enabled): open 80,443/tcp and 1812-1813/udp, e.g.
     firewall-cmd --add-service=http --add-service=https --add-port=1812-1813/udp --permanent && firewall-cmd --reload
 
-  Update    : sudo ${INSTALL_DIR}/scripts/update.sh
-  Uninstall : sudo ${INSTALL_DIR}/scripts/uninstall.sh
+  Manage    : sudo rpp            (menu: update / status / logs / backup / restore / password / …)
+  Update    : sudo rpp update     (or ${INSTALL_DIR}/scripts/update.sh)
+  Uninstall : sudo rpp uninstall  (or ${INSTALL_DIR}/scripts/uninstall.sh)
 DONE

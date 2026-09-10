@@ -5,6 +5,18 @@
 
 ## [Unreleased]
 
+### 2026-09-10 МСК (5)
+
+- **feat(ops):** хостовое CLI-меню **`rpp`** (паттерн из соседнего проекта,
+  `docs/patterns/cli-menu-linux.md`). Одна команда `sudo rpp` → нумерованное меню
+  (и те же действия подкомандами): update / update-nopull / uninstall / purge,
+  secrets (`.env` APP_ENCRYPTION_KEY/JWT_SECRET), reset admin password, git-token,
+  status / start / stop / restart (systemd unit `radiusproxy.service`), logs,
+  backup / restore (`storage/backup/<stamp>/`, pg_dump + .env), url/health.
+  `scripts/rpp.sh` + `scripts/lib/common.sh`; wrapper `/usr/bin/rpp` (ставит install.sh,
+  обновляет update.sh, снимает uninstall.sh). compose: секреты из env (дефолт при unset).
+  `storage/` в `.gitignore`. update.sh += `--no-pull`.
+
 ### 2026-09-10 МСК (4)
 
 - **fix(ui):** загрузка файлов — стилизованная кнопка (`FileButton`) вместо
