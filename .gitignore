@@ -15,5 +15,8 @@ dist/
 *-config-import*.json
 radiusproxy-config-*.json
 
+# Host backups (DB dumps + .env) — secrets, never in git
+storage/
+
 # OS
 .DS_Store

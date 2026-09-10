@@ -44,8 +44,9 @@ services:
       TLS_CERT_DIR: /certs
       # Secrets at rest are encrypted with this key. CHANGE for production
       # (a long random string); if it changes, stored secrets can't be decrypted.
-      APP_ENCRYPTION_KEY: "dev-insecure-change-me"
-      JWT_SECRET: "dev-insecure-change-me"
+      # Override via .env (or `rpp secrets`); dev default used when unset.
+      APP_ENCRYPTION_KEY: "${APP_ENCRYPTION_KEY:-dev-insecure-change-me}"
+      JWT_SECRET: "${JWT_SECRET:-dev-insecure-change-me}"
       # Host IPs shown read-only in Settings (install.sh fills this via .env).
       HOST_ADDRESSES: "${HOST_ADDRESSES:-}"
       # No host proxy inside the container.

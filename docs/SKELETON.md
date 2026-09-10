@@ -4,7 +4,7 @@
 Обновлять **перед каждым push** (см. §22 CLAUDE.md). Читать после handoff и перед
 началом задачи. Если что-то тут расходится с кодом — код прав, а скелет чинить.
 
-**Обновлено:** 2026-09-10 МСК · ветка на момент правки: `feature/config-import`
+**Обновлено:** 2026-09-10 МСК · ветка на момент правки: `feature/host-cli`
 
 ---
 
@@ -21,6 +21,10 @@
 - Деплой: `docker compose up -d --build` (db / backend :8000+1812/1813udp / frontend :80+:443).
   Все сервисы `restart: unless-stopped` — встают сами после ребута хоста.
   Все сервисы с пустым `http(s)_proxy`/`no_proxy=*` (не ходят во внешний прокси).
+- **Хостовое CLI `rpp`** (`scripts/rpp.sh` + `scripts/lib/common.sh` → `/usr/bin/rpp`):
+  меню/подкоманды update·uninstall·secrets·password·git-token·status·start/stop/restart
+  (systemd unit `radiusproxy.service`)·logs·backup/restore (`storage/backup/`)·url. ADR-паттерн
+  `docs/patterns/cli-menu-linux.md`. Секреты `.env` (`APP_ENCRYPTION_KEY`/`JWT_SECRET`, compose из env).
 
 ## Backend `backend/app/`
 
@@ -129,8 +133,9 @@
 
 - `install.sh` — ставит docker+compose (при отсутствии) + git, клонит репо в `INSTALL_DIR`
   (деф. `/opt/radiusproxy`), собирает и поднимает стек, ждёт health. Самодостаточный (`curl|bash`).
-- `update.sh` — `git pull` + `compose up -d --build` (INSTALL_DIR = корень репо по умолчанию).
-- `uninstall.sh` — `compose down -v --rmi local` (`--keep-data`, `--purge`). Docker не трогает.
+- `update.sh` — `git pull` + `compose up -d --build` (`--no-pull` = без pull); обновляет `rpp`+unit.
+- `uninstall.sh` — `compose down -v --rmi local` (`--keep-data`, `--purge`); снимает `rpp`+unit.
+- `rpp.sh` + `lib/common.sh` — хостовое CLI-меню (`/usr/bin/rpp`): все операции + backup/restore/password/secrets. Паттерн `docs/patterns/cli-menu-linux.md`.
 **Auth-гейт (App.jsx):** на старте `api.auth.status()`; 401 → `<Login>`; иначе shell. Имя юзера в топбаре → дропдаун (Change password с подтверждением / Log out).
 
 **CSS-словарь:** `.shell/.sidebar/.brand/.brand-mark/.nav`, `.page-head`, `.btn(.primary/.ghost/.danger/.sm)`,

@@ -71,6 +71,11 @@ FreeRADIUS Proxy Panel (`radiusproxy`) — веб-панель управлен�
     Доступ теперь `https://<host>` (self-signed). Порт 8080 не публикуется. `.env HOST_ADDRESSES`.
     **Восстановление при локауте:** `docker compose exec db psql -U radpanel -d radpanel -c "UPDATE auth_settings SET ip_allowlist=''"`.
     Прод: заменить cert; задать `APP_ENCRYPTION_KEY`/`JWT_SECRET`.
+13. **Хостовое CLI `rpp`** — `feature/host-cli` (паттерн из 2fa, `docs/patterns/cli-menu-linux.md`).
+    `sudo rpp` → меню (update/uninstall/secrets/password/git-token/status/start/stop/restart/
+    logs/backup/restore/url); те же подкомандами. `scripts/rpp.sh`+`lib/common.sh`, wrapper
+    `/usr/bin/rpp`, systemd unit `radiusproxy.service`. compose: секреты `.env` (`APP_ENCRYPTION_KEY`/
+    `JWT_SECRET`). backup/restore → `storage/backup/<stamp>/` (в `.gitignore`). update.sh += `--no-pull`.
 12. **Импорт/экспорт (ADR-0007)** — `feature/config-import`: раздел **Import / Export**.
     Портируемый JSON (targets/pools/clients/rules, ссылки по имени, **без секретов**);
     импорт dry-run→apply (матч по имени), `portable.py`, `/api/config/export|import`.
