@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { Field, Spinner } from "../components.jsx";
+import { Field, FileButton, Spinner } from "../components.jsx";
 import LdapSettings from "./LdapSettings.jsx";
 
 function AccessSettings({ notify, onAuthChange }) {
@@ -100,12 +100,15 @@ function TlsSettings({ notify }) {
     load();
   }, []);
 
+  const [fileKey, setFileKey] = useState(0);
+
   const replace = async () => {
     setBusy(true);
     try {
       await api.system.replaceTls(cert, key);
       setCert("");
       setKey("");
+      setFileKey((k) => k + 1);
       notify("Certificate replaced — nginx reloads shortly");
       await load();
     } catch (e) {
@@ -138,13 +141,13 @@ function TlsSettings({ notify }) {
         {info.subject && <span className="mono">{info.subject}</span>}
         {info.not_after && <> · expires {new Date(info.not_after).toLocaleDateString()}</>}
       </p>
-      <Field label="Certificate (PEM)">
-        <textarea value={cert} onChange={(e) => setCert(e.target.value)}
-          style={{ minHeight: 90 }} placeholder="-----BEGIN CERTIFICATE-----" />
+      <Field label="Certificate (PEM file)" hint={cert ? "loaded ✓" : ".pem / .crt"}>
+        <FileButton key={`c${fileKey}`} label="Choose certificate"
+          accept=".pem,.crt,.cer" onFile={(t) => setCert(t)} disabled={busy} />
       </Field>
-      <Field label="Private key (PEM)" hint="stored encrypted; never shown">
-        <textarea value={key} onChange={(e) => setKey(e.target.value)}
-          style={{ minHeight: 90 }} placeholder="-----BEGIN PRIVATE KEY-----" />
+      <Field label="Private key (PEM file)" hint={key ? "loaded ✓ · stored encrypted, never shown" : ".pem / .key · stored encrypted"}>
+        <FileButton key={`k${fileKey}`} label="Choose private key"
+          accept=".pem,.key" onFile={(t) => setKey(t)} disabled={busy} />
       </Field>
       <div style={{ display: "flex", gap: 8 }}>
         <button className="btn primary" disabled={busy || !cert || !key} onClick={replace}>
