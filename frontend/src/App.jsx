@@ -8,6 +8,7 @@ import Pools from "./pages/Pools.jsx";
 import Rules from "./pages/Rules.jsx";
 import Decisions from "./pages/Decisions.jsx";
 import ConfigPreview from "./pages/ConfigPreview.jsx";
+import Portable from "./pages/Portable.jsx";
 import Settings from "./pages/Settings.jsx";
 import Login from "./pages/Login.jsx";
 
@@ -19,6 +20,7 @@ const TABS = [
   { id: "rules", label: "Rules" },
   { id: "decisions", label: "Decision log" },
   { id: "config", label: "Config & apply" },
+  { id: "portable", label: "Import / Export" },
   { id: "settings", label: "Settings" },
 ];
 
@@ -132,6 +134,9 @@ export default function App() {
           {tab === "rules" && <Rules notify={notify} />}
           {tab === "decisions" && <Decisions />}
           {tab === "config" && <ConfigPreview notify={notify} />}
+          {tab === "portable" && (
+            <Portable notify={notify} onChange={refreshCounts} />
+          )}
           {tab === "settings" && (
             <Settings notify={notify} onAuthChange={checkAuth} />
           )}

@@ -71,6 +71,12 @@ FreeRADIUS Proxy Panel (`radiusproxy`) — веб-панель управлен�
     Доступ теперь `https://<host>` (self-signed). Порт 8080 не публикуется. `.env HOST_ADDRESSES`.
     **Восстановление при локауте:** `docker compose exec db psql -U radpanel -d radpanel -c "UPDATE auth_settings SET ip_allowlist=''"`.
     Прод: заменить cert; задать `APP_ENCRYPTION_KEY`/`JWT_SECRET`.
+12. **Импорт/экспорт (ADR-0007)** — `feature/config-import`: раздел **Import / Export**.
+    Портируемый JSON (targets/pools/clients/rules, ссылки по имени, **без секретов**);
+    импорт dry-run→apply (матч по имени), `portable.py`, `/api/config/export|import`.
+    Цель — миграция из **Windows NPS** (`netsh nps export ... exportPSK=YES` + скрины);
+    финальный JSON собирает агент из данных NPS. Без сброса БД (новых таблиц нет).
+    **Хвост:** реального NPS-файла ещё нет — жду скрины+XML, чтобы собрать bundle на загрузку.
 
 **Решения по куску 4 (2026-09-06):** вариант A (policy.d + include); source-IP per-client;
 группы синкать раз ~30 мин в панель и сравнивать локально (не per-packet AD); FR ставится

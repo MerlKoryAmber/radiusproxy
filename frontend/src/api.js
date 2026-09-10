@@ -91,6 +91,12 @@ export const api = {
     preview: () => request("/config/preview"),
     apply: () => request("/config/apply", { method: "POST" }),
     audit: () => request("/config/audit"),
+    export: () => request("/config/export"),
+    import: (bundle, dryRun = true) =>
+      request(`/config/import?dry_run=${dryRun}`, {
+        method: "POST",
+        body: JSON.stringify(bundle),
+      }),
   },
   decisions: {
     list: (params = "") => request(`/decisions${params}`),
