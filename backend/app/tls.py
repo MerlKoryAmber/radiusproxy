@@ -19,8 +19,27 @@ CERT_FILE = "cert.pem"
 KEY_FILE = "key.pem"
 
 
+def _san_entries(common_name: str) -> list[x509.GeneralName]:
+    """SANs so the cert is valid on the addresses the panel is reached by:
+    its CN, localhost, and every host IP (HOST_ADDRESSES). Without the host IP
+    a browser rejects https://<ip> even after the cert is trusted."""
+    dns = [common_name, "localhost"]
+    hostname = os.environ.get("HOSTNAME", "").strip()
+    if hostname and hostname not in dns:
+        dns.append(hostname)
+    ips = ["127.0.0.1", *host_addresses()]
+    sans: list[x509.GeneralName] = [x509.DNSName(d) for d in dict.fromkeys(dns)]
+    for ip in dict.fromkeys(ips):
+        try:
+            sans.append(x509.IPAddress(ipaddress.ip_address(ip)))
+        except ValueError:
+            continue
+    return sans
+
+
 def generate_self_signed(common_name: str = "radius-proxy-panel") -> tuple[str, str]:
-    """Return (cert_pem, key_pem) for a fresh 10-year self-signed RSA cert."""
+    """Return (cert_pem, key_pem) for a fresh 10-year self-signed RSA cert.
+    SAN covers the CN, localhost and the host IPs so it is usable by IP."""
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, common_name)])
     now = datetime.datetime.now(datetime.timezone.utc)
@@ -33,7 +52,7 @@ def generate_self_signed(common_name: str = "radius-proxy-panel") -> tuple[str, 
         .not_valid_before(now - datetime.timedelta(minutes=1))
         .not_valid_after(now + datetime.timedelta(days=3650))
         .add_extension(
-            x509.SubjectAlternativeName([x509.DNSName(common_name)]), critical=False
+            x509.SubjectAlternativeName(_san_entries(common_name)), critical=False
         )
         .sign(key, hashes.SHA256())
     )
