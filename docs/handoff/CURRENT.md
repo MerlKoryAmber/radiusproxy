@@ -3,7 +3,15 @@
 Живой срез для следующего агента/сессии. Держать актуальным перед каждым смысловым
 push (§6/§10 CLAUDE.md). Время — **МСК (UTC+3)**.
 
-**Обновлено:** 2026-09-07 МСК
+**Обновлено:** 2026-09-10 МСК
+
+> **Точка подхвата (10.09.2026):** всё в `main`, развёрнуто и живёт на
+> `192.168.0.178` (доступ `https://192.168.0.178`, self-signed). Панель — Rules-driven
+> прокси (client[+username]→pool, опц. AD-гейт). Реализованы ADR-0001..0007 + хостовое
+> CLI `rpp` + миграция из Windows NPS (данные NPS уже импортированы в БД: 2 target
+> LinOTP/hmk2fa, 2 пула, 4 клиента, 7 правил). **Реальный AD/RADIUS-трафик не
+> тестировался** (нет живого AD/NAS на тесте). Прод: сменить `APP_ENCRYPTION_KEY`/
+> `JWT_SECRET` (`rpp secrets`), заменить cert (Settings→TLS / `rpp`).
 
 ---
 
@@ -107,10 +115,16 @@ FreeRADIUS Proxy Panel (`radiusproxy`) — веб-панель управлен�
 
 ## Деплой-сервер (тест)
 
-- CentOS Stream 9 `192.168.0.178`, root по SSH-ключу `~/.ssh/radiusproxy_ed25519`.
-- docker-ce 29.8.0 + compose; podman 5.8.5 тоже стоит (не используется). SELinux Enforcing.
-- Каталог `/root/radiusproxy`, обновление: `git pull && docker compose up -d --build`.
-- `/root/linotp-migrate` (46 МБ) чужие данные — не трогать без явного «да».
+- CentOS Stream 9 `192.168.0.178`, root по SSH-ключу `~/.ssh/radiusproxy_ed25519`
+  (ключ **локальный, не в git** — у нового клиента на другой машине его не будет).
+- docker-ce + compose. SELinux Enforcing. Контейнеры `restart: unless-stopped`.
+- Каталог **`/opt/radiusproxy`** (на `main`). Наружу **80/443** (не 8080).
+- Обновление/управление: **`sudo rpp`** (меню) или `rpp update` / `scripts/update.sh`.
+  Health: `rpp url` (https/api). Бэкапы: `rpp backup` → `storage/backup/<stamp>/`.
+- **Сертификат** self-signed с SAN на IP; добавлен в доверенные Windows на dev-VM
+  (встроенный браузер ходит по `https://192.168.0.178` без предупреждений после рестарта).
+- NPS-миграция: исходный `netsh`-экспорт был `C:\Soft\nps.xml`; собранный bundle
+  `C:\Soft\radiusproxy-nps-import.json` — **локальные, не в git** (реальные секреты).
 
 ## Не делать
 
@@ -120,7 +134,15 @@ FreeRADIUS Proxy Panel (`radiusproxy`) — веб-панель управлен�
 
 ## Старт следующего агента
 
-1. Прочитать `CLAUDE.md` (правила выше дефолта) и `README.md`.
+1. Прочитать `CLAUDE.md` (правила выше дефолта), `docs/SKELETON.md` (карта — сверяться,
+   не перечитывать код), этот handoff, `docs/adr/README.md` (реестр решений).
 2. `git fetch` + сверка `origin/main` (§8 — предполагать параллельные сессии).
-3. Локальный запуск: `docker-compose up` → backend :8000, frontend :8080, db :5432.
-4. Крупная задача — по пайплайну §2: АУДИТ → ПЛАН → РЕАЛИЗАЦИЯ → ВЕРИФИКАЦИЯ → ПРИЁМКА.
+3. Запуск/деплой: `docker compose up -d --build` (или `scripts/install.sh` на чистом хосте,
+   `rpp`/`update.sh` на существующем). Наружу frontend **80/443**, backend `:8000`, db `:5432`.
+   Панель: `https://<host>` (self-signed). Логин по умолчанию OFF, admin/admin.
+4. Тест-сервер `192.168.0.178` — только если есть локальный SSH-ключ `~/.ssh/radiusproxy_ed25519`
+   (не в git). Иначе разворачивать свой хост через `scripts/install.sh`.
+5. Крупная задача — по пайплайну §2: АУДИТ → ПЛАН → РЕАЛИЗАЦИЯ → ВЕРИФИКАЦИЯ → ПРИЁМКА.
+6. Где что: **AD-гейт** — на правиле (Rules→Edit, галка «Require AD group membership»);
+   **AD-подключение/синк** — Settings→AD/LDAP; **импорт/экспорт** — раздел Import/Export
+   (`portable.py`); **весь FR-синтаксис** — `radius_config.py`; **хост-операции** — `rpp`.

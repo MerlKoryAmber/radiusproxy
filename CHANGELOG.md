@@ -5,6 +5,14 @@
 
 ## [Unreleased]
 
+### 2026-09-10 МСК (6)
+
+- **docs:** синхронизация точки подхвата для другого клиента/сессии —
+  `docs/handoff/CURRENT.md` (актуальный срез: /opt/radiusproxy, 80/443, `rpp`,
+  где AD-гейт, NPS-миграция, локальные файлы вне git) и `README.md` (порты HTTPS,
+  co-located FreeRADIUS, host-install через `install.sh`+`rpp`, обновлённый layout,
+  указатель на SKELETON/handoff/ADR как источник правды).
+
 ### 2026-09-10 МСК (5)
 
 - **feat(ops):** хостовое CLI-меню **`rpp`** (паттерн из соседнего проекта,

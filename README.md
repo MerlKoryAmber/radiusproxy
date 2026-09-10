@@ -54,36 +54,53 @@ which uses the classic `proxy.conf` model.
 
 ## Project layout
 
+> **Актуальная карта проекта — `docs/SKELETON.md`** (файлы/роли, модель, эндпоинты,
+> рендереры), живой срез и «старт следующего агента» — `docs/handoff/CURRENT.md`,
+> архитектурные решения — `docs/adr/` (реестр `docs/adr/README.md`). Этот README —
+> обзор; при расхождении верить SKELETON/коду.
+
 ```
 freeradius-panel/
-├── docker-compose.yml         # postgres + backend + frontend
-├── backend/
-│   ├── app/
-│   │   ├── radius_config.py    # ★ proxy.conf renderer + validate/apply
-│   │   ├── models.py           # HomeServer / Pool / PoolMember / Realm / Audit
-│   │   ├── schemas.py          # Pydantic validation
-│   │   ├── crud.py             # DB ops + audit logging
-│   │   ├── routers/            # REST endpoints
-│   │   ├── database.py         # async SQLAlchemy (SQLite dev / Postgres prod)
-│   │   └── main.py
+├── docker-compose.yml         # db + backend(+FreeRADIUS 3.2) + frontend(nginx, HTTPS)
+├── scripts/                   # install.sh / update.sh / uninstall.sh + rpp.sh (host CLI)
+├── backend/app/
+│   ├── radius_config.py       # ★ весь FreeRADIUS-синтаксис: рендер + validate/apply/rollback
+│   ├── models.py              # TargetServer / Pool / Client / Rule / Ldap/Tls/Auth / Audit
+│   ├── portable.py            # импорт/экспорт портируемого JSON (миграция NPS, ADR-0007)
+│   ├── tls.py crypto.py auth.py ldap_sync.py   # HTTPS-серт / шифрование секретов / вход / AD-синк
+│   ├── schemas.py crud.py database.py main.py routers/
 │   └── requirements.txt
-└── frontend/
-    └── src/
-        ├── pages/              # HomeServers / Pools / Realms / ConfigPreview
-        ├── api.js              # fetch wrapper
-        └── App.jsx
+└── frontend/src/
+    ├── pages/                 # Dashboard/Clients/TargetServers/Pools/Rules/Decisions/Config/Portable/Settings
+    ├── api.js  App.jsx  components.jsx
 ```
 
 ## Running it
 
-### Option A — Docker (Postgres)
+### Option A — Docker (Postgres) — co-located FreeRADIUS
+
+FreeRADIUS 3.2 runs **inside** the backend container; the panel writes real
+`/etc/freeradius/3.0`, validates with `freeradius -XC` and reloads it.
 
 ```bash
-docker compose up --build
+docker compose up -d --build
 ```
 
-- Frontend: <http://localhost:8080>
+- Panel UI: **<https://localhost>** (self-signed cert — browser warns; replace in Settings → TLS)
 - Backend API + docs: <http://localhost:8000/docs>
+- RADIUS: `:1812/udp` (auth), `:1813/udp` (acct)
+- Login is OFF by default (open); default admin `admin` / `admin`.
+
+### Option A2 — Production install on a Linux host
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/MerlKoryAmber/radiusproxy/main/scripts/install.sh | sudo bash
+```
+
+Installs Docker + compose + git, clones to `/opt/radiusproxy`, brings the stack up,
+and installs the host CLI **`rpp`** (`sudo rpp` → menu: update / status / logs /
+backup / restore / password / secrets / …). Prod: set strong secrets with
+`rpp secrets` and replace the cert in Settings → TLS.
 
 ### Option B — Local dev (SQLite, no database to set up)
 
