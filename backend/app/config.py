@@ -54,6 +54,10 @@ class Settings(BaseSettings):
     # Leave empty to skip the reload (config file is still written).
     radius_reload_cmd: str = ""  # e.g. "systemctl reload freeradius"
 
+    # FreeRADIUS's own log file — surfaced read-only in the web (Logs → Server log)
+    # so unknown-client drops / bad secrets / auth results are visible without SSH.
+    radius_log_path: str = "/var/log/freeradius/radius.log"
+
     # --- Auth (panel login) ---------------------------------------------
     # Signs session tokens. CHANGE in production (env JWT_SECRET). Auth is
     # off by default (toggle stored in the DB) — see AuthSettings.

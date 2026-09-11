@@ -105,6 +105,7 @@
 - `/api/ldap` GET/PUT + `/preview.conf` + `/ca.pem` + `/test` POST (connect+bind проба, `ldap_sync.test_connection`) + `/sync` GET/POST (POST отдаёт сводку каталог/группы) + `/groups?q=` (автокомплит из каталога) (`routers/ldap.py`)
 - `/api/config/preview`, `/preview.conf`, `/clients-preview.conf`, `/policy-preview.conf`, `/apply` (POST), `/audit`, `/export` GET, `/import` POST (`?dry_run=`) (`routers/config.py`)
 - `/api/decisions` GET (лог решений, фильтры username/realm) (`routers/decisions.py`)
+- `/api/logs/radius` GET (`?lines=&q=` — хвост `radius.log` FreeRADIUS: unknown client/bad secret; read-only) (`routers/logs.py`)
 - `/api/auth/status|login|settings|password` (`routers/auth.py`) — **открыт**; остальные data/config-роутеры под `Depends(require_user)` (гейт при auth on)
 - `/api/dashboard` GET — сводка (`routers/dashboard.py`)
 - `/api/system/access` GET/PUT (ip_allowlist) · `/tls` GET/PUT + `/tls/self-signed` POST · `/host` GET (`routers/system.py`)

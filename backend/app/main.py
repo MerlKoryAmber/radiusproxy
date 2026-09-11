@@ -18,6 +18,7 @@ from .routers import (
     dashboard,
     decisions,
     ldap,
+    logs,
     pools,
     rules,
     system,
@@ -172,6 +173,7 @@ app.include_router(pools.router, dependencies=_guard)
 app.include_router(rules.router, dependencies=_guard)
 app.include_router(ldap.router, dependencies=_guard)
 app.include_router(decisions.router, dependencies=_guard)
+app.include_router(logs.router, dependencies=_guard)
 app.include_router(dashboard.router, dependencies=_guard)
 app.include_router(system.router, dependencies=_guard)
 app.include_router(config.router, dependencies=_guard)
