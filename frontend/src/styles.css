@@ -395,6 +395,21 @@ pre.conf .kw { color: var(--ir-accent); }
 .log-ts { color: #55708c; flex: 0 0 auto; }
 .log-text { color: var(--text); }
 
+/* инструкция */
+.guide { max-width: 900px; }
+.guide p { margin: 0 0 10px; line-height: 1.6; color: var(--text-secondary); }
+.guide b { color: var(--text); }
+.guide .settings-section { margin-bottom: 16px; }
+.guide-flow {
+  display: inline-block; margin: 4px 0 0; padding: 8px 14px;
+  border-radius: var(--radius-sm); background: var(--ir-accent-light);
+  border: 1px solid color-mix(in srgb, var(--ir-accent) 40%, var(--border));
+  color: var(--ir-accent); font-weight: 600;
+}
+.guide-steps, .guide-list { margin: 4px 0 0; padding-left: 20px; }
+.guide-steps li, .guide-list li { margin: 0 0 10px; line-height: 1.55; color: var(--text-secondary); }
+.guide-steps li:last-child, .guide-list li:last-child { margin-bottom: 0; }
+
 .filebtn { display: inline-flex; align-items: center; gap: 10px; }
 .filebtn-name { font-size: 12.5px; color: var(--muted); font-family: var(--mono); }
 

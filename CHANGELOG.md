@@ -5,6 +5,13 @@
 
 ## [Unreleased]
 
+### 2026-09-12 МСК (3)
+
+- **feat(ui):** раздел **Инструкция** (внизу сайдбара) — простой RU-гайд по панели
+  для не-технических пользователей: что это, быстрый старт по шагам
+  (Targets→Pools→Clients→Rules→Apply), AD-группы, Logs (Decisions/Server log),
+  Settings, Import/Export/`rpp`, разбор «логин есть, а в логах пусто». `pages/Help.jsx`.
+
 ### 2026-09-12 МСК (2)
 
 - **feat(radius):** **Settings → RADIUS** — регулируемый `max_request_time` (сек).
