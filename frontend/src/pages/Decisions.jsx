@@ -137,19 +137,31 @@ function ServerLog() {
       {(!data.lines || data.lines.length === 0) ? (
         <Empty>No log lines. Send a RADIUS request to your server to see activity.</Empty>
       ) : (
-        <div className="config-pane">
-          <header><span className="path">{data.path}</span></header>
-          <div className="log-lines">
-            {data.lines.map((l, i) => (
-              <div className="log-line" key={i}>
-                {l.ts && <span className="log-ts">{l.ts}</span>}
-                {l.level && (
-                  <span className={`tag ${LEVEL_CLASS[l.level] || ""}`}>{l.level}</span>
-                )}
-                <span className="log-text">{l.text}</span>
-              </div>
-            ))}
-          </div>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style={{ width: 170 }}>Time</th>
+                <th style={{ width: 90 }}>Level</th>
+                <th>Message</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.lines.map((l, i) => (
+                <tr key={i}>
+                  <td className="muted mono">{l.ts || "—"}</td>
+                  <td>
+                    {l.level ? (
+                      <span className={`tag ${LEVEL_CLASS[l.level] || ""}`}>{l.level}</span>
+                    ) : "—"}
+                  </td>
+                  <td className="mono" style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                    {l.text}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </>
