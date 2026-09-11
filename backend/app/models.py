@@ -394,13 +394,15 @@ class ProxyDecision(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), index=True
     )
-    nas_ip: Mapped[str] = mapped_column(String(64), default="")
-    packet_src_ip: Mapped[str] = mapped_column(String(64), default="")
-    username: Mapped[str] = mapped_column(String(256), default="", index=True)
-    realm: Mapped[str] = mapped_column(String(128), default="", index=True)
-    ad_result: Mapped[str] = mapped_column(String(32), default="")  # pass/reject/skip/n-a
-    reply: Mapped[str] = mapped_column(String(32), default="")  # Access-Accept/Reject/...
-    home_server: Mapped[str] = mapped_column(String(128), default="")
+    # server_default="" so FreeRADIUS's raw INSERT can omit any of these without
+    # tripping NOT NULL (rlm_sql supplies only the columns it captures).
+    nas_ip: Mapped[str] = mapped_column(String(64), default="", server_default="''")
+    packet_src_ip: Mapped[str] = mapped_column(String(64), default="", server_default="''")
+    username: Mapped[str] = mapped_column(String(256), default="", server_default="''", index=True)
+    realm: Mapped[str] = mapped_column(String(128), default="", server_default="''", index=True)
+    ad_result: Mapped[str] = mapped_column(String(32), default="", server_default="''")  # pass/reject/skip/n-a
+    reply: Mapped[str] = mapped_column(String(32), default="", server_default="''")  # Access-Accept/Reject/...
+    home_server: Mapped[str] = mapped_column(String(128), default="", server_default="''")
 
 
 class AuditLog(Base):

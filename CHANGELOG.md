@@ -5,6 +5,27 @@
 
 ## [Unreleased]
 
+### 2026-09-11 МСК (6)
+
+- **feat(logs):** раздел **Logs** переработан в две под-вкладки — **Decisions**
+  (структурные решения `proxy_decision`) и **Server log** (сырой лог FreeRADIUS,
+  read-only, `/api/logs/radius`). Server log показывает то, что политика логировать
+  не может: пакеты, которые FR роняет **до** маршрутизации — `unknown client`
+  (с реальным source-IP!), неверный секрет/Message-Authenticator. Оператору больше
+  не надо лезть по SSH за `freeradius -X`. `entrypoint.sh` включает `auth = yes`
+  (accept/reject в лог). Фильтр по тексту + автообновление. «Decision log» → «Logs».
+
+### 2026-09-11 МСК (5)
+
+- **fix(radius, ADR-0008):** **проксирование и Decision log реально заработали.**
+  Раньше политики (`radiuspanel_route/srcip/log`) генерились, но **виртуальный сервер
+  их не вызывал** → маршрут по правилам не срабатывал, лог не писался. Теперь в образ
+  вшит минимальный прокси-`sites-enabled/default` (зовёт политики) + stub `policy.d`
+  для валидации на первом старте. Плюс `proxy_decision.home_server` → `server_default=''`
+  (INSERT лога падал на `NOT NULL`). Плюс **автоприменение конфига на старте**
+  (`_apply_on_boot`) — ребилд/рестарт backend больше не требует ручного Apply
+  (`/etc/freeradius/3.0` в образе, не volume). Проверено radclient → запись в лог.
+
 ### 2026-09-11 МСК (4)
 
 - **fix(ui, §21):** убраны браузерные `window.confirm` — заменены на in-panel

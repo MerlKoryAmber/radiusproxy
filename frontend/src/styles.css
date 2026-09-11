@@ -183,7 +183,7 @@ a { color: var(--accent); }
 /* ---- settings section ---- */
 .settings-section {
   border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 14px 18px 18px; margin: 0; max-width: 640px;
+  padding: 14px 18px 18px; margin: 0;
   background: var(--panel); box-shadow: var(--shadow-sm);
 }
 /* legend floats full-width so it doesn't overlap the content below it */
@@ -297,6 +297,8 @@ tbody tr:hover { background: var(--panel-2); }
 }
 .tag.ok { color: #7dcea0; border-color: rgba(61, 170, 109, 0.4); background: rgba(61, 170, 109, 0.1); }
 .tag.off { color: var(--muted); }
+.tag.danger { color: var(--danger); border-color: rgba(224, 107, 99, 0.45); background: var(--danger-dim); }
+.tag.warn { color: var(--warn); border-color: rgba(212, 160, 23, 0.4); background: rgba(212, 160, 23, 0.1); }
 .tag.accent {
   color: var(--ir-accent);
   border-color: color-mix(in srgb, var(--ir-accent) 55%, var(--border));
@@ -381,6 +383,17 @@ pre.conf .kw { color: var(--ir-accent); }
 
 .empty { padding: 42px; text-align: center; color: var(--muted); border: 1px dashed var(--border); border-radius: var(--radius); }
 .empty p { margin: 0 0 14px; }
+
+/* server log viewer */
+.log-lines {
+  max-height: 520px; overflow: auto; padding: 12px 16px;
+  background: var(--ir-primary-dark); font-family: var(--mono); font-size: 12.5px;
+  line-height: 1.7;
+}
+.log-line { display: flex; align-items: baseline; gap: 8px; white-space: pre-wrap; word-break: break-word; }
+.log-line .tag { flex: 0 0 auto; }
+.log-ts { color: #55708c; flex: 0 0 auto; }
+.log-text { color: var(--text); }
 
 .filebtn { display: inline-flex; align-items: center; gap: 10px; }
 .filebtn-name { font-size: 12.5px; color: var(--muted); font-family: var(--mono); }

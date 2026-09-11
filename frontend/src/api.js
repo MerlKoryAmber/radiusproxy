@@ -120,6 +120,10 @@ export const api = {
   decisions: {
     list: (params = "") => request(`/decisions${params}`),
   },
+  logs: {
+    radius: (lines = 300, q = "") =>
+      request(`/logs/radius?lines=${lines}&q=${encodeURIComponent(q)}`),
+  },
   dashboard: {
     get: () => request("/dashboard"),
   },

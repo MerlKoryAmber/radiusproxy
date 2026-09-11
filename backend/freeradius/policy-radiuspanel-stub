@@ -1,0 +1,19 @@
+#
+# policy.d/radiuspanel — STUB baked into the image so `freeradius -XC` passes on
+# first boot (the default site references these policies). The panel OVERWRITES
+# this file on the first apply with the real rules/gate/log (radius_config.py).
+# No SQL here on purpose, so FreeRADIUS validates before the sql module exists.
+#
+radiuspanel_route {
+	# Nothing configured yet — reject until the panel applies real rules.
+	update request { &Tmp-String-1 := "no-config" }
+	reject
+}
+
+radiuspanel_srcip {
+	update request { &Tmp-String-0 := "stub" }
+}
+
+radiuspanel_log {
+	update request { &Tmp-String-0 := "stub" }
+}

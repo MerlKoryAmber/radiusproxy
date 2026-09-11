@@ -18,7 +18,7 @@ const TABS = [
   { id: "targets", label: "Target servers" },
   { id: "pools", label: "Pools" },
   { id: "rules", label: "Rules" },
-  { id: "decisions", label: "Decision log" },
+  { id: "decisions", label: "Logs" },
   { id: "config", label: "Config & apply" },
   { id: "portable", label: "Import / Export" },
   { id: "settings", label: "Settings" },

@@ -56,8 +56,10 @@ export default function Dashboard() {
             </div>
             <div className="dash-row">
               <span>Last apply</span>
-              <span className="muted mono">
-                {d.last_apply ? d.last_apply.detail : "never"}
+              <span className="muted mono" title={d.last_apply ? d.last_apply.detail : ""}>
+                {d.last_apply && d.last_apply.at
+                  ? new Date(d.last_apply.at).toLocaleString()
+                  : "never"}
               </span>
             </div>
             <div className="dash-row">

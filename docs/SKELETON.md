@@ -4,7 +4,7 @@
 Обновлять **перед каждым push** (см. §22 CLAUDE.md). Читать после handoff и перед
 началом задачи. Если что-то тут расходится с кодом — код прав, а скелет чинить.
 
-**Обновлено:** 2026-09-10 МСК · ветка на момент правки: `feature/host-cli`
+**Обновлено:** 2026-09-11 МСК · ветка на момент правки: `fix/radius-site-wiring`
 
 ---
 
@@ -16,6 +16,11 @@
 - **FreeRADIUS 3.2 в backend-контейнере** (Debian bookworm) — панель пишет в реальный
   `/etc/freeradius/3.0`, валидирует `freeradius -XC`, перезагружает
   (`radius-reload.sh`). `entrypoint.sh` стартует FR (если конфиг валиден) + uvicorn.
+  **Site вшит в образ** (`backend/freeradius/site-default` → `sites-enabled/default`):
+  зовёт `radiuspanel_route` (authorize) / `srcip` (pre-proxy) / `log` (post-auth+REJECT).
+  Stub `policy.d/radiuspanel` вшит для `-XC` на первом старте. `/etc/freeradius/3.0` —
+  **в образе, не volume** → панель **применяет конфиг на старте** (`_apply_on_boot`,
+  самовосстановление после ребилда). ADR-0008.
 - **HTTPS:** backend генерит self-signed cert в БД+том `panelcerts`; frontend nginx `443 ssl`
   + `80→443`, авто-reload по inotify при смене cert. Наружу **80/443** (не 8080).
 - Деплой: `docker compose up -d --build` (db / backend :8000+1812/1813udp / frontend :80+:443).
@@ -100,6 +105,7 @@
 - `/api/ldap` GET/PUT + `/preview.conf` + `/ca.pem` + `/test` POST (connect+bind проба, `ldap_sync.test_connection`) + `/sync` GET/POST (POST отдаёт сводку каталог/группы) + `/groups?q=` (автокомплит из каталога) (`routers/ldap.py`)
 - `/api/config/preview`, `/preview.conf`, `/clients-preview.conf`, `/policy-preview.conf`, `/apply` (POST), `/audit`, `/export` GET, `/import` POST (`?dry_run=`) (`routers/config.py`)
 - `/api/decisions` GET (лог решений, фильтры username/realm) (`routers/decisions.py`)
+- `/api/logs/radius` GET (`?lines=&q=` — хвост `radius.log` FreeRADIUS: unknown client/bad secret; read-only) (`routers/logs.py`)
 - `/api/auth/status|login|settings|password` (`routers/auth.py`) — **открыт**; остальные data/config-роутеры под `Depends(require_user)` (гейт при auth on)
 - `/api/dashboard` GET — сводка (`routers/dashboard.py`)
 - `/api/system/access` GET/PUT (ip_allowlist) · `/tls` GET/PUT + `/tls/self-signed` POST · `/host` GET (`routers/system.py`)
