@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { Spinner } from "../components.jsx";
+import { Spinner, ConfirmDialog } from "../components.jsx";
 
 // Minimal, safe syntax highlighting: escape first, then wrap comments and the
 // block keywords. Never inject raw content into innerHTML unescaped.
 function highlight(conf) {
-  const esc = conf
+  const esc = (conf || "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
@@ -15,29 +15,42 @@ function highlight(conf) {
       if (line.trimStart().startsWith("#"))
         return `<span class="cmt">${line}</span>`;
       return line.replace(
-        /^(home_server_pool|home_server|realm)\b/,
-        '<span class="kw">$1</span>'
+        /^(\s*)(home_server_pool|home_server|realm|client|policy)\b/,
+        '$1<span class="kw">$2</span>'
       );
     })
     .join("\n");
 }
 
+// The files the panel writes on apply (ldap module/CA are shown in Settings → AD/LDAP).
+const FILES = [
+  { id: "proxy", label: "proxy.conf" },
+  { id: "clients", label: "clients.conf" },
+  { id: "policy", label: "policy.d/radiuspanel" },
+];
+
 export default function ConfigPreview({ notify }) {
-  const [conf, setConf] = useState(null);
+  const [files, setFiles] = useState(null); // { proxy, clients, policy }
+  const [tab, setTab] = useState("proxy");
   const [applying, setApplying] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
   const load = async () => {
-    setConf((await api.config.preview()).content);
+    const [proxy, clients, policy] = await Promise.all([
+      api.config.preview().then((r) => r.content),
+      api.config.clientsPreview(),
+      api.config.policyPreview(),
+    ]);
+    setFiles({ proxy, clients, policy });
   };
   useEffect(() => {
-    load();
+    load().catch((e) => notify(e.message, "err"));
   }, []);
 
-  const apply = async () => {
-    if (!confirm("Write config files (proxy.conf, clients.conf) and reload FreeRADIUS?"))
-      return;
+  const doApply = async () => {
+    setConfirmOpen(false);
     setApplying(true);
     setResult(null);
     setError(null);
@@ -46,7 +59,6 @@ export default function ConfigPreview({ notify }) {
       setResult(r);
       notify("Config applied");
     } catch (e) {
-      // Backend returns {message, output} on validation failure.
       let parsed;
       try {
         parsed = JSON.parse(e.message);
@@ -61,11 +73,11 @@ export default function ConfigPreview({ notify }) {
   };
 
   const copy = () => {
-    navigator.clipboard?.writeText(conf || "");
+    navigator.clipboard?.writeText(files?.[tab] || "");
     notify("Copied to clipboard");
   };
 
-  if (conf === null) return <Spinner />;
+  if (files === null) return <Spinner />;
 
   return (
     <>
@@ -73,17 +85,16 @@ export default function ConfigPreview({ notify }) {
         <div>
           <h1>Config & apply</h1>
           <p>
-            Live preview of the generated{" "}
-            <span className="mono">proxy.conf</span>. Applying validates it with{" "}
-            <span className="mono">freeradius -XC</span> before touching the
-            running server.
+            Live preview of every file the panel generates. Applying writes them
+            all, validates with <span className="mono">freeradius -XC</span>, and
+            rolls back on failure before reloading.
           </p>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
-          <button className="btn ghost" onClick={load}>
+          <button className="btn ghost" onClick={() => load().catch((e) => notify(e.message, "err"))}>
             Refresh
           </button>
-          <button className="btn primary" disabled={applying} onClick={apply}>
+          <button className="btn primary" disabled={applying} onClick={() => setConfirmOpen(true)}>
             {applying ? "Applying…" : "Apply & reload"}
           </button>
         </div>
@@ -104,9 +115,7 @@ export default function ConfigPreview({ notify }) {
           <h3 style={{ color: "var(--ok)" }}>Applied</h3>
           <div className="muted">
             Written:{" "}
-            <span className="mono">
-              {(result.written_paths || []).join(", ")}
-            </span>{" "}
+            <span className="mono">{(result.written_paths || []).join(", ")}</span>{" "}
             · validated: {String(result.validated)} · reloaded:{" "}
             {String(result.reloaded)}
           </div>
@@ -116,18 +125,35 @@ export default function ConfigPreview({ notify }) {
         </div>
       )}
 
+      <div className="subtabs">
+        {FILES.map((f) => (
+          <button
+            key={f.id}
+            className={`subtab ${tab === f.id ? "active" : ""}`}
+            onClick={() => setTab(f.id)}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
       <div className="config-pane">
         <header>
-          <span className="path">proxy.conf</span>
-          <button className="btn sm ghost" onClick={copy}>
-            Copy
-          </button>
+          <span className="path">{FILES.find((f) => f.id === tab)?.label}</span>
+          <button className="btn sm ghost" onClick={copy}>Copy</button>
         </header>
-        <pre
-          className="conf"
-          dangerouslySetInnerHTML={{ __html: highlight(conf) }}
-        />
+        <pre className="conf" dangerouslySetInnerHTML={{ __html: highlight(files[tab]) }} />
       </div>
+
+      {confirmOpen && (
+        <ConfirmDialog
+          title="Apply configuration"
+          message="Write proxy.conf, clients.conf and policy.d/radiuspanel, validate with freeradius -XC, and reload FreeRADIUS? A failed validation rolls back automatically."
+          confirmLabel="Apply & reload"
+          onConfirm={doApply}
+          onClose={() => setConfirmOpen(false)}
+        />
+      )}
     </>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
-import { Modal, Field, Spinner, Empty, StatusDot } from "../components.jsx";
+import { Modal, Field, Spinner, Empty, StatusDot, ConfirmDialog } from "../components.jsx";
 
 const BLANK = {
   name: "",
@@ -79,6 +79,7 @@ export default function Rules({ notify }) {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(BLANK);
   const [saving, setSaving] = useState(false);
+  const [pendingDel, setPendingDel] = useState(null);
 
   const load = async () => {
     const [r, c, p] = await Promise.all([
@@ -126,8 +127,10 @@ export default function Rules({ notify }) {
     }
   };
 
-  const remove = async (r) => {
-    if (!confirm(`Delete rule "${r.name || "#" + r.id}"?`)) return;
+  const remove = (r) => setPendingDel(r);
+  const doRemove = async () => {
+    const r = pendingDel;
+    setPendingDel(null);
     try {
       await api.rules.remove(r.id);
       await load();
@@ -339,6 +342,16 @@ export default function Rules({ notify }) {
             </button>
           </div>
         </Modal>
+      )}
+      {pendingDel && (
+        <ConfirmDialog
+          title="Delete rule"
+          message={`Delete rule "${pendingDel.name || "#" + pendingDel.id}"? This cannot be undone.`}
+          confirmLabel="Delete"
+          danger
+          onConfirm={doRemove}
+          onClose={() => setPendingDel(null)}
+        />
       )}
     </>
   );

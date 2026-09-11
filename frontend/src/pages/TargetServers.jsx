@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { Modal, Field, Spinner, Empty, StatusDot } from "../components.jsx";
+import { Modal, Field, Spinner, Empty, StatusDot, ConfirmDialog } from "../components.jsx";
 
 const BLANK = {
   name: "",
@@ -21,6 +21,7 @@ const BLANK = {
 export default function TargetServers({ notify, onChange }) {
   const [rows, setRows] = useState(null);
   const [editing, setEditing] = useState(null); // object or null
+  const [pendingDel, setPendingDel] = useState(null);
   const [form, setForm] = useState(BLANK);
   const [saving, setSaving] = useState(false);
 
@@ -70,8 +71,10 @@ export default function TargetServers({ notify, onChange }) {
     }
   };
 
-  const remove = async (r) => {
-    if (!confirm(`Delete target server "${r.name}"?`)) return;
+  const remove = (r) => setPendingDel(r);
+  const doRemove = async () => {
+    const r = pendingDel;
+    setPendingDel(null);
     try {
       await api.targetServers.remove(r.id);
       notify(`Target server ${r.name} deleted`);
@@ -262,6 +265,16 @@ export default function TargetServers({ notify, onChange }) {
             </button>
           </div>
         </Modal>
+      )}
+      {pendingDel && (
+        <ConfirmDialog
+          title="Delete target server"
+          message={`Delete target server "${pendingDel.name}"? This cannot be undone.`}
+          confirmLabel="Delete"
+          danger
+          onConfirm={doRemove}
+          onClose={() => setPendingDel(null)}
+        />
       )}
     </>
   );
