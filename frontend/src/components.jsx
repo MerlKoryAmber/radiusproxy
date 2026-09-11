@@ -12,6 +12,30 @@ export function Modal({ title, children, onClose }) {
   );
 }
 
+// In-panel confirm (replaces window.confirm — no browser dialogs, §21).
+export function ConfirmDialog({
+  title = "Confirm",
+  message,
+  confirmLabel = "Confirm",
+  danger = false,
+  onConfirm,
+  onClose,
+}) {
+  return (
+    <Modal title={title} onClose={onClose}>
+      <p style={{ margin: "0 0 20px", color: "var(--text-secondary)", lineHeight: 1.5 }}>
+        {message}
+      </p>
+      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+        <button className="btn ghost" onClick={onClose}>Cancel</button>
+        <button className={`btn ${danger ? "danger" : "primary"}`} onClick={onConfirm}>
+          {confirmLabel}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
 export function Field({ label, hint, children }) {
   return (
     <div className="field">

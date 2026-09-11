@@ -40,6 +40,21 @@ async function request(path, options = {}) {
   return data;
 }
 
+// Fetch a text/plain endpoint (e.g. a generated .conf) with the Bearer token.
+async function requestText(path) {
+  const token = getToken();
+  const res = await fetch(`/api${path}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (res.status === 401) {
+    setToken("");
+    throw new Error("unauthorized");
+  }
+  const text = await res.text();
+  if (!res.ok) throw new Error(text || res.statusText);
+  return text;
+}
+
 export const api = {
   targetServers: {
     list: () => request("/target-servers"),
@@ -90,6 +105,9 @@ export const api = {
   },
   config: {
     preview: () => request("/config/preview"),
+    // Raw .conf text for each generated file (PlainTextResponse endpoints).
+    clientsPreview: () => requestText("/config/clients-preview.conf"),
+    policyPreview: () => requestText("/config/policy-preview.conf"),
     apply: () => request("/config/apply", { method: "POST" }),
     audit: () => request("/config/audit"),
     export: () => request("/config/export"),

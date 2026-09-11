@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { Modal, Field, Spinner, Empty, StatusDot } from "../components.jsx";
+import { Modal, Field, Spinner, Empty, StatusDot, ConfirmDialog } from "../components.jsx";
 
 const BLANK = { name: "", type: "fail-over", enabled: true, note: "", member_ids: [] };
 
@@ -16,6 +16,7 @@ export default function Pools({ notify, onChange }) {
   const [rows, setRows] = useState(null);
   const [servers, setServers] = useState([]);
   const [editing, setEditing] = useState(null);
+  const [pendingDel, setPendingDel] = useState(null);
   const [form, setForm] = useState(BLANK);
   const [saving, setSaving] = useState(false);
 
@@ -98,8 +99,10 @@ export default function Pools({ notify, onChange }) {
     }
   };
 
-  const remove = async (p) => {
-    if (!confirm(`Delete pool "${p.name}"?`)) return;
+  const remove = (p) => setPendingDel(p);
+  const doRemove = async () => {
+    const p = pendingDel;
+    setPendingDel(null);
     try {
       await api.pools.remove(p.id);
       notify(`Pool ${p.name} deleted`);
@@ -278,6 +281,16 @@ export default function Pools({ notify, onChange }) {
             </button>
           </div>
         </Modal>
+      )}
+      {pendingDel && (
+        <ConfirmDialog
+          title="Delete pool"
+          message={`Delete pool "${pendingDel.name}"? This cannot be undone.`}
+          confirmLabel="Delete"
+          danger
+          onConfirm={doRemove}
+          onClose={() => setPendingDel(null)}
+        />
       )}
     </>
   );

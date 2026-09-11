@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { Modal, Field, Spinner, Empty, StatusDot } from "../components.jsx";
+import { Modal, Field, Spinner, Empty, StatusDot, ConfirmDialog } from "../components.jsx";
 
 const BLANK = {
   name: "",
@@ -18,6 +18,7 @@ const BLANK = {
 export default function Clients({ notify, onChange }) {
   const [rows, setRows] = useState(null);
   const [editing, setEditing] = useState(null);
+  const [pendingDel, setPendingDel] = useState(null);
   const [form, setForm] = useState(BLANK);
   const [saving, setSaving] = useState(false);
 
@@ -62,8 +63,10 @@ export default function Clients({ notify, onChange }) {
     }
   };
 
-  const remove = async (r) => {
-    if (!confirm(`Delete client "${r.name}"?`)) return;
+  const remove = (r) => setPendingDel(r);
+  const doRemove = async () => {
+    const r = pendingDel;
+    setPendingDel(null);
     try {
       await api.clients.remove(r.id);
       notify(`Client ${r.name} deleted`);
@@ -248,6 +251,16 @@ export default function Clients({ notify, onChange }) {
             </button>
           </div>
         </Modal>
+      )}
+      {pendingDel && (
+        <ConfirmDialog
+          title="Delete client"
+          message={`Delete client "${pendingDel.name}"? This cannot be undone.`}
+          confirmLabel="Delete"
+          danger
+          onConfirm={doRemove}
+          onClose={() => setPendingDel(null)}
+        />
       )}
     </>
   );

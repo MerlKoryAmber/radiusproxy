@@ -5,6 +5,15 @@
 
 ## [Unreleased]
 
+### 2026-09-11 МСК (4)
+
+- **fix(ui, §21):** убраны браузерные `window.confirm` — заменены на in-panel
+  `ConfirmDialog` (модалка Cancel/Confirm): apply конфига + удаление
+  client/target/pool/rule. Никаких браузерных диалогов в панели.
+- **fix(ui):** раздел **Config & apply** показывает **все** генерируемые файлы —
+  под-вкладки `proxy.conf` / `clients.conf` / `policy.d/radiuspanel` (раньше только
+  proxy.conf). `api.config.clientsPreview/policyPreview` (raw .conf).
+
 ### 2026-09-11 МСК (3)
 
 - **fix(ui):** F5/обновление страницы сбрасывало на Dashboard. Активная вкладка
