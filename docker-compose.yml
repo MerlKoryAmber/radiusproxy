@@ -49,6 +49,7 @@ services:
       LDAP_CA_PATH: /etc/freeradius/3.0/certs/ad-ca.pem
       POLICY_CONF_PATH: /etc/freeradius/3.0/policy.d/radiuspanel
       SQL_CONF_PATH: /etc/freeradius/3.0/mods-enabled/sql
+      RADIUSD_CONF_PATH: /etc/freeradius/3.0/radiusd.conf
       RADIUS_CHECK_CMD: "freeradius -XC"
       RADIUS_RELOAD_CMD: "/usr/local/bin/radius-reload.sh"
       # Panel HTTPS cert/key are written here (shared with the frontend nginx).

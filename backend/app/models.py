@@ -366,6 +366,19 @@ class TlsSettings(Base):
     is_self_signed: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
+class RadiusSettings(Base):
+    """Singleton (id=1). Global FreeRADIUS server tunables the panel patches into
+    radiusd.conf on apply. max_request_time also caps a home_server's
+    response_window — raise it for slow interactive 2FA (push/OTP approval)."""
+
+    __tablename__ = "radius_settings"
+
+    id: Mapped[int] = mapped_column(primary_key=True, default=1)
+    # Max seconds FreeRADIUS spends on a request. FR default is 30; a target's
+    # response_window is clamped to this, so slow 2FA needs a higher value.
+    max_request_time: Mapped[int] = mapped_column(Integer, default=30, server_default="30")
+
+
 class User(Base):
     """Panel admin account. Seeded as admin/admin on first startup (§21
     install-ready) — change the password before enabling auth in production."""

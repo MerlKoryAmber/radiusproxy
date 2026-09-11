@@ -74,6 +74,7 @@
 - `ProxyDecision` — лог решений RADIUS (пишет FR через `radiuspanel_log`/sql): created_at,
   nas_ip, packet_src_ip, username, realm, ad_result, reply, home_server.
 - `AuthSettings` — singleton: `enabled` (флаг логина) + `ip_allowlist` (IP/CIDR-ограничение доступа).
+- `RadiusSettings` — singleton: `max_request_time` (патчится в radiusd.conf; кап response_window таргетов).
 - `TlsSettings` — singleton: `cert_pem`, `key_pem`(EncryptedStr), `is_self_signed` (HTTPS панели).
 - `User` — админ панели (username, password_hash pbkdf2); seed `admin/admin`.
 - `AuditLog` — actor, action, entity, entity_ref, detail, created_at.
@@ -108,7 +109,7 @@
 - `/api/logs/radius` GET (`?lines=&q=` — хвост `radius.log` FreeRADIUS: unknown client/bad secret; read-only) (`routers/logs.py`)
 - `/api/auth/status|login|settings|password` (`routers/auth.py`) — **открыт**; остальные data/config-роутеры под `Depends(require_user)` (гейт при auth on)
 - `/api/dashboard` GET — сводка (`routers/dashboard.py`)
-- `/api/system/access` GET/PUT (ip_allowlist) · `/tls` GET/PUT + `/tls/self-signed` POST · `/host` GET (`routers/system.py`)
+- `/api/system/access` GET/PUT (ip_allowlist) · `/radius` GET/PUT (max_request_time → патч radiusd.conf + apply) · `/tls` GET/PUT + `/tls/self-signed` POST · `/host` GET (`routers/system.py`)
 - `/api/health` (`main.py`). **Middleware:** IP-allowlist на `/api` (loopback всегда, пусто=все).
 
 
@@ -129,7 +130,7 @@
 | `pages/Portable.jsx` | Import/Export: экспорт JSON (download) + импорт файла → dry-run план → применить (ADR-0007) |
 | `pages/Decisions.jsx` | лог решений RADIUS (фильтр по user) |
 | `pages/Dashboard.jsx` | сводка (счётчики, статусы FR/AD/apply/security, последние решения) |
-| `pages/Settings.jsx` | под-вкладки **Access** (login + IP-allowlist), **AD/LDAP**, **TLS** (замена cert), **Host** (read-only IP). Пароль — в топбар-меню |
+| `pages/Settings.jsx` | под-вкладки **Access** (login + IP-allowlist), **AD/LDAP**, **RADIUS** (max_request_time), **TLS** (замена cert), **Host** (read-only IP). Пароль — в топбар-меню |
 | `pages/Login.jsx` | экран входа (показывается при auth on и 401) |
 | `styles.css` | дизайн Interros (navy+gold), классы ниже |
 

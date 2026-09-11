@@ -230,6 +230,16 @@ class HostInfoOut(BaseModel):
     addresses: list[str] = []
 
 
+class RadiusSettingsIn(BaseModel):
+    # FR caps a target's response_window to this; raise for slow interactive 2FA.
+    max_request_time: int = Field(default=30, ge=5, le=600)
+
+
+class RadiusSettingsOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    max_request_time: int = 30
+
+
 # --------------------------- LDAP / AD ------------------------------------
 class LdapSettingsBase(BaseModel):
     enabled: bool = False
