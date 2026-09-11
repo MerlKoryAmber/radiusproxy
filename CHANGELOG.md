@@ -5,6 +5,15 @@
 
 ## [Unreleased]
 
+### 2026-09-12 МСК
+
+- **fix(db):** авто-миграция на старте — `proxy_decision` runtime-колонкам
+  (`home_server` и др.) проставляется `DEFAULT ''` (`_migrate` в `init_models`,
+  Postgres, идемпотентно). Раньше на **существующих** БД (созданных до ADR-0008)
+  колонка `home_server` оставалась `NOT NULL` без дефолта → INSERT лога падал
+  (`NOT NULL VIOLATION`), логин проходил, но Decision log пустой. `server_default`
+  в модели чинил только новые БД; теперь чинятся и старые.
+
 ### 2026-09-11 МСК (6)
 
 - **feat(logs):** раздел **Logs** переработан в две под-вкладки — **Decisions**
