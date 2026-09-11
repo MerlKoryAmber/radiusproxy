@@ -1,0 +1,30 @@
+---
+description: UI панели — только стилизованные контролы, без браузерных/нативных, выбивающихся из дизайна
+globs: frontend/src/**/*.{jsx,js}
+alwaysApply: false
+---
+
+# Без браузерных / нестилизованных контролов (CLAUDE.md §21)
+
+Любой видимый элемент интерфейса — в едином стиле панели, а не «родной» браузерный.
+
+## Запрещено
+
+- `window.alert` / `window.confirm` / `window.prompt` (и голый `confirm(...)`).
+- Голый нативный `<input type="file">` («Choose File» выбивается из стиля).
+- Любые нативные диалоги/контролы, визуально отличные от компонентов панели.
+
+## Вместо этого
+
+- **Подтверждения** (в т.ч. удаление, apply, опасные действия) — `ConfirmDialog`
+  (`frontend/src/components.jsx`): модалка с Cancel/Confirm, `danger` для деструктивных.
+- **Загрузка файлов** — `FileButton` (`components.jsx`): стилизованная кнопка + имя файла,
+  скрытый `<input type=file>` внутри.
+- **Ошибки/успех** — тосты / блоки в UI (`notify`, `.result.ok/.err`), не `alert`.
+- **Ввод значений** — поля формы (`Field`, `.field-hint`), select/checkbox для фиксированных наборов (§21).
+
+## Проверка
+
+`git grep -nE '\b(alert|confirm|prompt)\(' frontend/src` не должен находить браузерные вызовы
+(кроме `ConfirmDialog`/`confirmLabel`/`onConfirm`/state). Нативный `<input type=file>` — только
+внутри `FileButton`.
