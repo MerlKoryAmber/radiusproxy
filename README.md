@@ -102,6 +102,20 @@ and installs the host CLI **`rpp`** (`sudo rpp` → menu: update / status / logs
 backup / restore / password / secrets / …). Prod: set strong secrets with
 `rpp secrets` and replace the cert in Settings → TLS.
 
+**Behind a proxy (no direct `docker.io`)?** The docker daemon is a systemd
+service and won't see a proxy exported in your shell, so image pulls time out
+(`dial tcp registry-1.docker.io:443: i/o timeout`). `install.sh`/`update.sh`
+auto-pick a proxy from the environment or `/etc/environment` and configure the
+daemon + builds for it. If `sudo` strips your env, pass it explicitly:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/MerlKoryAmber/radiusproxy/main/scripts/install.sh \
+  | sudo DOCKER_HTTP_PROXY=http://HOST:PORT bash
+```
+
+The running containers stay proxy-free on purpose (they reach LDAP/RADIUS
+directly); only pulls/builds use the proxy. Disable with `DOCKER_PROXY_SKIP=1`.
+
 ### Option B — Local dev (SQLite, no database to set up)
 
 Backend:

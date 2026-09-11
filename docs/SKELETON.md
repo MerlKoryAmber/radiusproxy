@@ -136,6 +136,7 @@
 - `update.sh` — `git pull` + `compose up -d --build` (`--no-pull` = без pull); обновляет `rpp`+unit.
 - `uninstall.sh` — `compose down -v --rmi local` (`--keep-data`, `--purge`); снимает `rpp`+unit.
 - `rpp.sh` + `lib/common.sh` — хостовое CLI-меню (`/usr/bin/rpp`): все операции + backup/restore/password/secrets. Паттерн `docs/patterns/cli-menu-linux.md`.
+- `lib/docker-proxy.sh` (`apply_docker_proxy`) — прокси для pull/build на хостах без прямого `docker.io`: резолвит прокси из env/`/etc/environment`, пишет systemd drop-in для dockerd (чинит pull) + экспортит `HTTP(S)_PROXY`/`NO_PROXY` для build. Зовётся из `install.sh`/`update.sh` до `compose up --build`; `docker-compose.yml build.args` пробрасывают в apt/npm. Runtime контейнеров не трогает. Knob: `DOCKER_HTTP_PROXY`, `DOCKER_PROXY_SKIP=1`.
 **Auth-гейт (App.jsx):** на старте `api.auth.status()`; 401 → `<Login>`; иначе shell. Имя юзера в топбаре → дропдаун (Change password с подтверждением / Log out).
 
 **CSS-словарь:** `.shell/.sidebar/.brand/.brand-mark/.nav`, `.page-head`, `.btn(.primary/.ghost/.danger/.sm)`,

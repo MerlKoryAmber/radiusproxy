@@ -115,6 +115,13 @@ ensure_docker
 clone_or_update
 write_env
 
+# The docker daemon is a systemd service and can't see this shell's proxy, so
+# image pulls hit docker.io directly and time out on proxy-only hosts. If a
+# proxy is present (env or /etc/environment), teach the daemon + build about it.
+# No proxy → no-op. Skip with DOCKER_PROXY_SKIP=1; force with DOCKER_HTTP_PROXY=…
+# shellcheck disable=SC1091
+. "$INSTALL_DIR/scripts/lib/docker-proxy.sh"; apply_docker_proxy
+
 log "building and starting the stack (this can take a few minutes)…"
 docker compose -f "$INSTALL_DIR/docker-compose.yml" up -d --build
 

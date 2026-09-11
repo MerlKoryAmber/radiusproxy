@@ -34,6 +34,10 @@ else
     git -C "$INSTALL_DIR" pull --ff-only
 fi
 
+# Re-apply the docker daemon/build proxy (daemon can't see this shell's env).
+# shellcheck disable=SC1091
+. "$SCRIPT_DIR/lib/docker-proxy.sh"; apply_docker_proxy
+
 log "rebuilding and restarting…"
 docker compose -f "$INSTALL_DIR/docker-compose.yml" up -d --build
 

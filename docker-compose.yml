@@ -22,7 +22,18 @@ services:
       retries: 5
 
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      # Proxy for apt-get/pip during the image BUILD only (empty when no proxy).
+      # apply_docker_proxy (scripts/lib/docker-proxy.sh) exports these; Compose
+      # substitutes them here. Runtime proxy stays OFF via `environment:` below.
+      args:
+        HTTP_PROXY: "${HTTP_PROXY:-}"
+        HTTPS_PROXY: "${HTTPS_PROXY:-}"
+        NO_PROXY: "${NO_PROXY:-}"
+        http_proxy: "${HTTP_PROXY:-}"
+        https_proxy: "${HTTPS_PROXY:-}"
+        no_proxy: "${NO_PROXY:-}"
     restart: unless-stopped
     depends_on:
       db:
@@ -64,7 +75,16 @@ services:
       - "1813:1813/udp"
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      # Proxy for npm during the image BUILD only (empty when no proxy set).
+      args:
+        HTTP_PROXY: "${HTTP_PROXY:-}"
+        HTTPS_PROXY: "${HTTPS_PROXY:-}"
+        NO_PROXY: "${NO_PROXY:-}"
+        http_proxy: "${HTTP_PROXY:-}"
+        https_proxy: "${HTTPS_PROXY:-}"
+        no_proxy: "${NO_PROXY:-}"
     restart: unless-stopped
     depends_on:
       - backend

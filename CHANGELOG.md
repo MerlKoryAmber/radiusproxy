@@ -5,6 +5,22 @@
 
 ## [Unreleased]
 
+### 2026-09-11 МСК (1)
+
+- **fix(ops):** деплой на хостах без прямого доступа к `docker.io` (типовой
+  `dial tcp registry-1.docker.io:443: i/o timeout` на `postgres:16-alpine`).
+  Причина: `dockerd` — systemd-сервис, **не** наследует прокси из шелла, поэтому
+  `docker pull` идёт мимо прокси и отваливается. Новый шаред-хелпер
+  `scripts/lib/docker-proxy.sh` (`apply_docker_proxy`): резолвит прокси из env
+  или `/etc/environment`, пишет systemd drop-in
+  `/etc/systemd/system/docker.service.d/http-proxy.conf` + рестартит docker (чинит
+  **pull**) и экспортит `HTTP(S)_PROXY`/`NO_PROXY` для **build**. `install.sh` и
+  `update.sh` зовут его перед `compose up --build`. `docker-compose.yml`:
+  `build.args` пробрасывают прокси в apt/npm при сборке. **Runtime контейнеров
+  не трогается** — `environment:` по-прежнему глушит прокси (FreeRADIUS/панель
+  ходят к LDAP/RADIUS напрямую). Knob: `DOCKER_HTTP_PROXY=…` форсит, `DOCKER_PROXY_SKIP=1`
+  выключает. Нет прокси — no-op.
+
 ### 2026-09-10 МСК (6)
 
 - **docs:** синхронизация точки подхвата для другого клиента/сессии —
