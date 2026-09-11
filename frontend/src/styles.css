@@ -183,7 +183,7 @@ a { color: var(--accent); }
 /* ---- settings section ---- */
 .settings-section {
   border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 14px 18px 18px; margin: 0; max-width: 640px;
+  padding: 14px 18px 18px; margin: 0;
   background: var(--panel); box-shadow: var(--shadow-sm);
 }
 /* legend floats full-width so it doesn't overlap the content below it */
