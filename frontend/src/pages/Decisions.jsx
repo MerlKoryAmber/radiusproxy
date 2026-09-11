@@ -149,7 +149,9 @@ function ServerLog() {
             <tbody>
               {data.lines.map((l, i) => (
                 <tr key={i}>
-                  <td className="muted mono">{l.ts || "—"}</td>
+                  <td className="muted mono" style={{ whiteSpace: "nowrap" }}>
+                    {l.ts ? new Date(l.ts).toLocaleString() : "—"}
+                  </td>
                   <td>
                     {l.level ? (
                       <span className={`tag ${LEVEL_CLASS[l.level] || ""}`}>{l.level}</span>

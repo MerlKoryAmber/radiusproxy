@@ -7,6 +7,7 @@ not getting through.
 """
 import os
 import re
+from datetime import datetime, timezone
 
 from fastapi import APIRouter
 
@@ -17,6 +18,17 @@ settings = get_settings()
 
 # "Fri Sep 11 18:02:04 2026 : Error: <message>"
 _LINE = re.compile(r"^(\w{3} \w{3} +\d+ [\d:]+ \d{4}) : (\w+): (.*)$")
+
+
+def _iso(fr_ts: str) -> str:
+    """FreeRADIUS logs the container's wall clock (UTC) as
+    'Fri Sep 11 18:02:04 2026' → ISO with tz so the browser shows local time
+    (same as the decision log's created_at)."""
+    try:
+        dt = datetime.strptime(fr_ts, "%a %b %d %H:%M:%S %Y")
+        return dt.replace(tzinfo=timezone.utc).isoformat()
+    except ValueError:
+        return ""
 
 
 def _tail(path: str, n: int) -> list[str]:
@@ -46,7 +58,7 @@ async def radius_log(lines: int = 300, q: str = ""):
             continue
         m = _LINE.match(ln)
         if m:
-            out.append({"ts": m.group(1), "level": m.group(2), "text": m.group(3)})
+            out.append({"ts": _iso(m.group(1)), "level": m.group(2), "text": m.group(3)})
         else:
             out.append({"ts": "", "level": "", "text": ln})
     return {"path": settings.radius_log_path, "lines": out}
