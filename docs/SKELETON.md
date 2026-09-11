@@ -97,7 +97,7 @@
 - `/api/target-servers` GET/POST/PUT/DELETE — secret write-only (`has_secret`, пустой=не менять) (`routers/targets.py`)
 - `/api/pools` GET/POST/PUT/DELETE — members по target_server (`routers/pools.py`)
 - `/api/rules` GET/POST/PUT/DELETE + POST `/reorder` (ids по порядку) (`routers/rules.py`)
-- `/api/ldap` GET/PUT + `/preview.conf` + `/ca.pem` + `/sync` GET/POST + `/groups?q=` (автокомплит из каталога) (`routers/ldap.py`)
+- `/api/ldap` GET/PUT + `/preview.conf` + `/ca.pem` + `/test` POST (connect+bind проба, `ldap_sync.test_connection`) + `/sync` GET/POST (POST отдаёт сводку каталог/группы) + `/groups?q=` (автокомплит из каталога) (`routers/ldap.py`)
 - `/api/config/preview`, `/preview.conf`, `/clients-preview.conf`, `/policy-preview.conf`, `/apply` (POST), `/audit`, `/export` GET, `/import` POST (`?dry_run=`) (`routers/config.py`)
 - `/api/decisions` GET (лог решений, фильтры username/realm) (`routers/decisions.py`)
 - `/api/auth/status|login|settings|password` (`routers/auth.py`) — **открыт**; остальные data/config-роутеры под `Depends(require_user)` (гейт при auth on)

@@ -269,6 +269,10 @@ class LdapSettingsOut(LdapSettingsBase):
     has_password: bool = False
     # CA is not secret, but kept out of the list payload; flag + download route.
     has_ca_cert: bool = False
+    # Summary of the stored CA so the UI can confirm which cert is in place
+    # (parity with the panel TLS cert). Empty when no/invalid CA.
+    ca_subject: str = ""
+    ca_not_after: str = ""
 
 
 # --------------------------- Config ---------------------------------------

@@ -83,6 +83,7 @@ export const api = {
     update: (body) =>
       request("/ldap", { method: "PUT", body: JSON.stringify(body) }),
     previewUrl: "/api/ldap/preview.conf",
+    test: () => request("/ldap/test", { method: "POST" }),
     syncStatus: () => request("/ldap/sync"),
     syncNow: () => request("/ldap/sync", { method: "POST" }),
     groups: (q) => request(`/ldap/groups?q=${encodeURIComponent(q || "")}`),

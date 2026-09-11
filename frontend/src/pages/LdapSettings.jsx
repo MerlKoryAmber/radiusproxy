@@ -13,6 +13,8 @@ export default function LdapSettings({ notify, embedded = false }) {
   const [preview, setPreview] = useState("");
   const [syncRows, setSyncRows] = useState([]);
   const [syncing, setSyncing] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState(null); // {ok, message, ...}
 
   const loadPreview = async () => {
     const res = await fetch(api.ldap.previewUrl);
@@ -32,12 +34,36 @@ export default function LdapSettings({ notify, embedded = false }) {
     }
   };
 
+  const testConn = async () => {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const r = await api.ldap.test();
+      setTestResult(r);
+      notify(r.ok ? "LDAP test: connected" : "LDAP test failed", r.ok ? "ok" : "err");
+    } catch (e) {
+      setTestResult({ ok: false, message: e.message });
+      notify(e.message, "err");
+    } finally {
+      setTesting(false);
+    }
+  };
+
   const syncNow = async () => {
     setSyncing(true);
     try {
-      await api.ldap.syncNow();
+      const r = await api.ldap.syncNow();
       setSyncRows(await api.ldap.syncStatus());
-      notify("Group sync run");
+      if (r.enabled === false) {
+        notify("AD checking is disabled — enable it, then Save", "err");
+      } else {
+        const cat = r.catalog != null ? `catalog: ${r.catalog}` : "catalog: —";
+        const grp =
+          r.groups_ok || r.groups_error
+            ? `, groups: ${r.groups_ok} ok${r.groups_error ? `, ${r.groups_error} error` : ""}`
+            : ", no gated rules to sync";
+        notify(`Sync done (${cat}${grp})`);
+      }
     } catch (e) {
       notify(e.message, "err");
     } finally {
@@ -63,7 +89,14 @@ export default function LdapSettings({ notify, embedded = false }) {
     if (!file) return;
     setCaFileName(file.name);
     const reader = new FileReader();
-    reader.onload = () => setCaCert(String(reader.result || ""));
+    reader.onload = () => {
+      const text = String(reader.result || "");
+      setCaCert(text);
+      // Make it obvious the file was read — it is NOT stored until "Save".
+      if (text.includes("BEGIN CERTIFICATE"))
+        notify(`CA "${file.name}" loaded — click Save settings to store it`);
+      else notify(`"${file.name}" has no PEM certificate block`, "err");
+    };
     reader.readAsText(file);
   };
 
@@ -97,10 +130,40 @@ export default function LdapSettings({ notify, embedded = false }) {
             The bind password is write-only and never shown.
           </p>
         </div>
-        <button className="btn primary" disabled={saving} onClick={save}>
-          {saving ? "Saving…" : "Save settings"}
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            className="btn ghost"
+            disabled={testing || saving}
+            onClick={testConn}
+            title="Connect + bind using the saved settings (save first)"
+          >
+            {testing ? "Testing…" : "Test connection"}
+          </button>
+          <button className="btn primary" disabled={saving} onClick={save}>
+            {saving ? "Saving…" : "Save settings"}
+          </button>
+        </div>
       </div>
+
+      {testResult && (
+        <div
+          className={`result ${testResult.ok ? "ok" : "err"}`}
+          style={{ marginBottom: 16 }}
+        >
+          <h3 style={{ color: testResult.ok ? "var(--ok)" : "var(--danger)" }}>
+            {testResult.ok ? "LDAP connection OK" : "LDAP connection failed"}
+          </h3>
+          <div className="muted">
+            {testResult.message}
+            {testResult.elapsed_ms != null && ` · ${testResult.elapsed_ms} ms`}
+            {testResult.whoami ? ` · bound as ${testResult.whoami}` : ""}
+          </div>
+          <div className="field-hint" style={{ marginTop: 6 }}>
+            Tests the <b>saved</b> settings (the bind password is write-only) — save
+            first if you just changed anything.
+          </div>
+        </div>
+      )}
 
       <div className="config-grid">
         <div style={{ maxWidth: 720 }}>
@@ -294,6 +357,14 @@ export default function LdapSettings({ notify, embedded = false }) {
                 {caFileName || "no file selected"}
               </span>
             </div>
+            {hasCa && form.ca_subject && (
+              <div className="field-hint" style={{ marginBottom: 8 }}>
+                Stored CA: <span className="mono">{form.ca_subject}</span>
+                {form.ca_not_after
+                  ? ` · expires ${new Date(form.ca_not_after).toLocaleDateString()}`
+                  : ""}
+              </div>
+            )}
             <textarea
               value={caCert}
               onChange={(e) => setCaCert(e.target.value)}

@@ -48,6 +48,71 @@ def _connect(cfg: models.LdapSettings) -> ldap3.Connection:
     return conn
 
 
+def test_connection(cfg: models.LdapSettings) -> dict:
+    """Best-effort connect + bind + one base-DN probe. Never raises — returns a
+    structured result the UI shows as pass/fail with a concrete reason. Uses the
+    SAVED settings (bind password is write-only)."""
+    import time as _time
+
+    t0 = _time.monotonic()
+
+    def _ms() -> int:
+        return int((_time.monotonic() - t0) * 1000)
+
+    if not cfg.server:
+        return {"ok": False, "stage": "config", "message": "Server host / IP is empty"}
+
+    try:
+        conn = _connect(cfg)  # auto_bind → raises on connect/TLS/bind failure
+    except Exception as exc:  # noqa: BLE001 — surface the reason, don't crash
+        return {
+            "ok": False,
+            "stage": "bind",
+            "message": f"connect/bind failed: {exc}",
+            "elapsed_ms": _ms(),
+        }
+
+    try:
+        base = cfg.base_dn or cfg.group_base_dn or ""
+        if base:
+            try:
+                conn.search(
+                    search_base=base,
+                    search_filter="(objectClass=*)",
+                    search_scope=ldap3.BASE,
+                    attributes=["1.1"],
+                    size_limit=1,
+                )
+            except Exception as exc:  # noqa: BLE001
+                return {
+                    "ok": False,
+                    "stage": "search",
+                    "bound": True,
+                    "message": f"bound OK, but base DN search failed: {exc}",
+                    "elapsed_ms": _ms(),
+                }
+        whoami = ""
+        try:
+            whoami = conn.extend.standard.who_am_i() or ""
+        except Exception:  # noqa: BLE001 — optional, some DCs disallow it
+            whoami = ""
+        return {
+            "ok": True,
+            "stage": "ok",
+            "bound": True,
+            "tls": bool(cfg.use_ldaps or cfg.start_tls),
+            "whoami": whoami,
+            "message": "Connected and bound successfully"
+            + ("" if base else " (no Base DN set — bind only)"),
+            "elapsed_ms": _ms(),
+        }
+    finally:
+        try:
+            conn.unbind()
+        except Exception:  # noqa: BLE001
+            pass
+
+
 def fetch_group_members(cfg: models.LdapSettings, group_dn: str) -> set[str]:
     """Return the sAMAccountNames (lower-cased) that belong to group_dn,
     including nested membership. Raises on connection/search failure."""

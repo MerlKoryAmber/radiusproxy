@@ -5,6 +5,14 @@ push (§6/§10 CLAUDE.md). Время — **МСК (UTC+3)**.
 
 **Обновлено:** 2026-09-11 МСК
 
+> **Хвост (11.09.2026, №3 — НЕ в main, ждёт push):** UX-пачка. (а) F5 больше не
+> кидает на Dashboard — вкладка в `localStorage`. (б) Тест LDAP: `POST /api/ldap/test`
+> (`ldap_sync.test_connection`) + кнопка Test connection с green/red панелью; тестит
+> сохранённые настройки. (в) Root CA: тост при выборе файла + сводка хранимого CA
+> (`LdapSettingsOut.ca_subject/ca_not_after`). (г) Sync now: итог в тосте (каталог/
+> группы ok-error, «выключено», «нет гейтов»). **Требует push + пересборку.**
+> LDAP-тест на реальном AD не проверялся (нет живого AD в сессии).
+
 > **Хвост (11.09.2026, №2 — НЕ в main, ждёт push):** (а) самохостинг шрифта Inter
 > (`@fontsource/inter` в `frontend/package.json`+`main.jsx`), убраны внешние Google
 > Fonts из `index.html` — чинит медленную загрузку в закрытой сети. `package-lock.json`

@@ -24,8 +24,20 @@ const TABS = [
   { id: "settings", label: "Settings" },
 ];
 
+const TAB_IDS = TABS.map((t) => t.id);
+const savedTab = () => {
+  try {
+    const t = localStorage.getItem("radpanel_tab");
+    return TAB_IDS.includes(t) ? t : "dashboard";
+  } catch {
+    return "dashboard";
+  }
+};
+
 export default function App() {
-  const [tab, setTab] = useState("dashboard");
+  // Persist the open tab so F5 / reload stays put instead of snapping back to
+  // Dashboard.
+  const [tab, setTab] = useState(savedTab);
   const [toast, setToast] = useState(null);
   const [counts, setCounts] = useState({});
   const [authState, setAuthState] = useState("checking"); // checking | ok | login
@@ -50,6 +62,14 @@ export default function App() {
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("radpanel_tab", tab);
+    } catch {
+      /* storage unavailable — tab just won't persist */
+    }
+  }, [tab]);
 
   const refreshCounts = useCallback(async () => {
     try {
