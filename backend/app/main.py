@@ -67,7 +67,6 @@ async def _ensure_tls(db):
         pass
 
 
-@asynccontextmanager
 async def _apply_on_boot(db):
     """Render the current DB config into FreeRADIUS and reload. The raddb lives
     in the image (not a volume), so a rebuilt/restarted backend starts with a
@@ -81,6 +80,7 @@ async def _apply_on_boot(db):
         pass
 
 
+@asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_models()
     async with SessionLocal() as db:
