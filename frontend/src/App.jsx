@@ -10,6 +10,7 @@ import Decisions from "./pages/Decisions.jsx";
 import ConfigPreview from "./pages/ConfigPreview.jsx";
 import Portable from "./pages/Portable.jsx";
 import Settings from "./pages/Settings.jsx";
+import Help from "./pages/Help.jsx";
 import Login from "./pages/Login.jsx";
 
 const TABS = [
@@ -103,7 +104,8 @@ export default function App() {
   if (authState === "login")
     return <Login onLoggedIn={checkAuth} />;
 
-  const currentLabel = TABS.find((t) => t.id === tab)?.label || "";
+  const currentLabel =
+    tab === "help" ? "Инструкция" : TABS.find((t) => t.id === tab)?.label || "";
   const username = authInfo.user || "admin";
 
   return (
@@ -129,6 +131,13 @@ export default function App() {
               )}
             </button>
           ))}
+          <button
+            className={tab === "help" ? "active" : ""}
+            style={{ marginTop: "auto" }}
+            onClick={() => setTab("help")}
+          >
+            <span>Инструкция</span>
+          </button>
         </nav>
       </aside>
 
@@ -160,6 +169,7 @@ export default function App() {
           {tab === "settings" && (
             <Settings notify={notify} onAuthChange={checkAuth} />
           )}
+          {tab === "help" && <Help />}
         </div>
       </main>
 
