@@ -5,6 +5,14 @@ push (§6/§10 CLAUDE.md). Время — **МСК (UTC+3)**.
 
 **Обновлено:** 2026-09-11 МСК
 
+> **Хвост (11.09.2026, №2 — НЕ в main, ждёт push):** (а) самохостинг шрифта Inter
+> (`@fontsource/inter` в `frontend/package.json`+`main.jsx`), убраны внешние Google
+> Fonts из `index.html` — чинит медленную загрузку в закрытой сети. `package-lock.json`
+> обновится сам при `npm install` в сборке фронта. (б) Settings→Host: реальный хост
+> вместо id контейнера — `HOST_HOSTNAME` (install.sh `.env` → compose → `system.py`),
+> он же в SAN сертификата (`tls.py`). **Требует push + пересборку фронта/бэка** (`rpp update`).
+> На сервере не проверено вживую.
+
 > **Хвост (11.09.2026, НЕ в main — ждёт push):** фикс деплоя на хостах без прямого
 > `docker.io` (симптом: `dial tcp registry-1.docker.io:443: i/o timeout` на
 > `postgres:16-alpine`). Причина — `dockerd` (systemd) не видит прокси из шелла.

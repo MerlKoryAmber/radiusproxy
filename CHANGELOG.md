@@ -5,6 +5,21 @@
 
 ## [Unreleased]
 
+### 2026-09-11 МСК (2)
+
+- **fix(ui):** медленная загрузка панели на каждый заход/refresh в закрытой сети.
+  Причина: `index.html` тянул шрифт Inter внешним render-blocking `<link>` с
+  `fonts.googleapis.com` — браузер админа ждал Google до таймаута каждый раз
+  (нарушение принципа «всё локально»). Inter переведён на **самохостинг**
+  (`@fontsource/inter`, веса 400/500/600/700 в `main.jsx`) — бандлится в панель,
+  ноль внешних вызовов в рантайме. Внешние `<link>`/`preconnect` убраны.
+- **fix(ui):** Settings→Host показывал имя контейнера вместо хоста. `host_info()`
+  отдавал `socket.gethostname()` (= id контейнера). install.sh теперь кладёт
+  реальный `HOST_HOSTNAME` в `.env` (`hostname -f`), compose пробрасывает в
+  backend, `host_info()` берёт его (фолбэк на `gethostname()`). Тот же реальный
+  хостнейм идёт в SAN self-signed сертификата (`tls.py`: было `$HOSTNAME` = id
+  контейнера).
+
 ### 2026-09-11 МСК (1)
 
 - **fix(ops):** деплой на хостах без прямого доступа к `docker.io` (типовой

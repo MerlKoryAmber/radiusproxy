@@ -133,6 +133,7 @@
 
 - `install.sh` — ставит docker+compose (при отсутствии) + git, клонит репо в `INSTALL_DIR`
   (деф. `/opt/radiusproxy`), собирает и поднимает стек, ждёт health. Самодостаточный (`curl|bash`).
+  `.env`: `HOST_ADDRESSES` (IP хоста) + `HOST_HOSTNAME` (`hostname -f`) — контейнер их сам не видит; используются в Settings→Host и SAN сертификата (`tls.py`).
 - `update.sh` — `git pull` + `compose up -d --build` (`--no-pull` = без pull); обновляет `rpp`+unit.
 - `uninstall.sh` — `compose down -v --rmi local` (`--keep-data`, `--purge`); снимает `rpp`+unit.
 - `rpp.sh` + `lib/common.sh` — хостовое CLI-меню (`/usr/bin/rpp`): все операции + backup/restore/password/secrets. Паттерн `docs/patterns/cli-menu-linux.md`.

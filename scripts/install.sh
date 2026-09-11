@@ -104,10 +104,16 @@ wait_healthy() {
 }
 
 write_env() {
-    # Host IPs shown read-only in the panel (the container can't see host NICs).
-    local addrs
+    # Host IPs + hostname shown read-only in the panel (the container sees
+    # neither the host NICs nor the host's real hostname — inside a container
+    # `hostname` returns the container id, so we pass the host's here).
+    local addrs host
     addrs="$(hostname -I 2>/dev/null | tr ' ' ',' | sed 's/,$//')"
-    printf 'HOST_ADDRESSES=%s\n' "$addrs" > "$INSTALL_DIR/.env"
+    host="$(hostname -f 2>/dev/null || hostname 2>/dev/null || true)"
+    {
+        printf 'HOST_ADDRESSES=%s\n' "$addrs"
+        printf 'HOST_HOSTNAME=%s\n' "$host"
+    } > "$INSTALL_DIR/.env"
 }
 
 ensure_git

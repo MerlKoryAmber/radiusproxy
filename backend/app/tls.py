@@ -24,7 +24,9 @@ def _san_entries(common_name: str) -> list[x509.GeneralName]:
     its CN, localhost, and every host IP (HOST_ADDRESSES). Without the host IP
     a browser rejects https://<ip> even after the cert is trusted."""
     dns = [common_name, "localhost"]
-    hostname = os.environ.get("HOSTNAME", "").strip()
+    # Real host name (install.sh → HOST_HOSTNAME). NOT $HOSTNAME — inside a
+    # container that is the container id, useless in a cert.
+    hostname = os.environ.get("HOST_HOSTNAME", "").strip()
     if hostname and hostname not in dns:
         dns.append(hostname)
     ips = ["127.0.0.1", *host_addresses()]

@@ -58,8 +58,10 @@ services:
       # Override via .env (or `rpp secrets`); dev default used when unset.
       APP_ENCRYPTION_KEY: "${APP_ENCRYPTION_KEY:-dev-insecure-change-me}"
       JWT_SECRET: "${JWT_SECRET:-dev-insecure-change-me}"
-      # Host IPs shown read-only in Settings (install.sh fills this via .env).
+      # Host IPs + hostname shown read-only in Settings (install.sh fills these
+      # via .env; inside a container `hostname` is the container id, not the host).
       HOST_ADDRESSES: "${HOST_ADDRESSES:-}"
+      HOST_HOSTNAME: "${HOST_HOSTNAME:-}"
       # No host proxy inside the container.
       no_proxy: "*"
       NO_PROXY: "*"

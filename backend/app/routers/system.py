@@ -1,4 +1,5 @@
 import ipaddress
+import os
 import socket
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -124,4 +125,7 @@ async def regen_self_signed(db: AsyncSession = Depends(get_db)):
 # --- Host info (read-only) -------------------------------------------------
 @router.get("/host", response_model=schemas.HostInfoOut)
 async def host_info():
-    return schemas.HostInfoOut(hostname=socket.gethostname(), addresses=tls.host_addresses())
+    # HOST_HOSTNAME is the real host name (install.sh → .env); socket.gethostname()
+    # would return the *container* id, which is meaningless in Settings → Host.
+    hostname = os.environ.get("HOST_HOSTNAME", "").strip() or socket.gethostname()
+    return schemas.HostInfoOut(hostname=hostname, addresses=tls.host_addresses())
