@@ -28,7 +28,7 @@ export default function Decisions() {
     <>
       <div className="page-head">
         <div>
-          <h1>Decision log</h1>
+          <h1>Logs</h1>
           <p>
             Per-request proxy/gate decisions written by FreeRADIUS (the{" "}
             <span className="mono">radiuspanel_log</span> policy) into the panel
