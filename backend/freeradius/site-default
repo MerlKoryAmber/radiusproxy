@@ -1,0 +1,61 @@
+#
+# sites-enabled/default — FreeRADIUS Proxy Panel virtual server (baked into the
+# image; static). A pure RADIUS proxy:
+#   authorize  -> radiuspanel_route  (ordered rules: set Proxy-To-Realm or reject
+#                                      + AD group gate)  [policy.d/radiuspanel]
+#   pre-proxy  -> radiuspanel_srcip  (preserve originator IP)
+#   post-auth  -> radiuspanel_log    (one row per decision, + Post-Auth-Type REJECT)
+# The dynamic pieces (clients/proxy/policy/sql) are written by the panel on apply.
+#
+server default {
+	listen {
+		type = auth
+		ipaddr = *
+		port = 0
+		limit {
+			max_connections = 16
+			lifetime = 0
+			idle_timeout = 30
+		}
+	}
+	listen {
+		type = acct
+		ipaddr = *
+		port = 0
+		limit {
+			max_connections = 16
+			lifetime = 0
+			idle_timeout = 30
+		}
+	}
+
+	authorize {
+		preprocess
+		radiuspanel_route
+	}
+
+	authenticate {
+	}
+
+	preacct {
+		preprocess
+	}
+
+	accounting {
+	}
+
+	pre-proxy {
+		radiuspanel_srcip
+	}
+
+	post-proxy {
+	}
+
+	post-auth {
+		radiuspanel_log
+
+		Post-Auth-Type REJECT {
+			radiuspanel_log
+		}
+	}
+}

@@ -4,7 +4,7 @@
 Обновлять **перед каждым push** (см. §22 CLAUDE.md). Читать после handoff и перед
 началом задачи. Если что-то тут расходится с кодом — код прав, а скелет чинить.
 
-**Обновлено:** 2026-09-10 МСК · ветка на момент правки: `feature/host-cli`
+**Обновлено:** 2026-09-11 МСК · ветка на момент правки: `fix/radius-site-wiring`
 
 ---
 
@@ -16,6 +16,11 @@
 - **FreeRADIUS 3.2 в backend-контейнере** (Debian bookworm) — панель пишет в реальный
   `/etc/freeradius/3.0`, валидирует `freeradius -XC`, перезагружает
   (`radius-reload.sh`). `entrypoint.sh` стартует FR (если конфиг валиден) + uvicorn.
+  **Site вшит в образ** (`backend/freeradius/site-default` → `sites-enabled/default`):
+  зовёт `radiuspanel_route` (authorize) / `srcip` (pre-proxy) / `log` (post-auth+REJECT).
+  Stub `policy.d/radiuspanel` вшит для `-XC` на первом старте. `/etc/freeradius/3.0` —
+  **в образе, не volume** → панель **применяет конфиг на старте** (`_apply_on_boot`,
+  самовосстановление после ребилда). ADR-0008.
 - **HTTPS:** backend генерит self-signed cert в БД+том `panelcerts`; frontend nginx `443 ssl`
   + `80→443`, авто-reload по inotify при смене cert. Наружу **80/443** (не 8080).
 - Деплой: `docker compose up -d --build` (db / backend :8000+1812/1813udp / frontend :80+:443).

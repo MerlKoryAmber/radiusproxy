@@ -68,11 +68,25 @@ async def _ensure_tls(db):
 
 
 @asynccontextmanager
+async def _apply_on_boot(db):
+    """Render the current DB config into FreeRADIUS and reload. The raddb lives
+    in the image (not a volume), so a rebuilt/restarted backend starts with a
+    stub site+policy; this makes the panel self-healing — real clients/rules
+    are live without a manual apply. Best-effort: never block startup."""
+    from .radius_config import apply_config
+
+    try:
+        await apply_config(db)
+    except Exception:  # noqa: BLE001
+        pass
+
+
 async def lifespan(app: FastAPI):
     await init_models()
     async with SessionLocal() as db:
         await auth_mod.ensure_seed(db)
         await _ensure_tls(db)
+        await _apply_on_boot(db)
     task = asyncio.create_task(_group_sync_loop())
     yield
     task.cancel()

@@ -13,6 +13,12 @@ RUN apt-get update \
         procps \
     && rm -rf /var/lib/apt/lists/*
 
+# Wire the panel's policies into FreeRADIUS: a minimal proxy virtual server
+# (calls radiuspanel_route/srcip/log) + a stub policy so `freeradius -XC` passes
+# on first boot. The panel overwrites the stub on its first apply.
+COPY freeradius/site-default /etc/freeradius/3.0/sites-enabled/default
+COPY freeradius/policy-radiuspanel-stub /etc/freeradius/3.0/policy.d/radiuspanel
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 

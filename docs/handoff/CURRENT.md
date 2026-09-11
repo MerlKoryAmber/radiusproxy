@@ -105,6 +105,13 @@ FreeRADIUS Proxy Panel (`radiusproxy`) — веб-панель управлен�
     Доступ теперь `https://<host>` (self-signed). Порт 8080 не публикуется. `.env HOST_ADDRESSES`.
     **Восстановление при локауте:** `docker compose exec db psql -U radpanel -d radpanel -c "UPDATE auth_settings SET ip_allowlist=''"`.
     Прод: заменить cert; задать `APP_ENCRYPTION_KEY`/`JWT_SECRET`.
+14. **Проксирование+лог реально заработали (ADR-0008)** — `fix/radius-site-wiring`.
+    Был баг: политики генерились, но site их не звал → маршрут/лог не работали; плюс
+    INSERT лога падал на `home_server NOT NULL`. Вшит прокси-`sites-enabled/default`
+    (`backend/freeradius/`) + stub policy + `server_default=''` + автоприменение на старте
+    (`_apply_on_boot`). Проверено radclient → запись в Decision log. **Хвост:** реальный
+    проксинг на живой LinOTP/hmk2fa не проверен (таргеты недоступны с теста); диагностика
+    чужого хоста при «нет логов» — Client с IP как видит хост (NAT!) + `freeradius -X`.
 13. **Хостовое CLI `rpp`** — `feature/host-cli` (паттерн из 2fa, `docs/patterns/cli-menu-linux.md`).
     `sudo rpp` → меню (update/uninstall/secrets/password/git-token/status/start/stop/restart/
     logs/backup/restore/url); те же подкомандами. `scripts/rpp.sh`+`lib/common.sh`, wrapper
