@@ -141,8 +141,8 @@ function ServerLog() {
           <table>
             <thead>
               <tr>
-                <th style={{ width: 170 }}>Time</th>
-                <th style={{ width: 90 }}>Level</th>
+                <th>Time</th>
+                <th>Level</th>
                 <th>Message</th>
               </tr>
             </thead>
