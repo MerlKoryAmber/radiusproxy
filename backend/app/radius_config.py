@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 import shlex
 import subprocess
 from dataclasses import dataclass
@@ -27,6 +28,7 @@ from .models import (
     Client,
     HomeServerPool,
     LdapSettings,
+    RadiusSettings,
     PoolMember,
     Rule,
     TargetServer,
@@ -587,6 +589,22 @@ async def apply_config(db: AsyncSession) -> ApplyResult:
     # radiuspanel_log uses it for the decision log. It points at the panel's own
     # Postgres, which is always up alongside the backend.
     targets.append((Path(settings.sql_conf_path), render_sql_module()))
+
+    # Patch only the max_request_time line in the (stock) radiusd.conf from
+    # RadiusSettings — it caps a target's response_window, so slow 2FA needs it
+    # raised. Skip if the file or the setting isn't there (dev without raddb).
+    radiusd_path = Path(settings.radiusd_conf_path)
+    rad_cfg = await db.get(RadiusSettings, 1)
+    if rad_cfg and radiusd_path.exists():
+        cur = radiusd_path.read_text()
+        patched = re.sub(
+            r"(?m)^(\s*)max_request_time\s*=.*$",
+            rf"\g<1>max_request_time = {int(rad_cfg.max_request_time)}",
+            cur,
+            count=1,
+        )
+        if patched != cur:
+            targets.append((radiusd_path, patched))
 
     backups = [_write_with_backup(path, content) for path, content in targets]
 

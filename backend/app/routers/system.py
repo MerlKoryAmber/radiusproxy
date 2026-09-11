@@ -68,6 +68,31 @@ async def set_access(
     return schemas.AccessSettingsOut(ip_allowlist=row.ip_allowlist)
 
 
+# --- RADIUS server tunables ------------------------------------------------
+@router.get("/radius", response_model=schemas.RadiusSettingsOut)
+async def get_radius(db: AsyncSession = Depends(get_db)):
+    return await crud.get_radius_settings(db)
+
+
+@router.put("/radius", response_model=schemas.RadiusSettingsOut)
+async def set_radius(
+    data: schemas.RadiusSettingsIn, db: AsyncSession = Depends(get_db)
+):
+    row = await crud.get_radius_settings(db)
+    row.max_request_time = data.max_request_time
+    await crud.log(db, "update", "radius", f"max_request_time={data.max_request_time}")
+    await db.commit()
+    # Re-apply so radiusd.conf is patched + FreeRADIUS reloaded.
+    from ..radius_config import ConfigValidationError, apply_config
+
+    try:
+        await apply_config(db)
+    except ConfigValidationError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, exc.output[-800:])
+    await db.refresh(row)
+    return row
+
+
 # --- TLS certificate -------------------------------------------------------
 @router.get("/tls", response_model=schemas.TlsOut)
 async def get_tls(db: AsyncSession = Depends(get_db)):

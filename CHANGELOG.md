@@ -5,6 +5,14 @@
 
 ## [Unreleased]
 
+### 2026-09-12 МСК (2)
+
+- **feat(radius):** **Settings → RADIUS** — регулируемый `max_request_time` (сек).
+  FR режет `response_window` таргета по этому значению, поэтому для медленного 2FA
+  (push/OTP) его надо поднять. `RadiusSettings` (singleton), `/api/system/radius`
+  GET/PUT; PUT патчит `max_request_time` в `radiusd.conf` и делает apply+reload.
+  Поле с подсказкой про связь с `response_window`. Без сброса БД (новая таблица).
+
 ### 2026-09-12 МСК
 
 - **fix(db):** авто-миграция на старте — `proxy_decision` runtime-колонкам

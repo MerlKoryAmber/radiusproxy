@@ -303,6 +303,16 @@ async def get_tls_settings(db: AsyncSession) -> models.TlsSettings:
     return row
 
 
+async def get_radius_settings(db: AsyncSession) -> models.RadiusSettings:
+    row = await db.get(models.RadiusSettings, 1)
+    if row is None:
+        row = models.RadiusSettings(id=1)
+        db.add(row)
+        await db.commit()
+        await db.refresh(row)
+    return row
+
+
 async def get_auth_settings(db: AsyncSession) -> models.AuthSettings:
     row = await db.get(models.AuthSettings, 1)
     if row is None:

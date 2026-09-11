@@ -58,6 +58,10 @@ class Settings(BaseSettings):
     # so unknown-client drops / bad secrets / auth results are visible without SSH.
     radius_log_path: str = "/var/log/freeradius/radius.log"
 
+    # Main FreeRADIUS config — the panel patches only max_request_time in it on
+    # apply (from RadiusSettings). Empty/missing = skip (dev without a real raddb).
+    radiusd_conf_path: str = "/etc/freeradius/3.0/radiusd.conf"
+
     # --- Auth (panel login) ---------------------------------------------
     # Signs session tokens. CHANGE in production (env JWT_SECRET). Auth is
     # off by default (toggle stored in the DB) — see AuthSettings.

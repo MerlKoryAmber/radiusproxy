@@ -161,6 +161,51 @@ function TlsSettings({ notify }) {
   );
 }
 
+function RadiusSettings({ notify }) {
+  const [mrt, setMrt] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    api.system.getRadius().then((r) => setMrt(r.max_request_time)).catch(() => setMrt(30));
+  }, []);
+
+  const save = async () => {
+    setBusy(true);
+    try {
+      const r = await api.system.setRadius(Number(mrt));
+      setMrt(r.max_request_time);
+      notify("Applied — FreeRADIUS reloaded");
+    } catch (e) {
+      notify(e.message, "err");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (mrt === null) return <Spinner />;
+  return (
+    <fieldset className="settings-section">
+      <legend>FreeRADIUS server</legend>
+      <Field
+        label="Max request time (s)"
+        hint="Макс. время обработки запроса. Ограничивает response_window таргетов — для медленного 2FA (push/OTP-подтверждение) поднимите выше самого большого response_window. FR-дефолт 30."
+      >
+        <input
+          type="number"
+          min={5}
+          max={600}
+          value={mrt}
+          onChange={(e) => setMrt(e.target.value)}
+          style={{ width: 120 }}
+        />
+      </Field>
+      <button className="btn primary" disabled={busy} onClick={save}>
+        {busy ? "Applying…" : "Save & apply"}
+      </button>
+    </fieldset>
+  );
+}
+
 function HostInfo() {
   const [h, setH] = useState(null);
   useEffect(() => {
@@ -187,6 +232,7 @@ export default function Settings({ notify, onAuthChange }) {
   const tabs = [
     ["access", "Access"],
     ["ldap", "AD / LDAP"],
+    ["radius", "RADIUS"],
     ["tls", "TLS"],
     ["host", "Host"],
   ];
@@ -214,6 +260,7 @@ export default function Settings({ notify, onAuthChange }) {
 
       {sub === "access" && <AccessSettings notify={notify} onAuthChange={onAuthChange} />}
       {sub === "ldap" && <LdapSettings notify={notify} embedded />}
+      {sub === "radius" && <RadiusSettings notify={notify} />}
       {sub === "tls" && <TlsSettings notify={notify} />}
       {sub === "host" && <HostInfo />}
     </>
