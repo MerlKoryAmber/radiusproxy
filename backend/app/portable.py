@@ -18,7 +18,7 @@ from . import crud, models, schemas
 _TARGET_FIELDS = (
     "type", "ipaddr", "port", "require_message_authenticator", "status_check",
     "response_window", "zombie_period", "revive_interval", "check_interval",
-    "enabled", "note",
+    "num_answers_to_alive", "enabled", "note",
 )
 _POOL_FIELDS = ("type", "enabled", "note")
 _CLIENT_FIELDS = (

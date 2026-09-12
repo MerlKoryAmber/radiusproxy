@@ -62,7 +62,7 @@ def render_home_server(hs: TargetServer) -> str:
     if hs.status_check and hs.status_check != "none":
         lines.append(f"{INDENT}status_check = {hs.status_check}")
         lines.append(f"{INDENT}check_interval = {hs.check_interval}")
-        lines.append(f"{INDENT}num_answers_to_alive = 3")
+        lines.append(f"{INDENT}num_answers_to_alive = {hs.num_answers_to_alive}")
     else:
         lines.append(f"{INDENT}status_check = none")
     lines.append("}")

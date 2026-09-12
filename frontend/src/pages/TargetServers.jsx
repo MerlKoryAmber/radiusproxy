@@ -14,6 +14,7 @@ const BLANK = {
   zombie_period: 40,
   revive_interval: 120,
   check_interval: 30,
+  num_answers_to_alive: 3,
   enabled: true,
   note: "",
 };
@@ -201,38 +202,76 @@ export default function TargetServers({ notify, onChange }) {
               placeholder={editing.id ? "•••••••• (unchanged)" : "testing123"}
             />
           </Field>
+          <Field
+            label="Проверка доступности"
+            hint="как определять, что сервер упал. status-server — фоновый пинг (рекомендуется); request — пинг обычным запросом (для серверов без Status-Server); none — не проверять (недоступность ловится только по таймауту реального входа)"
+          >
+            <select value={form.status_check} onChange={set("status_check")}>
+              <option value="status-server">
+                фоновый пинг (status-server, рекоменд.)
+              </option>
+              <option value="request">
+                пинг обычным запросом (request)
+              </option>
+              <option value="none">не проверять (none)</option>
+            </select>
+          </Field>
+          {form.status_check !== "none" && (
+            <div className="grid-2">
+              <Field
+                label="Интервал проверки (сек)"
+                hint="как часто пинговать сервер в фоне"
+              >
+                <input
+                  type="number"
+                  value={form.check_interval}
+                  onChange={set("check_interval")}
+                />
+              </Field>
+              <Field
+                label="Успешных проверок для возврата"
+                hint="сколько удачных пингов подряд, чтобы вернуть упавший сервер в строй"
+              >
+                <input
+                  type="number"
+                  value={form.num_answers_to_alive}
+                  onChange={set("num_answers_to_alive")}
+                />
+              </Field>
+            </div>
+          )}
           <div className="grid-2">
-            <Field label="Status check">
-              <select value={form.status_check} onChange={set("status_check")}>
-                <option value="status-server">status-server</option>
-                <option value="request">request</option>
-                <option value="none">none</option>
-              </select>
-            </Field>
-            <Field label="Response window (s)">
+            <Field
+              label="Ожидание ответа (сек)"
+              hint="сколько ждать ответа на запрос входа, прежде чем считать неудачей"
+            >
               <input
                 type="number"
                 value={form.response_window}
                 onChange={set("response_window")}
               />
             </Field>
-          </div>
-          <div className="grid-2">
-            <Field label="Zombie period (s)">
+            <Field
+              label="Период «подозрения» (сек)"
+              hint="сколько сервер под подозрением после неответов, прежде чем пометить недоступным (тогда включается fallback на AD, если задан в правиле)"
+            >
               <input
                 type="number"
                 value={form.zombie_period}
                 onChange={set("zombie_period")}
               />
             </Field>
-            <Field label="Revive interval (s)">
-              <input
-                type="number"
-                value={form.revive_interval}
-                onChange={set("revive_interval")}
-              />
-            </Field>
           </div>
+          <Field
+            label="Интервал оживления (сек)"
+            hint="при проверке none — через сколько недоступный сервер снова пробуется"
+          >
+            <input
+              type="number"
+              value={form.revive_interval}
+              onChange={set("revive_interval")}
+            />
+          </Field>
           <div className="check">
             <input
               id="reqmsg"

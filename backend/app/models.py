@@ -98,6 +98,12 @@ class TargetServer(Base):
     zombie_period: Mapped[int] = mapped_column(Integer, default=40)
     revive_interval: Mapped[int] = mapped_column(Integer, default=120)
     check_interval: Mapped[int] = mapped_column(Integer, default=30)
+    # Successful health pings in a row before a dead server is marked alive
+    # again (FreeRADIUS `num_answers_to_alive`). Only used when status_check
+    # != none. ADR-0010.
+    num_answers_to_alive: Mapped[int] = mapped_column(
+        Integer, default=3, server_default="3"
+    )
 
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     note: Mapped[str] = mapped_column(Text, default="")

@@ -30,6 +30,7 @@ class TargetServerBase(BaseModel):
     zombie_period: int = Field(default=40, ge=1, le=600)
     revive_interval: int = Field(default=120, ge=10, le=3600)
     check_interval: int = Field(default=30, ge=1, le=600)
+    num_answers_to_alive: int = Field(default=3, ge=1, le=10)
     enabled: bool = True
     note: str = ""
 

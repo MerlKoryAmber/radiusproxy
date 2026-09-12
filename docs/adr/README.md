@@ -13,3 +13,4 @@
 | [0007](0007-portable-config-import-export.md) | 2026-09-10 | Портируемый JSON импорт/экспорт (миграция NPS); dry-run→apply; ссылки по имени | Accepted |
 | [0008](0008-site-wiring-and-boot-apply.md) | 2026-09-11 | Вшитый прокси-site (зовёт политики) + stub + home_server default + автоприменение на старте | Accepted |
 | [0009](0009-pool-down-ad-fallback.md) | 2026-09-12 | Fallback на 1-й фактор (AD/PAP bind) при недоступности 2FA-пула; по галке на правиле | Accepted |
+| [0010](0010-target-health-status-server.md) | 2026-09-13 | Здоровье таргета фоновым `status_check` (не на каждом запросе); `num_answers_to_alive` в UI | Accepted |

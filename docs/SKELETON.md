@@ -4,7 +4,7 @@
 Обновлять **перед каждым push** (см. §22 CLAUDE.md). Читать после handoff и перед
 началом задачи. Если что-то тут расходится с кодом — код прав, а скелет чинить.
 
-**Обновлено:** 2026-09-12 МСК · ветка на момент правки: `fix/target-type-authacct-only`
+**Обновлено:** 2026-09-13 МСК · ветка на момент правки: `feature/target-health-status-server`
 
 ---
 
@@ -53,8 +53,9 @@
 ### Модель (`models.py`)
 
 - `TargetServer` — upstream (куда) → `home_server{}` (FR-синтаксис). Поля: name, type, ipaddr,
-  port, **secret (EncryptedStr)**, require_message_authenticator, status_check, response_window, zombie_period,
-  revive_interval, check_interval, enabled, note. rel: `memberships`.
+  port, **secret (EncryptedStr)**, require_message_authenticator, status_check (только auth+acct тип),
+  response_window, zombie_period, revive_interval, check_interval, num_answers_to_alive (ADR-0010),
+  enabled, note. rel: `memberships`.
 - `HomeServerPool` — `home_server_pool{}`. name, type, enabled, note. rel: `members` (ordered).
 - `PoolMember` — упорядоченное членство (pool_id, **target_server_id**, position). uq(pool,ts).
 - `Client` — NAS (от кого) → `client{}`. name, ipaddr(/CIDR), **secret (EncryptedStr)**, shortname,

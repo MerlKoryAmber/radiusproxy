@@ -73,6 +73,17 @@ async def _migrate() -> None:
             )
     except Exception:  # noqa: BLE001
         pass
+    # New TargetServer column: health-check answers-to-alive (ADR-0010).
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(
+                text(
+                    "ALTER TABLE target_servers ADD COLUMN IF NOT EXISTS "
+                    "num_answers_to_alive integer NOT NULL DEFAULT 3"
+                )
+            )
+    except Exception:  # noqa: BLE001
+        pass
 
 
 async def init_models() -> None:
