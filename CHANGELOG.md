@@ -5,6 +5,17 @@
 
 ## [Unreleased]
 
+### 2026-09-12 МСК (4)
+
+- **feat(ADR-0009):** **fallback на 1-й фактор (AD) при недоступности 2FA-пула** —
+  галка `pool_down_fallback` на правиле (Rules → Edit, с красным предупреждением).
+  Если target-пул полностью мёртв → FreeRADIUS уходит в `fallback` = виртуальный
+  сервер `radiuspanel_fallback`: SQL-гейт по правилу → LDAP-поиск (`sAMAccountName`)
+  → **bind паролем (PAP)** в AD → Accept; иначе Reject. В Logs — метки
+  `pool-down-1fa` / `pool-down-reject`. Требует включённого AD/LDAP и PAP от NAS.
+  `render_ldap_module` += `user{}` (double-quoted фильтр — иначе `%{}` не раскрывается).
+  Миграция `_migrate` (ADD COLUMN). Проверено на живом AD merl.loc (radclient).
+
 ### 2026-09-12 МСК (3)
 
 - **feat(ui):** раздел **Инструкция** (внизу сайдбара) — простой RU-гайд по панели
