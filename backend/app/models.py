@@ -227,6 +227,13 @@ class Rule(Base):
     username_normalization: Mapped[str] = mapped_column(String(24), default="none")
     ad_fail_mode: Mapped[str] = mapped_column(String(8), default="open")
 
+    # If the target pool is fully down, fall back to checking the 1st factor
+    # (AD password, PAP) locally and ACCEPT — a deliberate 2FA bypass on outage.
+    # Requires AD/LDAP configured. Off by default.
+    pool_down_fallback: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false"
+    )
+
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     note: Mapped[str] = mapped_column(Text, default="")
 

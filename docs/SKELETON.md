@@ -62,7 +62,8 @@
   переехали на Rule — ADR-0004).
 - `Rule` — **ordered** маршрут (ADR-0004, first-match). position, name, client_id,
   **match_username** (wildcard, ""=any), target_pool_id, ad_group_check, required_ad_group(cn),
-  required_ad_group_dn, username_normalization, ad_fail_mode, enabled. rel: client, target_pool.
+  required_ad_group_dn, username_normalization, ad_fail_mode, **pool_down_fallback** (ADR-0009:
+  пул мёртв → AD 1-й фактор → accept), enabled. rel: client, target_pool.
 - `AdGroupCatalog` — (dn uniq, cn) каталог групп AD для автокомплита.
 - (Realm-сущность удалён — realm генерится per-pool.)
 - `LdapSettings` — **singleton (id=1)** AD-подключение → `mods-enabled/ldap`. enabled, server,
@@ -88,7 +89,8 @@
 - `render_client` → `render_clients_conf(db)` (clients.conf; `preserve_source_ip = yes` custom-поле).
 - `render_policy_conf(db)` → `policy.d/radiuspanel`: `radiuspanel_route` — **ordered if/elsif по Rule** (матч `&Client-Shortname`[+`&User-Name =~ /wildcard/i`] → Proxy-To-Realm=пул + встроенный AD-гейт по DN + `&Tmp-String-1`; else reject) + `radiuspanel_srcip` + `radiuspanel_log`. Хелперы `_render_rule`, `_render_gate_body`, `_wildcard_to_regex`. Вызовы в site: authorize→route, pre-proxy→srcip, post-auth→log.
 - `render_sql_module()` → `mods-enabled/sql` (rlm_sql_postgresql → Postgres панели; только для adgate `%{sql:}`).
-- `render_ldap_module(cfg, *, mask_password=False)` → mods-enabled/ldap (+ `tls{}` с ca_file/require_cert/min_version при use_ldaps|start_tls).
+- `render_ldap_module(cfg, *, mask_password=False)` → mods-enabled/ldap (+ `user{}` для bind-auth sAMAccountName **двойные кавычки**; `tls{}` при use_ldaps|start_tls).
+- `render_fallback_site()` → `sites-enabled/radiuspanel-fallback` (ADR-0009): vserver `radiuspanel_fallback` (SQL-гейт по правилу → ldap bind PAP → accept). `_fallback_pool_names(db)` → пулы с fallback-правилом; в proxy.conf `home_server radiuspanel-fallback{virtual_server}` + `fallback=` в пул. apply пишет/удаляет site.
 - `apply_config(db)` → **multi-file**: [proxy.conf, clients.conf, policy.d/radiuspanel] + при
   `LdapSettings.enabled` ещё CA-файл (`ldap_ca_path`) и ldap-модуль (`ldap_conf_path`). `_write_with_backup` каждый,
   `radius_check_cmd` валидирует, `_rollback` всех при провале, затем `radius_reload_cmd`.

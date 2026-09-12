@@ -160,6 +160,7 @@ class RuleBase(BaseModel):
     required_ad_group_dn: str = Field(default="", max_length=512)
     username_normalization: str = "none"
     ad_fail_mode: str = "open"
+    pool_down_fallback: bool = False
     enabled: bool = True
     note: str = ""
 
@@ -326,6 +327,7 @@ class ImportRule(BaseModel):
     required_ad_group_dn: str = Field(default="", max_length=512)
     username_normalization: str = "none"
     ad_fail_mode: str = "open"
+    pool_down_fallback: bool = False
     enabled: bool = True
     note: str = ""
 

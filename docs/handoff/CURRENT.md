@@ -105,6 +105,12 @@ FreeRADIUS Proxy Panel (`radiusproxy`) — веб-панель управлен�
     Доступ теперь `https://<host>` (self-signed). Порт 8080 не публикуется. `.env HOST_ADDRESSES`.
     **Восстановление при локауте:** `docker compose exec db psql -U radpanel -d radpanel -c "UPDATE auth_settings SET ip_allowlist=''"`.
     Прод: заменить cert; задать `APP_ENCRYPTION_KEY`/`JWT_SECRET`.
+15. **Fallback на 1-й фактор при недоступности пула (ADR-0009)** — `feature/pool-down-fallback`.
+    Галка `pool_down_fallback` на правиле: пул 2FA мёртв → `home_server_pool fallback` →
+    vserver `radiuspanel_fallback` → LDAP bind пароля (PAP) в AD → accept. Метка `pool-down-1fa`
+    в Logs. Требует AD/LDAP + PAP. **Проверено на живом AD merl.loc** (DC 192.168.0.175):
+    merl/amber → Accept, неверный → Reject. Хвост: дубль-строка в логе (main + fallback).
+    **Живой AD для тестов:** `merl.loc` DC `192.168.0.175`, bind `merl@merl.loc`/`amber` (домен-админ).
 14. **Проксирование+лог реально заработали (ADR-0008)** — `fix/radius-site-wiring`.
     Был баг: политики генерились, но site их не звал → маршрут/лог не работали; плюс
     INSERT лога падал на `home_server NOT NULL`. Вшит прокси-`sites-enabled/default`

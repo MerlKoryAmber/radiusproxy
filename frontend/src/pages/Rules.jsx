@@ -12,6 +12,7 @@ const BLANK = {
   required_ad_group_dn: "",
   username_normalization: "none",
   ad_fail_mode: "open",
+  pool_down_fallback: false,
   enabled: true,
   note: "",
 };
@@ -319,6 +320,26 @@ export default function Rules({ notify }) {
                 </Field>
               </div>
             </>
+          )}
+
+          <div className="check" style={{ marginTop: 10 }}>
+            <input
+              id="rule-fallback"
+              type="checkbox"
+              checked={form.pool_down_fallback}
+              onChange={set("pool_down_fallback")}
+            />
+            <label htmlFor="rule-fallback" style={{ margin: 0 }}>
+              При недоступности пула — пускать по паролю AD (обход 2FA)
+            </label>
+          </div>
+          {form.pool_down_fallback && (
+            <p className="field-hint" style={{ color: "var(--warn)", marginTop: 6 }}>
+              ⚠ Если целевой пул (2FA) полностью недоступен, панель проверит только
+              1-й фактор (пароль в AD, PAP) и <b>впустит</b> — это осознанный обход
+              2FA на время аварии. Требует настроенного AD/LDAP. Такие входы
+              помечаются в Logs как <span className="mono">pool-down-1fa</span>.
+            </p>
           )}
 
           <div className="check" style={{ marginTop: 10 }}>

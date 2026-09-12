@@ -12,3 +12,4 @@
 | [0006](0006-https-access-dashboard.md) | 2026-09-07 | HTTPS self-signed + замена cert; IP-ограничение; no-proxy; host read-only; Dashboard | Accepted |
 | [0007](0007-portable-config-import-export.md) | 2026-09-10 | Портируемый JSON импорт/экспорт (миграция NPS); dry-run→apply; ссылки по имени | Accepted |
 | [0008](0008-site-wiring-and-boot-apply.md) | 2026-09-11 | Вшитый прокси-site (зовёт политики) + stub + home_server default + автоприменение на старте | Accepted |
+| [0009](0009-pool-down-ad-fallback.md) | 2026-09-12 | Fallback на 1-й фактор (AD/PAP bind) при недоступности 2FA-пула; по галке на правиле | Accepted |
