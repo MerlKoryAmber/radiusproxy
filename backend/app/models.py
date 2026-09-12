@@ -43,7 +43,11 @@ class EncryptedStr(TypeDecorator):
         return crypto.decrypt(value)
 
 # FreeRADIUS home_server "type" values we expose (target servers).
-TARGET_SERVER_TYPES = ("auth", "acct", "auth+acct", "coa")
+# Only "auth+acct" is valid: a proxy `home_server_pool { type = fail-over }`
+# routing auth requests rejects a member of any other type — FreeRADIUS `-XC`
+# fails with `Unknown home_server "<name>"` and apply is refused. Locking the
+# set to the one working value removes that trap (see ADR-0009 verification).
+TARGET_SERVER_TYPES = ("auth+acct",)
 # home_server_pool "type" (load-balancing strategy) values.
 POOL_TYPES = (
     "fail-over",

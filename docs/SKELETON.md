@@ -4,7 +4,7 @@
 Обновлять **перед каждым push** (см. §22 CLAUDE.md). Читать после handoff и перед
 началом задачи. Если что-то тут расходится с кодом — код прав, а скелет чинить.
 
-**Обновлено:** 2026-09-11 МСК · ветка на момент правки: `fix/radius-site-wiring`
+**Обновлено:** 2026-09-12 МСК · ветка на момент правки: `fix/target-type-authacct-only`
 
 ---
 
@@ -80,7 +80,7 @@
 - `User` — админ панели (username, password_hash pbkdf2); seed `admin/admin`.
 - `AuditLog` — actor, action, entity, entity_ref, detail, created_at.
 
-**Константы:** `TARGET_SERVER_TYPES`, `POOL_TYPES`, `STATUS_CHECK_TYPES`, `USERNAME_NORMALIZATIONS`,
+**Константы:** `TARGET_SERVER_TYPES` (только `auth+acct` — прочие роняют `-XC` в проксирующем пуле), `POOL_TYPES`, `STATUS_CHECK_TYPES`, `USERNAME_NORMALIZATIONS`,
 `AD_FAIL_MODES`, `NAS_TYPES`, `CLIENT_PROTOS`, `MESSAGE_AUTH_MODES`, `TLS_REQUIRE_CERT`.
 
 ### Рендереры + apply (`radius_config.py`)

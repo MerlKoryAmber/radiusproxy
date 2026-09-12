@@ -21,7 +21,7 @@ _NAME_RE = r"^[A-Za-z0-9_.\-]+$"
 # --------------------------- Target servers -------------------------------
 class TargetServerBase(BaseModel):
     name: str = Field(pattern=_NAME_RE, max_length=64)
-    type: str = "auth"
+    type: str = "auth+acct"
     ipaddr: str = Field(max_length=128)
     port: int = Field(default=1812, ge=1, le=65535)
     require_message_authenticator: bool = False

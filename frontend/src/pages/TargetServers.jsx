@@ -164,12 +164,12 @@ export default function TargetServers({ notify, onChange }) {
             <Field label="Name" hint="letters, digits, . _ -">
               <input value={form.name} onChange={set("name")} />
             </Field>
-            <Field label="Type">
+            <Field
+              label="Тип"
+              hint="аутентификация + учёт (единственный рабочий тип для пула проксирования)"
+            >
               <select value={form.type} onChange={set("type")}>
-                <option value="auth">auth</option>
-                <option value="acct">acct</option>
-                <option value="auth+acct">auth+acct</option>
-                <option value="coa">coa</option>
+                <option value="auth+acct">аутентификация + учёт</option>
               </select>
             </Field>
           </div>

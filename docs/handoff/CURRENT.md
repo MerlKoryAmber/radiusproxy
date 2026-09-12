@@ -3,7 +3,24 @@
 Живой срез для следующего агента/сессии. Держать актуальным перед каждым смысловым
 push (§6/§10 CLAUDE.md). Время — **МСК (UTC+3)**.
 
-**Обновлено:** 2026-09-11 МСК
+**Обновлено:** 2026-09-12 МСК
+
+> **Точка подхвата (12.09.2026):** ADR-0009 (fallback на 1-й фактор AD при
+> недоступности 2FA-пула) — **в main** (db25b06), live-верифицирован на
+> `192.168.0.178`: merl/amber → Access-Accept (`pool-down-1fa`), неверный пароль →
+> Access-Reject (`pool-down-reject`) по серверному decision-логу. **Урок:** живой
+> конфиг был устаревший — fallback не активировался, пока не переприменил apply;
+> при включении фичи на боевом обязателен Config → apply. `radclient` врёт кодами
+> из-за revive — верить decision-логу/radius.log.
+>
+> **НЕ в main (ветка `fix/target-type-authacct-only`, ждёт push+merge):** тип
+> target-сервера ограничен единственным рабочим `auth+acct` — прочие
+> (`auth`/`acct`/`coa`) в проксирующем пуле роняют `-XC` (`Unknown home_server`),
+> apply отказывает без объяснения. Правки: `TargetServers.jsx` (селект→1 пункт+хинт),
+> `models.py` `TARGET_SERVER_TYPES=("auth+acct",)`, `schemas.py` дефолт `auth+acct`
+> (fail-closed для API/импорта). **Требует push+merge+пересборку фронта/бэка.**
+> AD/LDAP на тесте настроен (merl@merl.loc, зашифрован в БД) — при необходимости
+> очистить в Settings→AD/LDAP.
 
 > **Хвост (11.09.2026, №3 — НЕ в main, ждёт push):** UX-пачка. (а) F5 больше не
 > кидает на Dashboard — вкладка в `localStorage`. (б) Тест LDAP: `POST /api/ldap/test`

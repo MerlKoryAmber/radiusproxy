@@ -50,3 +50,17 @@ Fallback-vserver пишет свою строку в Decision log с метко�
 Живой AD `merl.loc` (DC 192.168.0.175): пул с недоступным таргетом → `radclient`
 с `merl/amber` → **Access-Accept** (bind `CN=merlkory,OU=Merl_Users,DC=Merl,DC=loc`);
 неверный пароль → **Access-Reject**. `freeradius -XC` — OK.
+
+Повторная live-верификация 2026-09-12 (после компакта) на 192.168.0.178:
+decision-лог показал `merl/amber → pool-down-1fa → Access-Accept`, неверный пароль
+→ `pool-down-reject → Access-Reject` (radius.log: `ldap: Bind credentials
+incorrect`). Клиентский `radclient` из-за `revive_interval` даёт ложные коды на
+первом пакете (праймит ещё живой таргет) — доверять только серверному decision-логу.
+
+**Важно:** живой конфиг на сервере может быть устаревшим — флаг `pool_down_fallback`
+на правиле не активирует fallback, пока конфиг не **переприменён** (apply). При
+включении фичи на боевом обязательно нажать Config → apply.
+
+**Смежная находка (вынесена в отдельный fix):** target-сервер типа не `auth+acct`
+(`auth`/`acct`/`coa`) в проксирующем пуле роняет `-XC` (`Unknown home_server`);
+тип ограничен единственным рабочим `auth+acct`.

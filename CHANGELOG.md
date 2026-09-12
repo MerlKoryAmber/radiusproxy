@@ -5,6 +5,21 @@
 
 ## [Unreleased]
 
+### 2026-09-12 МСК (5)
+
+- **fix(target):** тип target-сервера ограничен единственным рабочим `auth+acct`.
+  Любой другой (`auth`/`acct`/`coa`) в проксирующем `home_server_pool` FreeRADIUS
+  отвергает: `-XC` падает с `Unknown home_server "<name>"`, apply отказывает без
+  внятного объяснения. Селект в UI (`TargetServers.jsx`) → один пункт
+  «аутентификация + учёт» с хинтом; `TARGET_SERVER_TYPES=("auth+acct",)` +
+  дефолт схемы `auth+acct` (fail-closed для API/portable-импорта). Обнаружено при
+  live-верификации ADR-0009.
+- **verify(ADR-0009):** повторная live-проверка на 192.168.0.178 — статикой
+  (`-XC` чист, fallback проброшен) и динамикой (radclient: merl/amber →
+  Access-Accept `pool-down-1fa`; неверный пароль → Access-Reject `pool-down-reject`,
+  по серверному decision-логу и radius.log). Выявлено: **живой конфиг был
+  устаревший** (fallback не активен до переприменения) — переприменён.
+
 ### 2026-09-12 МСК (4)
 
 - **feat(ADR-0009):** **fallback на 1-й фактор (AD) при недоступности 2FA-пула** —
