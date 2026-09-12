@@ -448,6 +448,11 @@ async def render_policy_conf(db: AsyncSession) -> str:
     )
     parts.append(
         "radiuspanel_log {\n"
+        # A pool-down fallback tags the reply Class (radiuspanel:<result>) — use it
+        # as ad_result so the bypass shows as one honest row, not a normal success.
+        f'{i}if ("%{{reply:Class}}" =~ /^radiuspanel:(.+)$/) {{\n'
+        f'{i}{i}update request {{ &Tmp-String-1 := "%{{1}}" }}\n'
+        f"{i}}}\n"
         f"{i}if (&User-Name && \"%{{User-Name}}\" =~ /^[A-Za-z0-9._@-]+$/) {{\n"
         f'{i}{i}if ("{insert}" == "1") {{\n'
         f"{i}{i}{i}noop\n"
@@ -505,16 +510,20 @@ async def render_fallback_site() -> str:
         "WHERE r.enabled AND r.pool_down_fallback "
         "AND c.shortname = '%{Client-Shortname}' LIMIT 1}"
     )
+    # The result is tagged into the reply Class (radiuspanel:<result>); it proxies
+    # back to the main server, whose radiuspanel_log turns it into ONE decision row
+    # (so a 2FA bypass isn't logged twice / disguised as a normal success). Class
+    # is opaque to the end user (not a Reply-Message).
     return FALLBACK_SITE_HEADER.format(ts=datetime.now(timezone.utc).isoformat()) + (
         f"server {FALLBACK_VSERVER} {{\n"
         f"{i}authorize {{\n"
         f'{i}{i}if ("{gate}" != "1") {{\n'
-        f'{i}{i}{i}update request {{ &Tmp-String-1 := "pool-down-blocked" }}\n'
+        f'{i}{i}{i}update reply {{ &Class := "radiuspanel:pool-down-blocked" }}\n'
         f"{i}{i}{i}reject\n"
         f"{i}{i}}}\n"
         f"{i}{i}ldap\n"
         f"{i}{i}if (notfound || fail) {{\n"
-        f'{i}{i}{i}update request {{ &Tmp-String-1 := "pool-down-nouser" }}\n'
+        f'{i}{i}{i}update reply {{ &Class := "radiuspanel:pool-down-nouser" }}\n'
         f"{i}{i}{i}reject\n"
         f"{i}{i}}}\n"
         f"{i}{i}if (!&control:Auth-Type) {{\n"
@@ -527,11 +536,9 @@ async def render_fallback_site() -> str:
         f"{i}{i}}}\n"
         f"{i}}}\n"
         f"{i}post-auth {{\n"
-        f'{i}{i}update request {{ &Tmp-String-1 := "pool-down-1fa" }}\n'
-        f"{i}{i}radiuspanel_log\n"
+        f'{i}{i}update reply {{ &Class := "radiuspanel:pool-down-1fa" }}\n'
         f"{i}{i}Post-Auth-Type REJECT {{\n"
-        f'{i}{i}{i}update request {{ &Tmp-String-1 := "pool-down-reject" }}\n'
-        f"{i}{i}{i}radiuspanel_log\n"
+        f'{i}{i}{i}update reply {{ &Class := "radiuspanel:pool-down-reject" }}\n'
         f"{i}{i}}}\n"
         f"{i}}}\n"
         "}\n"
