@@ -62,6 +62,17 @@ async def _migrate() -> None:
                 )
         except Exception:  # noqa: BLE001 — never block startup on a migration
             pass
+    # New Rule column that create_all won't add to an existing table (ADR-0009).
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(
+                text(
+                    "ALTER TABLE rules ADD COLUMN IF NOT EXISTS "
+                    "pool_down_fallback boolean NOT NULL DEFAULT false"
+                )
+            )
+    except Exception:  # noqa: BLE001
+        pass
 
 
 async def init_models() -> None:

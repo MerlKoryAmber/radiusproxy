@@ -62,6 +62,10 @@ class Settings(BaseSettings):
     # apply (from RadiusSettings). Empty/missing = skip (dev without a real raddb).
     radiusd_conf_path: str = "/etc/freeradius/3.0/radiusd.conf"
 
+    # Virtual server for the 2FA pool-down fallback (ADR-0009). Written only when
+    # a rule enables it + AD is on; removed otherwise.
+    fallback_site_path: str = "/etc/freeradius/3.0/sites-enabled/radiuspanel-fallback"
+
     # --- Auth (panel login) ---------------------------------------------
     # Signs session tokens. CHANGE in production (env JWT_SECRET). Auth is
     # off by default (toggle stored in the DB) — see AuthSettings.

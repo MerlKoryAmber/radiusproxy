@@ -63,6 +63,7 @@ async def export_bundle(db: AsyncSession) -> dict:
                 "required_ad_group_dn": r.required_ad_group_dn,
                 "username_normalization": r.username_normalization,
                 "ad_fail_mode": r.ad_fail_mode,
+                "pool_down_fallback": r.pool_down_fallback,
                 "enabled": r.enabled,
                 "note": r.note,
             }
@@ -238,6 +239,7 @@ async def plan_and_apply(
         )
         rule.username_normalization = r.username_normalization
         rule.ad_fail_mode = r.ad_fail_mode
+        rule.pool_down_fallback = r.pool_down_fallback
         rule.enabled = r.enabled
         rule.note = r.note
 
