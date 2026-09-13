@@ -206,6 +206,149 @@ function RadiusSettings({ notify }) {
   );
 }
 
+function MailSettings({ notify }) {
+  const [cfg, setCfg] = useState(null);
+  const [pwd, setPwd] = useState("");
+  const [hasPwd, setHasPwd] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [testing, setTesting] = useState(false);
+
+  useEffect(() => {
+    api.system
+      .getMail()
+      .then((r) => {
+        setCfg(r);
+        setHasPwd(r.has_password);
+      })
+      .catch(() =>
+        setCfg({
+          enabled: false,
+          host: "",
+          port: 25,
+          security: "none",
+          username: "",
+          from_addr: "",
+          to_addrs: "",
+        })
+      );
+  }, []);
+
+  const set = (k) => (e) => {
+    const v = e.target.type === "checkbox" ? e.target.checked : e.target.value;
+    setCfg((c) => ({ ...c, [k]: v }));
+  };
+
+  const save = async () => {
+    setBusy(true);
+    try {
+      const body = { ...cfg, port: Number(cfg.port), password: pwd };
+      const r = await api.system.setMail(body);
+      setCfg(r);
+      setHasPwd(r.has_password);
+      setPwd("");
+      notify("Настройки почты сохранены");
+    } catch (e) {
+      notify(e.message, "err");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const test = async () => {
+    setTesting(true);
+    try {
+      await api.system.testMail("");
+      notify("Тестовое письмо отправлено");
+    } catch (e) {
+      notify(e.message, "err");
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  if (cfg === null) return <Spinner />;
+  return (
+    <fieldset className="settings-section">
+      <legend>Почтовый сервер (уведомления)</legend>
+      <p className="field-hint" style={{ marginTop: 0, marginBottom: 12 }}>
+        SMTP для писем-предупреждений. Сейчас используется для оповещения о
+        включении аварийного обхода 2FA (когда пул недоступен — вход по одному
+        паролю AD).
+      </p>
+
+      <div className="check" style={{ marginBottom: 12 }}>
+        <input
+          id="mail-enabled"
+          type="checkbox"
+          checked={cfg.enabled}
+          onChange={set("enabled")}
+        />
+        <label htmlFor="mail-enabled" style={{ margin: 0 }}>
+          Отправлять уведомления по почте
+        </label>
+      </div>
+
+      <div className="grid-2">
+        <Field label="SMTP-сервер (хост)" hint="напр. mail.corp.local">
+          <input value={cfg.host} onChange={set("host")} placeholder="mail.corp.local" />
+        </Field>
+        <Field label="Порт" hint="25 без шифрования, 587 STARTTLS, 465 SSL">
+          <input type="number" value={cfg.port} onChange={set("port")} />
+        </Field>
+      </div>
+
+      <Field label="Шифрование" hint="как защищать соединение с SMTP-сервером">
+        <select value={cfg.security} onChange={set("security")}>
+          <option value="none">без шифрования</option>
+          <option value="starttls">STARTTLS</option>
+          <option value="ssl">SSL/TLS</option>
+        </select>
+      </Field>
+
+      <div className="grid-2">
+        <Field label="Логин" hint="оставьте пустым, если relay без авторизации">
+          <input value={cfg.username} onChange={set("username")} autoComplete="off" />
+        </Field>
+        <Field
+          label="Пароль"
+          hint={hasPwd ? "оставьте пустым — сохранённый не меняется" : "пароль SMTP"}
+        >
+          <input
+            type="password"
+            value={pwd}
+            onChange={(e) => setPwd(e.target.value)}
+            placeholder={hasPwd ? "•••••••• (без изменений)" : ""}
+            autoComplete="new-password"
+          />
+        </Field>
+      </div>
+
+      <Field label="Адрес отправителя (From)" hint="напр. radius@corp.local">
+        <input value={cfg.from_addr} onChange={set("from_addr")} placeholder="radius@corp.local" />
+      </Field>
+      <Field
+        label="Кому писать"
+        hint="один или несколько адресов через запятую"
+      >
+        <input
+          value={cfg.to_addrs}
+          onChange={set("to_addrs")}
+          placeholder="admin@corp.local, security@corp.local"
+        />
+      </Field>
+
+      <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+        <button className="btn primary" disabled={busy} onClick={save}>
+          {busy ? "Сохранение…" : "Сохранить"}
+        </button>
+        <button className="btn ghost" disabled={testing} onClick={test}>
+          {testing ? "Отправка…" : "Отправить тест"}
+        </button>
+      </div>
+    </fieldset>
+  );
+}
+
 function HostInfo() {
   const [h, setH] = useState(null);
   useEffect(() => {
@@ -233,6 +376,7 @@ export default function Settings({ notify, onAuthChange }) {
     ["access", "Access"],
     ["ldap", "AD / LDAP"],
     ["radius", "RADIUS"],
+    ["mail", "Почта"],
     ["tls", "TLS"],
     ["host", "Host"],
   ];
@@ -261,6 +405,7 @@ export default function Settings({ notify, onAuthChange }) {
       {sub === "access" && <AccessSettings notify={notify} onAuthChange={onAuthChange} />}
       {sub === "ldap" && <LdapSettings notify={notify} embedded />}
       {sub === "radius" && <RadiusSettings notify={notify} />}
+      {sub === "mail" && <MailSettings notify={notify} />}
       {sub === "tls" && <TlsSettings notify={notify} />}
       {sub === "host" && <HostInfo />}
     </>

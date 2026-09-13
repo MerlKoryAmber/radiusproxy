@@ -4,7 +4,7 @@
 Обновлять **перед каждым push** (см. §22 CLAUDE.md). Читать после handoff и перед
 началом задачи. Если что-то тут расходится с кодом — код прав, а скелет чинить.
 
-**Обновлено:** 2026-09-13 МСК · ветка на момент правки: `feature/target-health-status-server`
+**Обновлено:** 2026-09-13 МСК · ветка на момент правки: `feature/mail-alert-fallback`
 
 ---
 
@@ -35,7 +35,8 @@
 
 | Файл | Роль |
 |------|------|
-| `main.py` | FastAPI app, lifespan → `init_models()` + `_group_sync_loop` (планировщик синка), IntegrityError→409, CORS, include роутеров, `/api/health` |
+| `main.py` | FastAPI app, lifespan → `init_models()` + `_group_sync_loop` (синк AD) + `pool_down_watch` (алерт обхода 2FA), IntegrityError→409, CORS, include роутеров, `/api/health` |
+| `mailer.py` | SMTP-отправка (`send_mail`) + фоновый детектор `pool_down_watch` (тейл radius.log → письмо при уходе пула в fallback, ADR-0011) |
 | `config.py` | `Settings` (env): `database_url`, `proxy_conf_path`, `clients_conf_path`, `ldap_conf_path`, `ldap_ca_path`, `radius_check_cmd`, `radius_reload_cmd`, `cors_origins`. В compose пути = реальный `/etc/freeradius/3.0/*`, check=`freeradius -XC`, reload=`radius-reload.sh`. `get_settings()` (lru_cache) |
 | `Dockerfile` / `entrypoint.sh` / `radius-reload.sh` | backend-образ = panel + FreeRADIUS 3.2 (+ ldap/postgresql/utils). Панель управляет локальным FR |
 | `database.py` | async engine, `SessionLocal`, `Base`, `get_db()`, `init_models()` (create_all) |
@@ -77,6 +78,7 @@
   nas_ip, packet_src_ip, username, realm, ad_result, reply, home_server.
 - `AuthSettings` — singleton: `enabled` (флаг логина) + `ip_allowlist` (IP/CIDR-ограничение доступа).
 - `RadiusSettings` — singleton: `max_request_time` (патчится в radiusd.conf; кап response_window таргетов).
+- `MailSettings` — singleton: SMTP для алертов (enabled, host, port, security none/starttls/ssl, username, password(EncryptedStr), from_addr, to_addrs). ADR-0011.
 - `TlsSettings` — singleton: `cert_pem`, `key_pem`(EncryptedStr), `is_self_signed` (HTTPS панели).
 - `User` — админ панели (username, password_hash pbkdf2); seed `admin/admin`.
 - `AuditLog` — actor, action, entity, entity_ref, detail, created_at.
@@ -112,7 +114,7 @@
 - `/api/logs/radius` GET (`?lines=&q=` — хвост `radius.log` FreeRADIUS: unknown client/bad secret; read-only) (`routers/logs.py`)
 - `/api/auth/status|login|settings|password` (`routers/auth.py`) — **открыт**; остальные data/config-роутеры под `Depends(require_user)` (гейт при auth on)
 - `/api/dashboard` GET — сводка (`routers/dashboard.py`)
-- `/api/system/access` GET/PUT (ip_allowlist) · `/radius` GET/PUT (max_request_time → патч radiusd.conf + apply) · `/tls` GET/PUT + `/tls/self-signed` POST · `/host` GET (`routers/system.py`)
+- `/api/system/access` GET/PUT (ip_allowlist) · `/radius` GET/PUT (max_request_time → патч radiusd.conf + apply) · `/mail` GET/PUT + `/mail/test` POST (SMTP-алерты, ADR-0011) · `/tls` GET/PUT + `/tls/self-signed` POST · `/host` GET (`routers/system.py`)
 - `/api/health` (`main.py`). **Middleware:** IP-allowlist на `/api` (loopback всегда, пусто=все).
 
 

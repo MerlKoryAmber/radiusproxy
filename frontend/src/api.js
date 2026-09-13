@@ -148,6 +148,14 @@ export const api = {
         method: "PUT",
         body: JSON.stringify({ max_request_time }),
       }),
+    getMail: () => request("/system/mail"),
+    setMail: (body) =>
+      request("/system/mail", { method: "PUT", body: JSON.stringify(body) }),
+    testMail: (to) =>
+      request("/system/mail/test", {
+        method: "POST",
+        body: JSON.stringify({ to }),
+      }),
   },
   auth: {
     status: () => request("/auth/status"),

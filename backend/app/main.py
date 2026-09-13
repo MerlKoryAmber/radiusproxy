@@ -88,11 +88,15 @@ async def lifespan(app: FastAPI):
         await auth_mod.ensure_seed(db)
         await _ensure_tls(db)
         await _apply_on_boot(db)
+    from .mailer import pool_down_watch
+
     task = asyncio.create_task(_group_sync_loop())
+    mail_task = asyncio.create_task(pool_down_watch())
     yield
-    task.cancel()
-    with contextlib.suppress(asyncio.CancelledError):
-        await task
+    for t in (task, mail_task):
+        t.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await t
 
 
 app = FastAPI(

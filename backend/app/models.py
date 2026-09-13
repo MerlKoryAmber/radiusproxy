@@ -396,6 +396,32 @@ class RadiusSettings(Base):
     max_request_time: Mapped[int] = mapped_column(Integer, default=30, server_default="30")
 
 
+class MailSettings(Base):
+    """Singleton (id=1). Outgoing SMTP for panel alerts — currently the 2FA
+    pool-down fallback notification (ADR-0011). Password encrypted at rest."""
+
+    __tablename__ = "mail_settings"
+
+    id: Mapped[int] = mapped_column(primary_key=True, default=1)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    host: Mapped[str] = mapped_column(String(256), default="", server_default="''")
+    port: Mapped[int] = mapped_column(Integer, default=25, server_default="25")
+    # Encryption on the wire: none | starttls | ssl.
+    security: Mapped[str] = mapped_column(String(10), default="none", server_default="'none'")
+    username: Mapped[str] = mapped_column(String(256), default="", server_default="''")
+    password: Mapped[str] = mapped_column(EncryptedStr, default="")  # SMTP auth, encrypted
+    from_addr: Mapped[str] = mapped_column(String(256), default="", server_default="''")
+    # Comma-separated recipient list.
+    to_addrs: Mapped[str] = mapped_column(Text, default="", server_default="''")
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+# Mail transport security options.
+MAIL_SECURITY = ("none", "starttls", "ssl")
+
+
 class User(Base):
     """Panel admin account. Seeded as admin/admin on first startup (§21
     install-ready) — change the password before enabling auth in production."""

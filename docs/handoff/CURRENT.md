@@ -3,17 +3,24 @@
 Живой срез для следующего агента/сессии. Держать актуальным перед каждым смысловым
 push (§6/§10 CLAUDE.md). Время — **МСК (UTC+3)**.
 
-**Обновлено:** 2026-09-13 МСК
+**Обновлено:** 2026-09-13 МСК (2)
 
-> **НЕ в main (ветка `feature/target-health-status-server`, ждёт push+merge):**
-> ADR-0010 — здоровье target-сервера фоновым `status_check` вместо проверки на
-> каждом проксировании. `num_answers_to_alive` вынесен из хардкода 3 в поле
-> таргета (`models.py`/`schemas.py`/`radius_config.py`/`portable.py` + миграция
-> `_migrate` ADD COLUMN). UI `TargetServers.jsx`: русские подписи+хинты, поля пинга
-> скрыты при `none`. **Live-проверка не сделана** — LinOTP/2FA недоступны; когда
-> появятся: (1) отвечают ли на Status-Server (иначе `request`), (2) уходит ли пул
-> в fallback без клиентских таймаутов. **На боевых таргетах при обновлении сменить
-> `status_check=none` → фоновый пинг**, иначе поведение не изменится.
+> **НЕ в main (ветка `feature/mail-alert-fallback`, ждёт push+merge):** ADR-0011 —
+> SMTP-настройки (Settings→Почта) + email-алерт при активации обхода 2FA.
+> `MailSettings` singleton, `mailer.py` (`send_mail` + фоновый `pool_down_watch`
+> тейлит radius.log на `failing over to fallback radiuspanel_fallback`, дедуп по
+> пулу). API `/api/system/mail` GET/PUT + `/mail/test`. UI вкладка «Почта» +
+> кнопка теста. Новая таблица (create_all, миграции не нужно). **Live-проверка не
+> сделана** — реальный SMTP-relay и падение пула недоступны; проверить отправку
+> тестом и по факту аварии. Триггер завязан на строку лога FR — если формат
+> изменится, обновить `_FALLOVER` в `mailer.py`.
+
+> **ADR-0010 — в main (5962580):** здоровье target-сервера фоновым `status_check`
+> вместо проверки на каждом проксировании; `num_answers_to_alive` в UI/поле.
+> Проверено статикой (рендер+`-XC`) на 192.168.0.178. **Хвост:** на боевых
+> таргетах `status_check=none` — переключить на фоновый пинг, иначе поведения нет;
+> live-динамика (пинги/уход в fallback) — когда LinOTP/2FA станут доступны
+> (отвечают на Status-Server? иначе `request`).
 
 > **Точка подхвата (12.09.2026):** ADR-0009 (fallback на 1-й фактор AD при
 > недоступности 2FA-пула) — **в main** (db25b06), live-верифицирован на

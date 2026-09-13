@@ -93,6 +93,56 @@ async def set_radius(
     return row
 
 
+# --- Mail (SMTP alerts) ----------------------------------------------------
+def _mail_out(row) -> schemas.MailSettingsOut:
+    return schemas.MailSettingsOut(
+        enabled=row.enabled, host=row.host, port=row.port, security=row.security,
+        username=row.username, from_addr=row.from_addr, to_addrs=row.to_addrs,
+        has_password=bool(row.password),
+    )
+
+
+@router.get("/mail", response_model=schemas.MailSettingsOut)
+async def get_mail(db: AsyncSession = Depends(get_db)):
+    return _mail_out(await crud.get_mail_settings(db))
+
+
+@router.put("/mail", response_model=schemas.MailSettingsOut)
+async def set_mail(data: schemas.MailSettingsUpdate, db: AsyncSession = Depends(get_db)):
+    row = await crud.get_mail_settings(db)
+    row.enabled = data.enabled
+    row.host = data.host
+    row.port = data.port
+    row.security = data.security
+    row.username = data.username
+    row.from_addr = data.from_addr
+    row.to_addrs = data.to_addrs
+    if data.password:  # write-only: blank keeps the stored password
+        row.password = data.password
+    await crud.log(db, "update", "mail", f"enabled={data.enabled} host={data.host}")
+    await db.commit()
+    await db.refresh(row)
+    return _mail_out(row)
+
+
+@router.post("/mail/test")
+async def test_mail(data: schemas.MailTestIn, db: AsyncSession = Depends(get_db)):
+    from ..mailer import send_mail
+
+    row = await crud.get_mail_settings(db)
+    try:
+        send_mail(
+            row,
+            subject="[RADIUS] Проверка почты",
+            body="Тестовое письмо от FreeRADIUS Proxy Panel. "
+            "Если вы его получили — отправка алертов настроена верно.",
+            to_override=data.to,
+        )
+    except Exception as exc:  # noqa: BLE001 — surface the real SMTP error to UI
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"не удалось отправить: {exc}")
+    return {"ok": True}
+
+
 # --- TLS certificate -------------------------------------------------------
 @router.get("/tls", response_model=schemas.TlsOut)
 async def get_tls(db: AsyncSession = Depends(get_db)):

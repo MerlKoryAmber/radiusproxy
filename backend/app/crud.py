@@ -323,6 +323,16 @@ async def get_auth_settings(db: AsyncSession) -> models.AuthSettings:
     return row
 
 
+async def get_mail_settings(db: AsyncSession) -> models.MailSettings:
+    row = await db.get(models.MailSettings, 1)
+    if row is None:
+        row = models.MailSettings(id=1)
+        db.add(row)
+        await db.commit()
+        await db.refresh(row)
+    return row
+
+
 async def recent_decisions(
     db: AsyncSession, limit: int = 100, username: str = "", realm: str = ""
 ) -> list[models.ProxyDecision]:

@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from .models import (
     AD_FAIL_MODES,
     CLIENT_PROTOS,
+    MAIL_SECURITY,
     MESSAGE_AUTH_MODES,
     NAS_TYPES,
     POOL_TYPES,
@@ -240,6 +241,40 @@ class RadiusSettingsIn(BaseModel):
 class RadiusSettingsOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     max_request_time: int = 30
+
+
+# --------------------------- Mail (SMTP alerts) ---------------------------
+class MailSettingsBase(BaseModel):
+    enabled: bool = False
+    host: str = Field(default="", max_length=256)
+    port: int = Field(default=25, ge=1, le=65535)
+    security: str = "none"  # none | starttls | ssl
+    username: str = Field(default="", max_length=256)
+    from_addr: str = Field(default="", max_length=256)
+    # Comma-separated recipients.
+    to_addrs: str = Field(default="", max_length=2000)
+
+    @field_validator("security")
+    @classmethod
+    def _valid_security(cls, v: str) -> str:
+        if v not in MAIL_SECURITY:
+            raise ValueError(f"security must be one of {MAIL_SECURITY}")
+        return v
+
+
+class MailSettingsUpdate(MailSettingsBase):
+    # Write-only. Empty string keeps the stored password unchanged.
+    password: str = ""
+
+
+class MailSettingsOut(MailSettingsBase):
+    model_config = ConfigDict(from_attributes=True)
+    has_password: bool = False
+
+
+class MailTestIn(BaseModel):
+    # Optional override recipient for the test; blank = use configured to_addrs.
+    to: str = Field(default="", max_length=256)
 
 
 # --------------------------- LDAP / AD ------------------------------------
