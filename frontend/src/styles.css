@@ -395,7 +395,7 @@ pre.conf .kw { color: var(--ir-accent); }
 .log-ts { color: #55708c; flex: 0 0 auto; }
 .log-text { color: var(--text); }
 
-/* инструкция */
+/* guide */
 .guide { max-width: 900px; }
 .guide p { margin: 0 0 10px; line-height: 1.6; color: var(--text-secondary); }
 .guide b { color: var(--text); }

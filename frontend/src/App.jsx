@@ -105,7 +105,7 @@ export default function App() {
     return <Login onLoggedIn={checkAuth} />;
 
   const currentLabel =
-    tab === "help" ? "Инструкция" : TABS.find((t) => t.id === tab)?.label || "";
+    tab === "help" ? "Guide" : TABS.find((t) => t.id === tab)?.label || "";
   const username = authInfo.user || "admin";
 
   return (
@@ -136,7 +136,7 @@ export default function App() {
             style={{ marginTop: "auto" }}
             onClick={() => setTab("help")}
           >
-            <span>Инструкция</span>
+            <span>Guide</span>
           </button>
         </nav>
       </aside>

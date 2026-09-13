@@ -166,11 +166,11 @@ export default function TargetServers({ notify, onChange }) {
               <input value={form.name} onChange={set("name")} />
             </Field>
             <Field
-              label="Тип"
-              hint="аутентификация + учёт (единственный рабочий тип для пула проксирования)"
+              label="Type"
+              hint="auth+acct — the only type that works in a proxying pool"
             >
               <select value={form.type} onChange={set("type")}>
-                <option value="auth+acct">аутентификация + учёт</option>
+                <option value="auth+acct">auth+acct</option>
               </select>
             </Field>
           </div>
@@ -203,24 +203,24 @@ export default function TargetServers({ notify, onChange }) {
             />
           </Field>
           <Field
-            label="Проверка доступности"
-            hint="как определять, что сервер упал. status-server — фоновый пинг (рекомендуется); request — пинг обычным запросом (для серверов без Status-Server); none — не проверять (недоступность ловится только по таймауту реального входа)"
+            label="Health check"
+            hint="how to detect a dead server. status-server — background ping (recommended); request — ping with a normal request (for servers without Status-Server); none — no checks (only caught by a real login timeout)"
           >
             <select value={form.status_check} onChange={set("status_check")}>
               <option value="status-server">
-                фоновый пинг (status-server, рекоменд.)
+                background ping (status-server, recommended)
               </option>
               <option value="request">
-                пинг обычным запросом (request)
+                ping with a normal request (request)
               </option>
-              <option value="none">не проверять (none)</option>
+              <option value="none">no checks (none)</option>
             </select>
           </Field>
           {form.status_check !== "none" && (
             <div className="grid-2">
               <Field
-                label="Интервал проверки (сек)"
-                hint="как часто пинговать сервер в фоне"
+                label="Check interval (s)"
+                hint="how often to ping the server in the background"
               >
                 <input
                   type="number"
@@ -229,8 +229,8 @@ export default function TargetServers({ notify, onChange }) {
                 />
               </Field>
               <Field
-                label="Успешных проверок для возврата"
-                hint="сколько удачных пингов подряд, чтобы вернуть упавший сервер в строй"
+                label="Answers to alive"
+                hint="successful pings in a row before a dead server is brought back"
               >
                 <input
                   type="number"
@@ -242,8 +242,8 @@ export default function TargetServers({ notify, onChange }) {
           )}
           <div className="grid-2">
             <Field
-              label="Ожидание ответа (сек)"
-              hint="сколько ждать ответа на запрос входа, прежде чем считать неудачей"
+              label="Response window (s)"
+              hint="how long to wait for a reply to a login request before counting it a failure"
             >
               <input
                 type="number"
@@ -252,8 +252,8 @@ export default function TargetServers({ notify, onChange }) {
               />
             </Field>
             <Field
-              label="Период «подозрения» (сек)"
-              hint="сколько сервер под подозрением после неответов, прежде чем пометить недоступным (тогда включается fallback на AD, если задан в правиле)"
+              label="Zombie period (s)"
+              hint="how long the server stays suspect after non-replies before it is marked dead (then the AD fallback kicks in, if a rule enables it)"
             >
               <input
                 type="number"
@@ -263,8 +263,8 @@ export default function TargetServers({ notify, onChange }) {
             </Field>
           </div>
           <Field
-            label="Интервал оживления (сек)"
-            hint="при проверке none — через сколько недоступный сервер снова пробуется"
+            label="Revive interval (s)"
+            hint="with check = none, how long before a dead server is retried"
           >
             <input
               type="number"

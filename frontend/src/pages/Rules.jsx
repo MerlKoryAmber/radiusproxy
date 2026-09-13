@@ -330,15 +330,16 @@ export default function Rules({ notify }) {
               onChange={set("pool_down_fallback")}
             />
             <label htmlFor="rule-fallback" style={{ margin: 0 }}>
-              При недоступности пула — пускать по паролю AD (обход 2FA)
+              If the pool is down — allow by AD password (2FA bypass)
             </label>
           </div>
           {form.pool_down_fallback && (
             <p className="field-hint" style={{ color: "var(--warn)", marginTop: 6 }}>
-              ⚠ Если целевой пул (2FA) полностью недоступен, панель проверит только
-              1-й фактор (пароль в AD, PAP) и <b>впустит</b> — это осознанный обход
-              2FA на время аварии. Требует настроенного AD/LDAP. Такие входы
-              помечаются в Logs как <span className="mono">pool-down-1fa</span>.
+              ⚠ If the target pool (2FA) is fully unavailable, the panel checks only
+              the 1st factor (AD password, PAP) and <b>lets the user in</b> — a
+              deliberate 2FA bypass during an outage. Requires AD/LDAP configured.
+              Such logins are tagged in Logs as{" "}
+              <span className="mono">pool-down-1fa</span>.
             </p>
           )}
 

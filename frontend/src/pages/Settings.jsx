@@ -188,7 +188,7 @@ function RadiusSettings({ notify }) {
       <legend>FreeRADIUS server</legend>
       <Field
         label="Max request time (s)"
-        hint="Макс. время обработки запроса. Ограничивает response_window таргетов — для медленного 2FA (push/OTP-подтверждение) поднимите выше самого большого response_window. FR-дефолт 30."
+        hint="Max time to process a request. Caps targets' response_window — for slow 2FA (push/OTP approval) set it above your largest response_window. FR default 30."
       >
         <input
           type="number"
@@ -246,7 +246,7 @@ function MailSettings({ notify }) {
       setCfg(r);
       setHasPwd(r.has_password);
       setPwd("");
-      notify("Настройки почты сохранены");
+      notify("Mail settings saved");
     } catch (e) {
       notify(e.message, "err");
     } finally {
@@ -258,7 +258,7 @@ function MailSettings({ notify }) {
     setTesting(true);
     try {
       await api.system.testMail("");
-      notify("Тестовое письмо отправлено");
+      notify("Test email sent");
     } catch (e) {
       notify(e.message, "err");
     } finally {
@@ -269,11 +269,10 @@ function MailSettings({ notify }) {
   if (cfg === null) return <Spinner />;
   return (
     <fieldset className="settings-section">
-      <legend>Почтовый сервер (уведомления)</legend>
+      <legend>Mail server (alerts)</legend>
       <p className="field-hint" style={{ marginTop: 0, marginBottom: 12 }}>
-        SMTP для писем-предупреждений. Сейчас используется для оповещения о
-        включении аварийного обхода 2FA (когда пул недоступен — вход по одному
-        паролю AD).
+        SMTP for alert emails. Currently used to warn when the emergency 2FA
+        bypass turns on (pool down — login by AD password only).
       </p>
 
       <div className="check" style={{ marginBottom: 12 }}>
@@ -284,51 +283,51 @@ function MailSettings({ notify }) {
           onChange={set("enabled")}
         />
         <label htmlFor="mail-enabled" style={{ margin: 0 }}>
-          Отправлять уведомления по почте
+          Send email alerts
         </label>
       </div>
 
       <div className="grid-2">
-        <Field label="SMTP-сервер (хост)" hint="напр. mail.corp.local">
+        <Field label="SMTP server (host)" hint="e.g. mail.corp.local">
           <input value={cfg.host} onChange={set("host")} placeholder="mail.corp.local" />
         </Field>
-        <Field label="Порт" hint="25 без шифрования, 587 STARTTLS, 465 SSL">
+        <Field label="Port" hint="25 no encryption, 587 STARTTLS, 465 SSL">
           <input type="number" value={cfg.port} onChange={set("port")} />
         </Field>
       </div>
 
-      <Field label="Шифрование" hint="как защищать соединение с SMTP-сервером">
+      <Field label="Encryption" hint="how to secure the connection to the SMTP server">
         <select value={cfg.security} onChange={set("security")}>
-          <option value="none">без шифрования</option>
+          <option value="none">none</option>
           <option value="starttls">STARTTLS</option>
           <option value="ssl">SSL/TLS</option>
         </select>
       </Field>
 
       <div className="grid-2">
-        <Field label="Логин" hint="оставьте пустым, если relay без авторизации">
+        <Field label="Username" hint="leave blank for a relay without auth">
           <input value={cfg.username} onChange={set("username")} autoComplete="off" />
         </Field>
         <Field
-          label="Пароль"
-          hint={hasPwd ? "оставьте пустым — сохранённый не меняется" : "пароль SMTP"}
+          label="Password"
+          hint={hasPwd ? "leave blank to keep the stored one" : "SMTP password"}
         >
           <input
             type="password"
             value={pwd}
             onChange={(e) => setPwd(e.target.value)}
-            placeholder={hasPwd ? "•••••••• (без изменений)" : ""}
+            placeholder={hasPwd ? "•••••••• (unchanged)" : ""}
             autoComplete="new-password"
           />
         </Field>
       </div>
 
-      <Field label="Адрес отправителя (From)" hint="напр. radius@corp.local">
+      <Field label="From address" hint="e.g. radius@corp.local">
         <input value={cfg.from_addr} onChange={set("from_addr")} placeholder="radius@corp.local" />
       </Field>
       <Field
-        label="Кому писать"
-        hint="один или несколько адресов через запятую"
+        label="Recipients"
+        hint="one or more addresses, comma-separated"
       >
         <input
           value={cfg.to_addrs}
@@ -339,10 +338,10 @@ function MailSettings({ notify }) {
 
       <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
         <button className="btn primary" disabled={busy} onClick={save}>
-          {busy ? "Сохранение…" : "Сохранить"}
+          {busy ? "Saving…" : "Save"}
         </button>
         <button className="btn ghost" disabled={testing} onClick={test}>
-          {testing ? "Отправка…" : "Отправить тест"}
+          {testing ? "Sending…" : "Send test"}
         </button>
       </div>
     </fieldset>
@@ -376,7 +375,7 @@ export default function Settings({ notify, onAuthChange }) {
     ["access", "Access"],
     ["ldap", "AD / LDAP"],
     ["radius", "RADIUS"],
-    ["mail", "Почта"],
+    ["mail", "Mail"],
     ["tls", "TLS"],
     ["host", "Host"],
   ];
