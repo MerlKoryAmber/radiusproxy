@@ -39,6 +39,9 @@ fi
 . "$SCRIPT_DIR/lib/docker-proxy.sh"; apply_docker_proxy
 
 log "rebuilding and restarting…"
+# BuildKit paints completed/inactive lines dim blue — unreadable on a black
+# terminal. Force readable colors (and let callers override with BUILDKIT_COLORS).
+export BUILDKIT_COLORS="${BUILDKIT_COLORS:-run=green:warning=yellow:error=red:cancel=white}"
 docker compose -f "$INSTALL_DIR/docker-compose.yml" up -d --build
 
 # Refresh the host CLI wrapper + systemd unit from the (possibly updated) tree.

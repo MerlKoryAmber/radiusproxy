@@ -129,6 +129,9 @@ write_env
 . "$INSTALL_DIR/scripts/lib/docker-proxy.sh"; apply_docker_proxy
 
 log "building and starting the stack (this can take a few minutes)…"
+# BuildKit paints completed/inactive lines dim blue — unreadable on a black
+# terminal. Force readable colors (and let callers override with BUILDKIT_COLORS).
+export BUILDKIT_COLORS="${BUILDKIT_COLORS:-run=green:warning=yellow:error=red:cancel=white}"
 docker compose -f "$INSTALL_DIR/docker-compose.yml" up -d --build
 
 # Install the host CLI (`rpp`) + systemd unit (subshell: don't clobber our log()).

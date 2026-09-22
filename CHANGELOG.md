@@ -5,6 +5,12 @@
 
 ## [Unreleased]
 
+### 2026-09-22 МСК (3)
+
+- **fix(scripts):** читаемый вывод сборки в install/update — `BUILDKIT_COLORS`
+  (run=green/warning=yellow/error=red/cancel=white) вместо тёмно-синих строк
+  BuildKit, нечитаемых на чёрном терминале. Переопределяется своим `BUILDKIT_COLORS`.
+
 ### 2026-09-22 МСК (2)
 
 - **feat(ADR-0012):** самодиагностика + self-healing watchdog.
