@@ -18,5 +18,11 @@ radiusproxy-config-*.json
 # Host backups (DB dumps + .env) — secrets, never in git
 storage/
 
+# Graphify knowledge graph (generated locally by AST extraction)
+graphify-out/
+
+# Claude Code personal/local settings (permissions, machine-specific)
+.claude/settings.local.json
+
 # OS
 .DS_Store

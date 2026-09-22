@@ -5,6 +5,18 @@
 
 ## [Unreleased]
 
+### 2026-09-22 МСК
+
+- **chore(graphify):** подключён Graphify (knowledge graph) для навигации по коду
+  — `.claude/skills/graphify` + hooks (PreToolUse strict; git post-commit/checkout
+  авто-обновляют граф), секция в `CLAUDE.md`. `graphify-out/` и
+  `.claude/settings.local.json` — в `.gitignore`. Граф локальный (AST), в git не
+  хранится. Другой клиент после клона: `uv tool install graphifyy` →
+  `graphify extract . --code-only`.
+- **docs(ADR-0012):** решение по самодиагностике (self-healing watchdog: рестарт×2
+  →ребилд×1→стоп+письмо, внутренний health-loop, Dashboard-баннер) — статус
+  Accepted, реализация ещё не начата.
+
 ### 2026-09-13 МСК (2)
 
 - **docs:** README + инструкция (Help) обновлены под ADR-0010/0011: разделы
