@@ -14,6 +14,7 @@ def _serialize(pool: models.HomeServerPool) -> schemas.PoolOut:
         name=pool.name,
         type=pool.type,
         enabled=pool.enabled,
+        username_uppercase=pool.username_uppercase,
         note=pool.note,
         members=[
             schemas.PoolMemberOut(
