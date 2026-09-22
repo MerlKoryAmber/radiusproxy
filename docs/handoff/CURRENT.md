@@ -3,65 +3,50 @@
 Живой срез для следующего агента/сессии. Держать актуальным перед каждым смысловым
 push (§6/§10 CLAUDE.md). Время — **МСК (UTC+3)**.
 
-**Обновлено:** 2026-09-22 МСК (5)
+**Обновлено:** 2026-09-22 МСК (6)
 
-> **UAG/Horizon push→TOTP — РАЗОБРАНО (не наш код):** на боевом HNPS-03
-> `freeradius -X` показал полный цикл: 2FA прислал `Access-Challenge` (len 105),
-> наш прокси записал его в Decisions (`Post-Auth-Type Challenge`) и доставил
-> клиенту (len 100). −5 байт = снятый `Proxy-State` (RFC 2865, клиенту не нужен,
-> НЕ баг). State+Reply-Message клиенту доходят. Значит наш прокси challenge
-> проксирует корректно; Horizon получает valid challenge, но 2-м запросом с OTP
-> НЕ отвечает (Checkpoint отвечает `state=yes`). Донастройка — на UAG/Horizon
-> (challenge-response / attempts=1 / timeout), вне нашего проекта.
-> **В main (fix):** убрана нерабочая post-proxy-ветка challenge-лога
-> (`%{reply:Packet-Type}` в post-proxy = `0`); лог идёт через
-> `Post-Auth-Type Challenge` (проверено на боевом).
+> **Среды (не путать):** **ЛАБА** `192.168.0.178` (`/opt/radiusproxy`, есть SSH у
+> агента — тут все стенды/`-X`/`-XC`/проверки, реального 2FA-трафика нет).
+> **ТЕСТ→ПРОД HNPS-03** (реальный UAG/2FA/Checkpoint; SSH у агента НЕТ — владелец
+> сам). **Обе на свежем main** (владелец подтвердил: HNPS-03 обновлён последним
+> `rpp update`). Деплой-хвостов нет.
 
-> **НЕ в main (ветка `feature/log-retention-challenge`, ждёт merge):** ADR-0013.
-> (1) Ретенция proxy_decision — `RadiusSettings.decision_retention_days` (0=вечно,
-> деф.30, Settings→RADIUS) + суточный `_decision_cleanup_loop`. (2) logrotate
-> radius.log по размеру (50M×5, ~250MB) — в образе + ежечасно из entrypoint.
-> (3) Лог Access-Challenge в site post-proxy (`%{reply:Packet-Type}`) — несбиваемо,
-> до переклассификации в reject. Миграция ADD COLUMN. py_compile/bash -n OK.
-> **Проверить на тесте:** -XC, cleanup, logrotate -f; live challenge-видимость —
-> на боевой (реальный 2FA).
+> **Всё нижеперечисленное — в main и развёрнуто.** Открытых веток/незакоммиченного
+> нет. main = `41345cd` (на момент правки).
+> - **ADR-0009** fallback на 1-й фактор AD при мёртвом пуле (галка на правиле).
+> - **ADR-0010** health-check таргета (`status_check` фоновый пинг + `num_answers_to_alive`).
+> - **ADR-0011** SMTP-алерты (`MailSettings`, `mailer.pool_down_watch`).
+> - **ADR-0012** self-healing watchdog (`rpp watchdog` systemd-таймер: рестарт×2→
+>   ребилд×1→стоп+письмо) + `diagnostics.py` (health-loop) + Dashboard-баннер.
+> - **ADR-0013** ретенция логов (`decision_retention_days` + `_decision_cleanup_loop`
+>   + logrotate radius.log 50M×5) + лог Access-Challenge (`Post-Auth-Type Challenge`).
+> - **preserve_source_ip** теперь всегда перезаписывает `NAS-IP-Address` = реальный
+>   packet-src при галке (было: только если пусто — не срабатывало). Проверено `-X`.
+> - uppercase-login на пуле, тип таргета `auth+acct`, UI на английском (кроме Help.jsx).
 
-> **НЕ в main (ветка `feature/log-access-challenge`, ждёт merge):** проксируемый
-> Access-Challenge теперь логируется в Decisions (`reply=Access-Challenge`) —
-> секция `Post-Auth-Type Challenge { radiuspanel_log }` во вшитом site. Проверено
-> стендом (фейковый challenge-home `fake_challenge_home.py` — отвечает
-> Access-Challenge; radclient→прокси→строка в Decisions→UI). **Доказано, что наш
-> прокси challenge пробрасывает корректно** (State+Reply-Message в обе стороны).
+> **UAG/Horizon push→TOTP — РАЗОБРАНО, НЕ наш код (закрыто с нашей стороны):**
+> `freeradius -X` на HNPS-03 показал полный цикл: 2FA прислал `Access-Challenge`
+> (len 105), наш прокси записал в Decisions (`Post-Auth-Type Challenge`) и доставил
+> клиенту (len 100; −5 байт = снятый `Proxy-State`, RFC 2865, не баг). State+
+> Reply-Message доходят. Horizon получает валидный challenge, но 2-м запросом с OTP
+> НЕ отвечает (Checkpoint отвечает `state=yes`). Причина — модель UAG RADIUS (по
+> доке Omnissa: два независимых шага, OTP вводится в поле пароля, а не через
+> challenge-continuation). **Решение — на стороне UAG/2FA, не в нашем коде.**
 
-> **БОЕВОЙ разбор (НЕ наш код — UAG/2FA):** UAG push работает и через нас, и через
-> NPS, но по таймауту push НЕ появляется TOTP; у Checkpoint появляется. В нашем
-> логе Access-Challenge на UAG-запрос НЕ приходит от 2FA (`Home Server failed to
-> respond`/`no response`, home 172.22.10.140). Т.к. и NPS, и мы одинаково — дело
-> НЕ в проксе. TOTP инициирует 2FA-сервер (Checkpoint сам не просит — подтвердил
-> владелец), но на UAG-запрос 2FA challenge не шлёт. Кандидаты: 2FA молча дропает
-> UAG-пакет (в логе `BlastRADIUS: without Proxy-State`, `require_message_
-> authenticator` для KUAG-04 — UAG шлёт без Message-Authenticator) ИЛИ решает по
-> атрибутам/протоколу запроса. Копать: сравнить сырые атрибуты Checkpoint vs UAG
-> на самом 2FA-сервере. UAG: `Number of attempts=1` (ретраи рождают дубли —
-> в логе `Ignoring duplicate packet from KUAG-04`), timeout ≥ push+запас.
+> **source IP для конечного FreeRADIUS (сосед-репо):** мы шлём реальный источник
+> в атрибуте `NAS-IP-Address` (при галке preserve на клиенте). Транспортный source
+> = IP прокси (не меняется, ответ/push приходят нам). Конечный FR должен смотреть
+> **`&NAS-IP-Address`** (не `Packet-Src-IP-Address`) и не затирать его в preprocess.
+> Если попросят другой атрибут (Calling-Station-Id и т.п.) — переключается за минуту
+> в `radiuspanel_srcip` (`radius_config.py`).
 
-> **В main:** галка «Uppercase login» на пуле (`HomeServerPool.username_uppercase`)
-> — проксируемый User-Name → UPPERCASE в `pre-proxy` (NPS-паритет; фикс боевого
-> отлупа 2FA на логин с маленькой буквы). Проверено HTTP+UI. **Live на реальном
-> 2FA — TODO.**
+> **Открытые TODO (не наш код / нужен доступ):** live-проверки на реальном
+> 2FA/SMTP (fallback-accept, watchdog-письма/эскалация, uppercase-вход, health
+> динамика) — делаются на HNPS-03 владельцем. Тумблер авто-fix watchdog в Settings
+> не делали (выкл = снять таймер).
 
-> **НЕ в main (ветка `feature/self-healing-watchdog`, ждёт push+merge):** ADR-0012
-> самодиагностика. Внешний watchdog `rpp watchdog` (systemd
-> `radiusproxy-watchdog.timer` ~1 мин): контейнеры+`/api/health` → рестарт×2→
-> ребилд×1(тот же коммит)→стоп+письмо, cooldown 30мин, state
-> `/var/lib/radiusproxy/watchdog.state`+flock. Письмо — `app.send_alert` в
-> backend-контейнере (SMTP из MailSettings) / fallback `sendmail`. Внутренний
-> `diagnostics.py` (~30с): все члены пула недоступны / FR-демон / DC → баннер
-> (`/api/dashboard` health) + письмо. `Dashboard.jsx` баннер `.diag-banner`.
-> `install.sh`/`uninstall.sh` ставят/снимают таймер; меню rpp п.16.
-> **Тумблер авто-fix в Settings НЕ сделан** (отключение — снятием таймера).
-> Синтаксис (`bash -n`+`py_compile`) OK. **Live-эскалация/письма частично не
-> проверены** — нет рабочего SMTP; проверить убийством контейнера на тесте.
+---
+### История (ADR-заметки, все в main) — ниже для контекста
 
 **Обновлено (пред.):** 2026-09-13 МСК (2)
 
