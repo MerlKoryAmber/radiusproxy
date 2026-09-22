@@ -10,8 +10,12 @@ WORKDIR /app
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         freeradius freeradius-ldap freeradius-postgresql freeradius-utils \
-        procps \
+        procps logrotate \
     && rm -rf /var/lib/apt/lists/*
+
+# Rotate radius.log by size so it can't fill the disk (ADR-0013). FreeRADIUS
+# reopens its log on the next write, so no reload/signal is needed after rotate.
+COPY freeradius/logrotate-radius /etc/logrotate.d/radiuspanel
 
 # Wire the panel's policies into FreeRADIUS: a minimal proxy virtual server
 # (calls radiuspanel_route/srcip/log) + a stub policy so `freeradius -XC` passes

@@ -1,0 +1,12 @@
+# Rotate FreeRADIUS log by size so it can't fill the disk (ADR-0013).
+# ~250 MB ceiling: 50 MB per file, 5 old files kept, compressed.
+# copytruncate: rotate in place without needing FreeRADIUS to reopen the file.
+/var/log/freeradius/radius.log {
+    size 50M
+    rotate 5
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+}

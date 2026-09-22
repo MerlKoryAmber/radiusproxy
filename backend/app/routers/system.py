@@ -80,7 +80,12 @@ async def set_radius(
 ):
     row = await crud.get_radius_settings(db)
     row.max_request_time = data.max_request_time
-    await crud.log(db, "update", "radius", f"max_request_time={data.max_request_time}")
+    row.decision_retention_days = data.decision_retention_days
+    await crud.log(
+        db, "update", "radius",
+        f"max_request_time={data.max_request_time} "
+        f"retention_days={data.decision_retention_days}",
+    )
     await db.commit()
     # Re-apply so radiusd.conf is patched + FreeRADIUS reloaded.
     from ..radius_config import ConfigValidationError, apply_config

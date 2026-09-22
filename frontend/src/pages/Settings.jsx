@@ -163,17 +163,28 @@ function TlsSettings({ notify }) {
 
 function RadiusSettings({ notify }) {
   const [mrt, setMrt] = useState(null);
+  const [retention, setRetention] = useState(30);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    api.system.getRadius().then((r) => setMrt(r.max_request_time)).catch(() => setMrt(30));
+    api.system
+      .getRadius()
+      .then((r) => {
+        setMrt(r.max_request_time);
+        setRetention(r.decision_retention_days ?? 30);
+      })
+      .catch(() => setMrt(30));
   }, []);
 
   const save = async () => {
     setBusy(true);
     try {
-      const r = await api.system.setRadius(Number(mrt));
+      const r = await api.system.setRadius({
+        max_request_time: Number(mrt),
+        decision_retention_days: Number(retention),
+      });
       setMrt(r.max_request_time);
+      setRetention(r.decision_retention_days);
       notify("Applied — FreeRADIUS reloaded");
     } catch (e) {
       notify(e.message, "err");
@@ -196,6 +207,19 @@ function RadiusSettings({ notify }) {
           max={600}
           value={mrt}
           onChange={(e) => setMrt(e.target.value)}
+          style={{ width: 120 }}
+        />
+      </Field>
+      <Field
+        label="Decision log retention (days)"
+        hint="Delete decision-log rows older than this. 0 = keep forever. A daily cleanup enforces it — keeps the database from growing without bound."
+      >
+        <input
+          type="number"
+          min={0}
+          max={3650}
+          value={retention}
+          onChange={(e) => setRetention(e.target.value)}
           style={{ width: 120 }}
         />
       </Field>

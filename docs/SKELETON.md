@@ -4,7 +4,7 @@
 Обновлять **перед каждым push** (см. §22 CLAUDE.md). Читать после handoff и перед
 началом задачи. Если что-то тут расходится с кодом — код прав, а скелет чинить.
 
-**Обновлено:** 2026-09-22 МСК · ветка на момент правки: `feature/log-access-challenge`
+**Обновлено:** 2026-09-22 МСК · ветка на момент правки: `feature/log-retention-challenge`
 
 ---
 
@@ -35,7 +35,7 @@
 
 | Файл | Роль |
 |------|------|
-| `main.py` | FastAPI app, lifespan → `init_models()` + `_group_sync_loop` (синк AD) + `pool_down_watch` (алерт обхода 2FA) + `diagnostics_watch` (самодиагностика, ADR-0012), IntegrityError→409, CORS, include роутеров, `/api/health` |
+| `main.py` | FastAPI app, lifespan → `init_models()` + `_group_sync_loop` (синк AD) + `pool_down_watch` (алерт обхода 2FA) + `diagnostics_watch` (самодиагностика, ADR-0012) + `_decision_cleanup_loop` (ретенция proxy_decision, ADR-0013), IntegrityError→409, CORS, include роутеров, `/api/health` |
 | `mailer.py` | SMTP-отправка (`send_mail`) + фоновый детектор `pool_down_watch` (тейл radius.log → письмо при уходе пула в fallback, ADR-0011) |
 | `diagnostics.py` | внутренний health-loop `diagnostics_watch` (все члены пула недоступны / FR-демон / DC) → снапшот `snapshot()` в dashboard + письмо; ADR-0012 |
 | `send_alert.py` | CLI `python -m app.send_alert <subject>` (body на stdin) — письмо для хостового watchdog (читает MailSettings + `mailer.send_mail`); ADR-0012 |
@@ -79,7 +79,7 @@
 - `ProxyDecision` — лог решений RADIUS (пишет FR через `radiuspanel_log`/sql): created_at,
   nas_ip, packet_src_ip, username, realm, ad_result, reply, home_server.
 - `AuthSettings` — singleton: `enabled` (флаг логина) + `ip_allowlist` (IP/CIDR-ограничение доступа).
-- `RadiusSettings` — singleton: `max_request_time` (патчится в radiusd.conf; кап response_window таргетов).
+- `RadiusSettings` — singleton: `max_request_time` (патчится в radiusd.conf; кап response_window таргетов), `decision_retention_days` (чистка proxy_decision, 0=вечно, ADR-0013).
 - `MailSettings` — singleton: SMTP для алертов (enabled, host, port, security none/starttls/ssl, username, password(EncryptedStr), from_addr, to_addrs). ADR-0011.
 - `TlsSettings` — singleton: `cert_pem`, `key_pem`(EncryptedStr), `is_self_signed` (HTTPS панели).
 - `User` — админ панели (username, password_hash pbkdf2); seed `admin/admin`.

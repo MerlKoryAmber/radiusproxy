@@ -95,6 +95,17 @@ async def _migrate() -> None:
             )
     except Exception:  # noqa: BLE001
         pass
+    # New RadiusSettings column: decision-log retention in days (ADR-0013).
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(
+                text(
+                    "ALTER TABLE radius_settings ADD COLUMN IF NOT EXISTS "
+                    "decision_retention_days integer NOT NULL DEFAULT 30"
+                )
+            )
+    except Exception:  # noqa: BLE001
+        pass
 
 
 async def init_models() -> None:

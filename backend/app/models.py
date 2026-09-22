@@ -400,6 +400,11 @@ class RadiusSettings(Base):
     # Max seconds FreeRADIUS spends on a request. FR default is 30; a target's
     # response_window is clamped to this, so slow 2FA needs a higher value.
     max_request_time: Mapped[int] = mapped_column(Integer, default=30, server_default="30")
+    # Decision log retention: delete proxy_decision rows older than this many
+    # days (0 = keep forever). A daily cleanup loop enforces it. ADR-0013.
+    decision_retention_days: Mapped[int] = mapped_column(
+        Integer, default=30, server_default="30"
+    )
 
 
 class MailSettings(Base):

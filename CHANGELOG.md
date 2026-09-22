@@ -5,6 +5,18 @@
 
 ## [Unreleased]
 
+### 2026-09-22 МСК (8)
+
+- **feat(ADR-0013):** ретенция логов + несбиваемый лог challenge.
+  - **БД:** `RadiusSettings.decision_retention_days` (дней, 0=вечно, дефолт 30,
+    Settings→RADIUS) + суточный `_decision_cleanup_loop` (DELETE старых
+    proxy_decision). Миграция ADD COLUMN.
+  - **Диск:** `logrotate` в образе + `logrotate-radius` (size 50M, rotate 5,
+    compress, copytruncate → ~250MB потолок); entrypoint гоняет ежечасно.
+  - **Challenge:** лог в post-proxy `if %{reply:Packet-Type}==Access-Challenge`
+    — пишет строку сразу при получении, до возможной переклассификации в reject
+    (иначе challenge не виден, когда клиент не отвечает на OTP).
+
 ### 2026-09-22 МСК (7)
 
 - **feat(logs):** проксируемый Access-Challenge теперь виден в Decisions

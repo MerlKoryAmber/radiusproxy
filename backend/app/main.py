@@ -50,6 +50,34 @@ async def _group_sync_loop():
         await asyncio.sleep(max(60, interval))
 
 
+async def _decision_cleanup_loop():
+    """Delete proxy_decision rows older than RadiusSettings.decision_retention_days
+    (0 = keep forever). Runs daily. Keeps the DB from growing without bound
+    (ADR-0013). Errors never kill the loop."""
+    from datetime import datetime, timedelta, timezone
+
+    from sqlalchemy import delete
+
+    from . import models
+
+    while True:
+        try:
+            async with SessionLocal() as db:
+                cfg = await db.get(models.RadiusSettings, 1)
+                days = (cfg.decision_retention_days if cfg else 30)
+                if days and days > 0:
+                    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+                    await db.execute(
+                        delete(models.ProxyDecision).where(
+                            models.ProxyDecision.created_at < cutoff
+                        )
+                    )
+                    await db.commit()
+        except Exception:  # noqa: BLE001 — loop must survive any failure
+            pass
+        await asyncio.sleep(86400)  # once a day
+
+
 async def _ensure_tls(db):
     """Load the panel cert from the DB (generate self-signed on first run) and
     materialise it to the shared volume the frontend nginx serves."""
@@ -94,8 +122,9 @@ async def lifespan(app: FastAPI):
     task = asyncio.create_task(_group_sync_loop())
     mail_task = asyncio.create_task(pool_down_watch())
     diag_task = asyncio.create_task(diagnostics_watch())
+    cleanup_task = asyncio.create_task(_decision_cleanup_loop())
     yield
-    for t in (task, mail_task, diag_task):
+    for t in (task, mail_task, diag_task, cleanup_task):
         t.cancel()
         with contextlib.suppress(asyncio.CancelledError):
             await t

@@ -16,3 +16,4 @@
 | [0010](0010-target-health-status-server.md) | 2026-09-13 | Здоровье таргета фоновым `status_check` (не на каждом запросе); `num_answers_to_alive` в UI | Accepted |
 | [0011](0011-mail-alert-pool-down-fallback.md) | 2026-09-13 | SMTP-настройки в Settings + email-алерт при активации обхода 2FA (пул лёг); детектор тейлит radius.log | Accepted |
 | [0012](0012-self-diagnostics-watchdog.md) | 2026-09-22 | Самодиагностика: внешний self-healing watchdog (рестарт×2→ребилд×1→стоп+письмо) + внутренний health-loop (таргеты/FR/DC) + Dashboard-баннер | Accepted |
+| [0013](0013-log-retention-and-challenge.md) | 2026-09-22 | Ретенция логов (proxy_decision N дней + logrotate radius.log по размеру) + лог Access-Challenge в post-proxy (несбиваемо) | Accepted |

@@ -3,7 +3,16 @@
 Живой срез для следующего агента/сессии. Держать актуальным перед каждым смысловым
 push (§6/§10 CLAUDE.md). Время — **МСК (UTC+3)**.
 
-**Обновлено:** 2026-09-22 МСК (3)
+**Обновлено:** 2026-09-22 МСК (4)
+
+> **НЕ в main (ветка `feature/log-retention-challenge`, ждёт merge):** ADR-0013.
+> (1) Ретенция proxy_decision — `RadiusSettings.decision_retention_days` (0=вечно,
+> деф.30, Settings→RADIUS) + суточный `_decision_cleanup_loop`. (2) logrotate
+> radius.log по размеру (50M×5, ~250MB) — в образе + ежечасно из entrypoint.
+> (3) Лог Access-Challenge в site post-proxy (`%{reply:Packet-Type}`) — несбиваемо,
+> до переклассификации в reject. Миграция ADD COLUMN. py_compile/bash -n OK.
+> **Проверить на тесте:** -XC, cleanup, logrotate -f; live challenge-видимость —
+> на боевой (реальный 2FA).
 
 > **НЕ в main (ветка `feature/log-access-challenge`, ждёт merge):** проксируемый
 > Access-Challenge теперь логируется в Decisions (`reply=Access-Challenge`) —

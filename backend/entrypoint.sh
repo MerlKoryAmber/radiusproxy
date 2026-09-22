@@ -16,4 +16,11 @@ else
     echo "[entrypoint] FreeRADIUS not started (config not valid yet — use the panel to apply)"
 fi
 
+# Rotate radius.log by size (ADR-0013). No cron in the slim image, so run
+# logrotate hourly in the background. Never let it stop the container.
+( while true; do
+    logrotate /etc/logrotate.d/radiuspanel >/dev/null 2>&1 || true
+    sleep 3600
+  done ) &
+
 exec uvicorn app.main:app --host 0.0.0.0 --port 8000

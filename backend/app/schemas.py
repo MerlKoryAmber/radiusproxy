@@ -237,11 +237,14 @@ class HostInfoOut(BaseModel):
 class RadiusSettingsIn(BaseModel):
     # FR caps a target's response_window to this; raise for slow interactive 2FA.
     max_request_time: int = Field(default=30, ge=5, le=600)
+    # Decision-log retention in days; 0 = keep forever.
+    decision_retention_days: int = Field(default=30, ge=0, le=3650)
 
 
 class RadiusSettingsOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     max_request_time: int = 30
+    decision_retention_days: int = 30
 
 
 # --------------------------- Mail (SMTP alerts) ---------------------------

@@ -143,10 +143,10 @@ export const api = {
     regenTls: () => request("/system/tls/self-signed", { method: "POST" }),
     host: () => request("/system/host"),
     getRadius: () => request("/system/radius"),
-    setRadius: (max_request_time) =>
+    setRadius: (body) =>
       request("/system/radius", {
         method: "PUT",
-        body: JSON.stringify({ max_request_time }),
+        body: JSON.stringify(body),
       }),
     getMail: () => request("/system/mail"),
     setMail: (body) =>

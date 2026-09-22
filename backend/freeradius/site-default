@@ -49,6 +49,15 @@ server default {
 	}
 
 	post-proxy {
+		# Log the proxied Access-Challenge the moment it comes back from the
+		# home server — BEFORE the request may later be re-classified as a
+		# reject (e.g. the client never answers the OTP prompt and it times
+		# out). Without this the decision log shows only the final reject and
+		# the challenge is invisible. String xlat of Packet-Type (the &attr
+		# compare does not match here in FR 3.2). ADR-0013.
+		if ("%{reply:Packet-Type}" == "Access-Challenge") {
+			radiuspanel_log
+		}
 	}
 
 	post-auth {
