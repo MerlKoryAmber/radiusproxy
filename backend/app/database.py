@@ -84,6 +84,17 @@ async def _migrate() -> None:
             )
     except Exception:  # noqa: BLE001
         pass
+    # New HomeServerPool column: uppercase the proxied User-Name (NPS parity).
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(
+                text(
+                    "ALTER TABLE home_server_pools ADD COLUMN IF NOT EXISTS "
+                    "username_uppercase boolean NOT NULL DEFAULT false"
+                )
+            )
+    except Exception:  # noqa: BLE001
+        pass
 
 
 async def init_models() -> None:

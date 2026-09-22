@@ -70,6 +70,7 @@ class PoolBase(BaseModel):
     name: str = Field(pattern=_NAME_RE, max_length=64)
     type: str = "fail-over"
     enabled: bool = True
+    username_uppercase: bool = False
     note: str = ""
 
     @field_validator("type")

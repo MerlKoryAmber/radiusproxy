@@ -58,6 +58,17 @@ export default function Help() {
       </fieldset>
 
       <fieldset className="settings-section" style={{ marginBottom: 16 }}>
+        <legend>Логин с маленькой буквы не проходит на 2FA?</legend>
+        <p>
+          Некоторые 2FA-серверы принимают логин только в <b>верхнем регистре</b>
+          {" "}(так делал Windows NPS). Если через панель вход с маленькой буквы
+          получает отказ от 2FA — открой <b>Pools</b> → нужный пул → включи галку
+          <b> «Uppercase the login sent to this pool»</b>. Тогда на 2FA-сервер имя
+          уйдёт заглавными. На проверки в AD самой панелью это не влияет.
+        </p>
+      </fieldset>
+
+      <fieldset className="settings-section" style={{ marginBottom: 16 }}>
         <legend>Проверка группы AD</legend>
         <p>
           Если нужно пускать только членов определённой группы Active Directory:

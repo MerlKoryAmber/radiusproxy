@@ -127,6 +127,12 @@ class HomeServerPool(Base):
     name: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     type: Mapped[str] = mapped_column(String(24), default="fail-over")
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Uppercase the proxied User-Name for this pool (mimics Windows NPS). Applied
+    # only to what is sent upstream (pre-proxy) — the panel's own AD checks keep
+    # matching in lower-case. Realm-wide: affects every request routed here.
+    username_uppercase: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false"
+    )
     note: Mapped[str] = mapped_column(Text, default="")
 
     created_at: Mapped[datetime] = mapped_column(

@@ -4,7 +4,7 @@
 Обновлять **перед каждым push** (см. §22 CLAUDE.md). Читать после handoff и перед
 началом задачи. Если что-то тут расходится с кодом — код прав, а скелет чинить.
 
-**Обновлено:** 2026-09-22 МСК · ветка на момент правки: `feature/self-healing-watchdog`
+**Обновлено:** 2026-09-22 МСК · ветка на момент правки: `feature/pool-username-uppercase`
 
 ---
 
@@ -59,7 +59,7 @@
   port, **secret (EncryptedStr)**, require_message_authenticator, status_check (только auth+acct тип),
   response_window, zombie_period, revive_interval, check_interval, num_answers_to_alive (ADR-0010),
   enabled, note. rel: `memberships`.
-- `HomeServerPool` — `home_server_pool{}`. name, type, enabled, note. rel: `members` (ordered).
+- `HomeServerPool` — `home_server_pool{}`. name, type, enabled, username_uppercase (проксируемый User-Name → UPPERCASE в pre-proxy, паритет NPS; AD-проверки не трогает), note. rel: `members` (ordered).
 - `PoolMember` — упорядоченное членство (pool_id, **target_server_id**, position). uq(pool,ts).
 - `Client` — NAS (от кого) → `client{}`. name, ipaddr(/CIDR), **secret (EncryptedStr)**, shortname,
   nas_type, proto, require_message_authenticator, **preserve_source_ip**, enabled, note. (routing/AD-гейт

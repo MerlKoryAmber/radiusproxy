@@ -5,6 +5,16 @@
 
 ## [Unreleased]
 
+### 2026-09-22 МСК (4)
+
+- **feat(pool):** галка «Uppercase login» на пуле — приводит проксируемый
+  `User-Name` к ВЕРХНЕМУ регистру (паритет с Windows NPS). Фикс боевого симптома:
+  за NPS вход с маленькой буквы работал, через панель → отлуп от 2FA (2FA-сервер
+  регистрозависим к логину). Переписывание в `pre-proxy` (`radiuspanel_srcip`,
+  по `Proxy-To-Realm`) — трогает ТОЛЬКО имя, уходящее на 2FA; AD-гейт и лог
+  панели остаются на нижнем регистре. `HomeServerPool.username_uppercase` +
+  миграция `ADD COLUMN`; UI Pools (чекбокс+хинт); portable-поле.
+
 ### 2026-09-22 МСК (3)
 
 - **fix(scripts):** читаемый вывод сборки в install/update — `BUILDKIT_COLORS`

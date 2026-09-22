@@ -420,6 +420,35 @@ async def render_policy_conf(db: AsyncSession) -> str:
         route_body.append(f"{INDENT}}}")
     parts.append("radiuspanel_route {\n" + "\n".join(route_body) + "\n}\n")
 
+    # Pools that uppercase the proxied User-Name (NPS parity). pre-proxy runs
+    # only on a real proxy to a home_server, so this touches ONLY what goes
+    # upstream — the panel's own AD gate/log keep the original (lower) name.
+    upper_pools = (
+        await db.execute(
+            select(HomeServerPool.name)
+            .where(HomeServerPool.enabled, HomeServerPool.username_uppercase)
+        )
+    ).scalars().all()
+    upper_lines: list[str] = []
+    for name in upper_pools:
+        # FR 3.2: compare the attribute ref (&control:...), not a %{} string xlat.
+        upper_lines.append(
+            f'{INDENT}if (&control:Proxy-To-Realm == "{name}") {{\n'
+            f"{INDENT}{INDENT}update proxy-request {{\n"
+            f'{INDENT}{INDENT}{INDENT}&User-Name := "%{{toupper:%{{User-Name}}}}"\n'
+            f"{INDENT}{INDENT}}}\n"
+            f"{INDENT}}}"
+        )
+    # Each closing brace stays on its own line; the block is empty when no pool
+    # needs uppercasing (a trailing comment here would swallow the section's `}`).
+    if upper_lines:
+        upper_block = (
+            f"{INDENT}# Uppercase the proxied login for pools that need it (NPS parity).\n"
+            + "\n".join(upper_lines) + "\n"
+        )
+    else:
+        upper_block = ""
+
     parts.append(
         "radiuspanel_srcip {\n"
         f"{INDENT}# Inject the real originator IP if the NAS did not set one.\n"
@@ -431,6 +460,7 @@ async def render_policy_conf(db: AsyncSession) -> str:
         f"{INDENT}{INDENT}{INDENT}}}\n"
         f"{INDENT}{INDENT}}}\n"
         f"{INDENT}}}\n"
+        f"{upper_block}"
         "}\n"
     )
 

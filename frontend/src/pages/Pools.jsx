@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { Modal, Field, Spinner, Empty, StatusDot, ConfirmDialog } from "../components.jsx";
 
-const BLANK = { name: "", type: "fail-over", enabled: true, note: "", member_ids: [] };
+const BLANK = { name: "", type: "fail-over", enabled: true, username_uppercase: false, note: "", member_ids: [] };
 
 const POOL_TYPES = [
   "fail-over",
@@ -43,6 +43,7 @@ export default function Pools({ notify, onChange }) {
       name: p.name,
       type: p.type,
       enabled: p.enabled,
+      username_uppercase: p.username_uppercase || false,
       note: p.note || "",
       member_ids: p.members.map((m) => m.target_server_id),
     });
@@ -261,6 +262,23 @@ export default function Pools({ notify, onChange }) {
           </Field>
 
           <div className="check">
+            <input
+              id="pool-upper"
+              type="checkbox"
+              checked={form.username_uppercase}
+              onChange={set("username_uppercase")}
+            />
+            <label htmlFor="pool-upper" style={{ margin: 0 }}>
+              Uppercase the login sent to this pool (like Windows NPS)
+            </label>
+          </div>
+          <p className="field-hint" style={{ marginTop: 6 }}>
+            Rewrites User-Name to UPPERCASE only in what is proxied to this pool's
+            2FA server — some servers reject a lower-case login. The panel's own
+            AD checks are unaffected.
+          </p>
+
+          <div className="check" style={{ marginTop: 10 }}>
             <input
               id="pool-enabled"
               type="checkbox"

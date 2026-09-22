@@ -3,7 +3,16 @@
 Живой срез для следующего агента/сессии. Держать актуальным перед каждым смысловым
 push (§6/§10 CLAUDE.md). Время — **МСК (UTC+3)**.
 
-**Обновлено:** 2026-09-22 МСК
+**Обновлено:** 2026-09-22 МСК (2)
+
+> **НЕ в main (ветка `feature/pool-username-uppercase`, ждёт push+merge):** галка
+> «Uppercase login» на пуле (`HomeServerPool.username_uppercase` + миграция) —
+> проксируемый User-Name → UPPERCASE в `pre-proxy` (`radiuspanel_srcip` по
+> `Proxy-To-Realm`). Фикс боевого: за NPS вход с маленькой буквы ок, через панель
+> → отлуп 2FA (2FA регистрозависим). Трогает ТОЛЬКО проксируемое имя; AD-гейт/лог
+> на нижнем регистре не тронуты. UI Pools (чекбокс+хинт), portable, README/Help.
+> `py_compile` OK. **Live-проверка на реальном 2FA — TODO** (2FA недоступен из
+> сессии); проверить, что с галкой вход с маленькой буквы проходит.
 
 > **НЕ в main (ветка `feature/self-healing-watchdog`, ждёт push+merge):** ADR-0012
 > самодиагностика. Внешний watchdog `rpp watchdog` (systemd

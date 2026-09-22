@@ -78,7 +78,7 @@ curl -fsSL https://raw.githubusercontent.com/MerlKoryAmber/radiusproxy/main/scri
 | **Dashboard** | сводка: клиенты/таргеты/пулы/правила, статус FreeRADIUS, время последнего apply, TLS/вход/IP-ограничение, состояние AD-синка |
 | **Clients** | клиенты (NAS): ip, shared secret, source-IP, message-authenticator |
 | **Target servers** | целевые RADIUS-серверы (2FA и т.п.); тип фиксирован «auth+acct»; проверка доступности (health-check: фоновый пинг / по запросу / нет) |
-| **Pools** | пулы серверов: стратегия (fail-over/…), упорядоченные члены |
+| **Pools** | пулы серверов: стратегия (fail-over/…), упорядоченные члены; галка «Uppercase login» (регистр логина для 2FA, как NPS) |
 | **Rules** | правила маршрутизации (сверху вниз, первое совпадение): client [+ маска username] → пул; опц. AD-гейт; опц. fallback на 1-й фактор AD при мёртвом пуле |
 | **Logs** | «Decisions» (лог решений) и «Server log» (лог FreeRADIUS) |
 | **Config & apply** | превью того, что панель применит к FreeRADIUS, + применение с подтверждением |
@@ -113,6 +113,16 @@ curl -fsSL https://raw.githubusercontent.com/MerlKoryAmber/radiusproxy/main/scri
 впускает. Это осознанный обход 2FA; такие входы помечаются в Logs как
 `pool-down-1fa`. Требует включённого AD/LDAP и передачи пароля (PAP) от NAS.
 Подробности — `docs/adr/0009-pool-down-ad-fallback.md`.
+
+## Регистр логина при проксировании (паритет с NPS)
+
+Некоторые 2FA-серверы регистрозависимы к имени пользователя (вход с маленькой
+буквы отклоняется, хотя за Windows NPS работал — NPS приводит логин к верхнему
+регистру). Галка **«Uppercase login»** на пуле переписывает проксируемый
+`User-Name` в ВЕРХНИЙ регистр — только в том, что уходит на 2FA-сервер (в
+`pre-proxy`). Собственные AD-проверки панели (гейт по группе, fallback-bind) на
+это не влияют — там имя матчится регистронезависимо. Действует на весь пул
+(realm-wide).
 
 ## Уведомления по почте (алерт об обходе 2FA)
 

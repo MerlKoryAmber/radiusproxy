@@ -20,7 +20,7 @@ _TARGET_FIELDS = (
     "response_window", "zombie_period", "revive_interval", "check_interval",
     "num_answers_to_alive", "enabled", "note",
 )
-_POOL_FIELDS = ("type", "enabled", "note")
+_POOL_FIELDS = ("type", "enabled", "username_uppercase", "note")
 _CLIENT_FIELDS = (
     "ipaddr", "shortname", "nas_type", "proto", "require_message_authenticator",
     "preserve_source_ip", "enabled", "note",
