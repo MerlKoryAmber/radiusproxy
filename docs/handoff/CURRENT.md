@@ -3,16 +3,31 @@
 Живой срез для следующего агента/сессии. Держать актуальным перед каждым смысловым
 push (§6/§10 CLAUDE.md). Время — **МСК (UTC+3)**.
 
-**Обновлено:** 2026-09-22 МСК (2)
+**Обновлено:** 2026-09-22 МСК (3)
 
-> **НЕ в main (ветка `feature/pool-username-uppercase`, ждёт push+merge):** галка
-> «Uppercase login» на пуле (`HomeServerPool.username_uppercase` + миграция) —
-> проксируемый User-Name → UPPERCASE в `pre-proxy` (`radiuspanel_srcip` по
-> `Proxy-To-Realm`). Фикс боевого: за NPS вход с маленькой буквы ок, через панель
-> → отлуп 2FA (2FA регистрозависим). Трогает ТОЛЬКО проксируемое имя; AD-гейт/лог
-> на нижнем регистре не тронуты. UI Pools (чекбокс+хинт), portable, README/Help.
-> `py_compile` OK. **Live-проверка на реальном 2FA — TODO** (2FA недоступен из
-> сессии); проверить, что с галкой вход с маленькой буквы проходит.
+> **НЕ в main (ветка `feature/log-access-challenge`, ждёт merge):** проксируемый
+> Access-Challenge теперь логируется в Decisions (`reply=Access-Challenge`) —
+> секция `Post-Auth-Type Challenge { radiuspanel_log }` во вшитом site. Проверено
+> стендом (фейковый challenge-home `fake_challenge_home.py` — отвечает
+> Access-Challenge; radclient→прокси→строка в Decisions→UI). **Доказано, что наш
+> прокси challenge пробрасывает корректно** (State+Reply-Message в обе стороны).
+
+> **БОЕВОЙ разбор (НЕ наш код — UAG/2FA):** UAG push работает и через нас, и через
+> NPS, но по таймауту push НЕ появляется TOTP; у Checkpoint появляется. В нашем
+> логе Access-Challenge на UAG-запрос НЕ приходит от 2FA (`Home Server failed to
+> respond`/`no response`, home 172.22.10.140). Т.к. и NPS, и мы одинаково — дело
+> НЕ в проксе. TOTP инициирует 2FA-сервер (Checkpoint сам не просит — подтвердил
+> владелец), но на UAG-запрос 2FA challenge не шлёт. Кандидаты: 2FA молча дропает
+> UAG-пакет (в логе `BlastRADIUS: without Proxy-State`, `require_message_
+> authenticator` для KUAG-04 — UAG шлёт без Message-Authenticator) ИЛИ решает по
+> атрибутам/протоколу запроса. Копать: сравнить сырые атрибуты Checkpoint vs UAG
+> на самом 2FA-сервере. UAG: `Number of attempts=1` (ретраи рождают дубли —
+> в логе `Ignoring duplicate packet from KUAG-04`), timeout ≥ push+запас.
+
+> **В main:** галка «Uppercase login» на пуле (`HomeServerPool.username_uppercase`)
+> — проксируемый User-Name → UPPERCASE в `pre-proxy` (NPS-паритет; фикс боевого
+> отлупа 2FA на логин с маленькой буквы). Проверено HTTP+UI. **Live на реальном
+> 2FA — TODO.**
 
 > **НЕ в main (ветка `feature/self-healing-watchdog`, ждёт push+merge):** ADR-0012
 > самодиагностика. Внешний watchdog `rpp watchdog` (systemd

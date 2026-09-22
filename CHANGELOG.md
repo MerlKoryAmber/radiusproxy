@@ -5,6 +5,16 @@
 
 ## [Unreleased]
 
+### 2026-09-22 МСК (7)
+
+- **feat(logs):** проксируемый Access-Challenge теперь виден в Decisions
+  (`reply = Access-Challenge`). Раньше challenge (2FA просит OTP) нигде в панели
+  не логировался: `post-auth` для него не выполняется. Добавлена секция
+  `Post-Auth-Type Challenge { radiuspanel_log }` во вшитый site (канонический хук
+  FR 3.2; попытка через `if reply:Packet-Type` в post-proxy не срабатывала —
+  подтверждено `freeradius -X`). Проверено стендом с фейковым challenge-home:
+  radclient → Access-Challenge → строка в Decisions → видна в UI.
+
 ### 2026-09-22 МСК (6)
 
 - **fix(ui):** Server log — новые записи сверху (как в Decisions). Было

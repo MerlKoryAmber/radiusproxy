@@ -57,5 +57,11 @@ server default {
 		Post-Auth-Type REJECT {
 			radiuspanel_log
 		}
+
+		# A proxied Access-Challenge (2FA asking for an OTP) lands here, not in
+		# the normal post-auth flow — log it so the decision log shows it.
+		Post-Auth-Type Challenge {
+			radiuspanel_log
+		}
 	}
 }
