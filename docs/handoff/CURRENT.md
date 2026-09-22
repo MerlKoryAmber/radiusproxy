@@ -3,7 +3,19 @@
 Живой срез для следующего агента/сессии. Держать актуальным перед каждым смысловым
 push (§6/§10 CLAUDE.md). Время — **МСК (UTC+3)**.
 
-**Обновлено:** 2026-09-22 МСК (4)
+**Обновлено:** 2026-09-22 МСК (5)
+
+> **UAG/Horizon push→TOTP — РАЗОБРАНО (не наш код):** на боевом HNPS-03
+> `freeradius -X` показал полный цикл: 2FA прислал `Access-Challenge` (len 105),
+> наш прокси записал его в Decisions (`Post-Auth-Type Challenge`) и доставил
+> клиенту (len 100). −5 байт = снятый `Proxy-State` (RFC 2865, клиенту не нужен,
+> НЕ баг). State+Reply-Message клиенту доходят. Значит наш прокси challenge
+> проксирует корректно; Horizon получает valid challenge, но 2-м запросом с OTP
+> НЕ отвечает (Checkpoint отвечает `state=yes`). Донастройка — на UAG/Horizon
+> (challenge-response / attempts=1 / timeout), вне нашего проекта.
+> **В main (fix):** убрана нерабочая post-proxy-ветка challenge-лога
+> (`%{reply:Packet-Type}` в post-proxy = `0`); лог идёт через
+> `Post-Auth-Type Challenge` (проверено на боевом).
 
 > **НЕ в main (ветка `feature/log-retention-challenge`, ждёт merge):** ADR-0013.
 > (1) Ретенция proxy_decision — `RadiusSettings.decision_retention_days` (0=вечно,

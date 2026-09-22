@@ -30,23 +30,31 @@
   сигнал. В slim-образе нет cron → `entrypoint.sh` гоняет `logrotate` ежечасно
   фоновым циклом.
 
-### Логирование Access-Challenge (несбиваемо)
-- В `sites-enabled/default` **post-proxy**: `if ("%{reply:Packet-Type}" ==
-  "Access-Challenge") { radiuspanel_log }` — пишет строку **сразу** при
-  получении challenge от home, ДО того как запрос может переклассифицироваться
-  в reject. Строковый xlat `%{reply:...}` (attr-compare `&reply:Packet-Type` в
-  post-proxy FR 3.2 не матчит — проверено `freeradius -X`).
-- `Post-Auth-Type Challenge { radiuspanel_log }` в post-auth оставлен (ловит
-  challenge на путях, где до post-auth доходит). На боевом challenge-then-reject
-  сработает post-proxy-ветка.
+### Логирование Access-Challenge
+- Логируется через **`Post-Auth-Type Challenge { radiuspanel_log }`** в post-auth
+  — канонический хук FR 3.2 для проксируемого challenge. Проверено на боевом
+  `freeradius -X` (HNPS-03): 2FA прислал `Access-Challenge`, строка записалась в
+  proxy_decision (`u1807 | hmk2fa | Access-Challenge`), challenge ушёл клиенту.
+- Попытка продублировать в **post-proxy** через `%{reply:Packet-Type}` НЕ
+  работает: в post-proxy этот xlat даёт `0`, не `Access-Challenge`
+  (`EXPAND %{reply:Packet-Type} --> 0` в `-X`). Ветка убрана как бесполезная —
+  `Post-Auth-Type Challenge` покрывает всё.
+
+### Установлено при разборе (важно, не баг)
+- Наш прокси challenge пробрасывает клиенту **полно**: State + Reply-Message на
+  месте. Разница длины (пришло 105 → ушло 100, −5 байт) = **снятый `Proxy-State`**
+  (0x313438): прокси обязан убрать свой Proxy-State из ответа перед отправкой
+  клиенту (RFC 2865). Клиенту он не нужен — это НЕ потеря нужного атрибута.
+- Значит проблема «UAG/Horizon по push-таймауту не показывает TOTP» — **не в
+  нашем проксе**: valid challenge доходит до клиента, но Horizon не отвечает 2-м
+  запросом со State (Checkpoint отвечает). Сторона UAG/2FA.
 
 ## Проверка
 
 - `py_compile` / `bash -n` — OK. `freeradius -XC` на сгенерированном — проверить
   на тесте.
-- Стенд с фейковым challenge-home: challenge → строка `Access-Challenge` в
-  Decisions (проверено на прошлой итерации; post-proxy-ветку перепроверить).
-- Ретенция: выставить малый срок, вставить старую строку, дождаться/дёрнуть
-  cleanup → строка удаляется. logrotate: `logrotate -f` → radius.log ротируется.
-- Live на реальном UAG/2FA (видимость challenge при таймаут-reject) — **TODO**
-  (реальный 2FA недоступен из сессии; проверка на боевой HNPS-03).
+- Ретенция proxy_decision: строка 40 дней удалена, свежая осталась (проверено
+  на тесте). logrotate: `logrotate -f` реально ротирует radius.log (copytruncate).
+- Challenge-лог: проверено **на боевом HNPS-03** `freeradius -X` — реальный
+  Access-Challenge от 2FA записан в Decisions через `Post-Auth-Type Challenge`,
+  challenge доставлен клиенту. post-proxy-ветка убрана (не срабатывала).

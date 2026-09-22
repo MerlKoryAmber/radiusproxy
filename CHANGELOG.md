@@ -13,9 +13,17 @@
     proxy_decision). Миграция ADD COLUMN.
   - **Диск:** `logrotate` в образе + `logrotate-radius` (size 50M, rotate 5,
     compress, copytruncate → ~250MB потолок); entrypoint гоняет ежечасно.
-  - **Challenge:** лог в post-proxy `if %{reply:Packet-Type}==Access-Challenge`
-    — пишет строку сразу при получении, до возможной переклассификации в reject
-    (иначе challenge не виден, когда клиент не отвечает на OTP).
+  - **Challenge:** лог через `Post-Auth-Type Challenge { radiuspanel_log }` —
+    проверено на боевом `freeradius -X` (реальный challenge от 2FA записан в
+    Decisions, доставлен клиенту). Разбор подтвердил: наш прокси challenge
+    пробрасывает полно (State+Reply-Message); −5 байт длины = снятый Proxy-State
+    (RFC 2865, клиенту не нужен) — не баг. Проблема TOTP у Horizon — сторона UAG.
+
+### 2026-09-22 МСК (8.1)
+
+- **fix(logs):** убрана нерабочая post-proxy-ветка логирования challenge
+  (`%{reply:Packet-Type}` в post-proxy даёт `0`, не матчит; `-X` подтвердил).
+  Challenge логируется через `Post-Auth-Type Challenge` — этого достаточно.
 
 ### 2026-09-22 МСК (7)
 
