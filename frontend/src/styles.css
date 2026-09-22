@@ -299,6 +299,18 @@ tbody tr:hover { background: var(--panel-2); }
 .tag.off { color: var(--muted); }
 .tag.danger { color: var(--danger); border-color: rgba(224, 107, 99, 0.45); background: var(--danger-dim); }
 .tag.warn { color: var(--warn); border-color: rgba(212, 160, 23, 0.4); background: rgba(212, 160, 23, 0.1); }
+
+/* self-diagnostics banner (ADR-0012) */
+.diag-banner {
+  border: 1px solid rgba(224, 107, 99, 0.45);
+  background: var(--danger-dim);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+.diag-banner b { color: var(--danger); }
+.diag-banner ul { margin: 8px 0 0; padding-left: 18px; }
+.diag-banner li { margin: 4px 0; }
 .tag.accent {
   color: var(--ir-accent);
   border-color: color-mix(in srgb, var(--ir-accent) 55%, var(--border));

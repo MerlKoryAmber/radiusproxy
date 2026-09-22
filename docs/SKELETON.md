@@ -4,7 +4,7 @@
 Обновлять **перед каждым push** (см. §22 CLAUDE.md). Читать после handoff и перед
 началом задачи. Если что-то тут расходится с кодом — код прав, а скелет чинить.
 
-**Обновлено:** 2026-09-13 МСК · ветка на момент правки: `feature/mail-alert-fallback`
+**Обновлено:** 2026-09-22 МСК · ветка на момент правки: `feature/self-healing-watchdog`
 
 ---
 
@@ -28,15 +28,17 @@
   Все сервисы с пустым `http(s)_proxy`/`no_proxy=*` (не ходят во внешний прокси).
 - **Хостовое CLI `rpp`** (`scripts/rpp.sh` + `scripts/lib/common.sh` → `/usr/bin/rpp`):
   меню/подкоманды update·uninstall·secrets·password·git-token·status·start/stop/restart
-  (systemd unit `radiusproxy.service`)·logs·backup/restore (`storage/backup/`)·url. ADR-паттерн
+  (systemd unit `radiusproxy.service`)·logs·backup/restore (`storage/backup/`)·**watchdog** (self-heal, ADR-0012, таймер `radiusproxy-watchdog.timer`)·url. ADR-паттерн
   `docs/patterns/cli-menu-linux.md`. Секреты `.env` (`APP_ENCRYPTION_KEY`/`JWT_SECRET`, compose из env).
 
 ## Backend `backend/app/`
 
 | Файл | Роль |
 |------|------|
-| `main.py` | FastAPI app, lifespan → `init_models()` + `_group_sync_loop` (синк AD) + `pool_down_watch` (алерт обхода 2FA), IntegrityError→409, CORS, include роутеров, `/api/health` |
+| `main.py` | FastAPI app, lifespan → `init_models()` + `_group_sync_loop` (синк AD) + `pool_down_watch` (алерт обхода 2FA) + `diagnostics_watch` (самодиагностика, ADR-0012), IntegrityError→409, CORS, include роутеров, `/api/health` |
 | `mailer.py` | SMTP-отправка (`send_mail`) + фоновый детектор `pool_down_watch` (тейл radius.log → письмо при уходе пула в fallback, ADR-0011) |
+| `diagnostics.py` | внутренний health-loop `diagnostics_watch` (все члены пула недоступны / FR-демон / DC) → снапшот `snapshot()` в dashboard + письмо; ADR-0012 |
+| `send_alert.py` | CLI `python -m app.send_alert <subject>` (body на stdin) — письмо для хостового watchdog (читает MailSettings + `mailer.send_mail`); ADR-0012 |
 | `config.py` | `Settings` (env): `database_url`, `proxy_conf_path`, `clients_conf_path`, `ldap_conf_path`, `ldap_ca_path`, `radius_check_cmd`, `radius_reload_cmd`, `cors_origins`. В compose пути = реальный `/etc/freeradius/3.0/*`, check=`freeradius -XC`, reload=`radius-reload.sh`. `get_settings()` (lru_cache) |
 | `Dockerfile` / `entrypoint.sh` / `radius-reload.sh` | backend-образ = panel + FreeRADIUS 3.2 (+ ldap/postgresql/utils). Панель управляет локальным FR |
 | `database.py` | async engine, `SessionLocal`, `Base`, `get_db()`, `init_models()` (create_all) |
@@ -113,7 +115,7 @@
 - `/api/decisions` GET (лог решений, фильтры username/realm) (`routers/decisions.py`)
 - `/api/logs/radius` GET (`?lines=&q=` — хвост `radius.log` FreeRADIUS: unknown client/bad secret; read-only) (`routers/logs.py`)
 - `/api/auth/status|login|settings|password` (`routers/auth.py`) — **открыт**; остальные data/config-роутеры под `Depends(require_user)` (гейт при auth on)
-- `/api/dashboard` GET — сводка (`routers/dashboard.py`)
+- `/api/dashboard` GET — сводка + `health` (снапшот самодиагностики ADR-0012) (`routers/dashboard.py`)
 - `/api/system/access` GET/PUT (ip_allowlist) · `/radius` GET/PUT (max_request_time → патч radiusd.conf + apply) · `/mail` GET/PUT + `/mail/test` POST (SMTP-алерты, ADR-0011) · `/tls` GET/PUT + `/tls/self-signed` POST · `/host` GET (`routers/system.py`)
 - `/api/health` (`main.py`). **Middleware:** IP-allowlist на `/api` (loopback всегда, пусто=все).
 

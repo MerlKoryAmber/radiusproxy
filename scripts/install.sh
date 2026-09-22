@@ -132,7 +132,7 @@ log "building and starting the stack (this can take a few minutes)…"
 docker compose -f "$INSTALL_DIR/docker-compose.yml" up -d --build
 
 # Install the host CLI (`rpp`) + systemd unit (subshell: don't clobber our log()).
-( INSTALL_DIR="$INSTALL_DIR" . "$INSTALL_DIR/scripts/lib/common.sh"; ensure_cli; ensure_unit ) \
+( INSTALL_DIR="$INSTALL_DIR" . "$INSTALL_DIR/scripts/lib/common.sh"; ensure_cli; ensure_unit; ensure_watchdog ) \
     && log "host CLI installed: rpp (menu) — try: sudo rpp" || warn "rpp CLI install skipped"
 
 wait_healthy || true

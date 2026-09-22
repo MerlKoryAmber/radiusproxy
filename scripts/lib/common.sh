@@ -9,6 +9,9 @@
 CLI_NAME="rpp"
 ETC_DIR="/etc/rpp"
 UNIT="radiusproxy.service"
+WATCHDOG_UNIT="radiusproxy-watchdog.service"   # oneshot: runs `rpp watchdog`
+WATCHDOG_TIMER="radiusproxy-watchdog.timer"    # fires it every minute
+WATCHDOG_STATE="/var/lib/radiusproxy/watchdog.state"  # counters/incident, on host
 
 # --- repo root -------------------------------------------------------------
 # Prefer the recorded path (survives being called via /usr/bin/rpp); else
@@ -113,4 +116,39 @@ remove_unit() {
     systemctl disable "$UNIT" >/dev/null 2>&1 || true
     rm -f "/etc/systemd/system/$UNIT"
     systemctl daemon-reload 2>/dev/null || true
+}
+
+# --- self-healing watchdog (systemd timer → `rpp watchdog`, ADR-0012) -------
+ensure_watchdog() {
+    command -v systemctl >/dev/null 2>&1 || { warn "no systemd — skipping watchdog."; return 0; }
+    mkdir -p "$(dirname "$WATCHDOG_STATE")"
+    cat > "/etc/systemd/system/$WATCHDOG_UNIT" <<UNITF
+[Unit]
+Description=FreeRADIUS Proxy Panel watchdog (self-heal + alert)
+After=docker.service $UNIT
+[Service]
+Type=oneshot
+WorkingDirectory=$REPO_ROOT
+ExecStart=/bin/bash $REPO_ROOT/scripts/rpp.sh watchdog
+UNITF
+    cat > "/etc/systemd/system/$WATCHDOG_TIMER" <<TIMERF
+[Unit]
+Description=Run the FreeRADIUS Proxy Panel watchdog every minute
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=1min
+AccuracySec=15s
+Unit=$WATCHDOG_UNIT
+[Install]
+WantedBy=timers.target
+TIMERF
+    systemctl daemon-reload
+    systemctl enable --now "$WATCHDOG_TIMER" >/dev/null 2>&1 || true
+}
+remove_watchdog() {
+    command -v systemctl >/dev/null 2>&1 || return 0
+    systemctl disable --now "$WATCHDOG_TIMER" >/dev/null 2>&1 || true
+    rm -f "/etc/systemd/system/$WATCHDOG_TIMER" "/etc/systemd/system/$WATCHDOG_UNIT"
+    systemctl daemon-reload 2>/dev/null || true
+    rm -f "$WATCHDOG_STATE"
 }

@@ -98,12 +98,31 @@ Settings → авто-восстановление **вкл/выкл** (отде
   есть для штатных падений; watchdog добавляет эскалацию и оповещение, а не
   дублирует его.
 
-## Проверка (план)
+## Реализация
 
-- Убить контейнер (`docker kill backend`) → watchdog рестартит, шлёт письма,
-  восстановление фиксируется.
-- Сломать так, что рестарт не помогает → эскалация до ребилда → до стоп+письмо,
-  проверить cooldown и предел (нет петли).
-- Погасить все члены пула → баннер + письмо, **без** рестарта контейнеров.
-- Убить freeradius-демон внутри → баннер + рестарт контейнера watchdog'ом.
-- Тумблер off → только алерты, авто-действий нет.
+- Внешний watchdog: `cmd_watchdog` (`scripts/rpp.sh`) + `ensure_watchdog`/
+  `remove_watchdog` (`scripts/lib/common.sh`, `radiusproxy-watchdog.{service,timer}`,
+  OnUnitActiveSec=1min); подключён в `install.sh`/`uninstall.sh`. Лесенка
+  restart×2→rebuild×1→gaveup, cooldown `WD_COOLDOWN=1800`, state
+  `/var/lib/radiusproxy/watchdog.state` + flock. Письмо — `_wd_alert` →
+  `python -m app.send_alert` (backend), fallback `sendmail`.
+- Отправка письма из bash: `backend/app/send_alert.py` (CLI, читает
+  `MailSettings`, зовёт `mailer.send_mail`).
+- Внутренний loop: `backend/app/diagnostics.py` (`diagnostics_watch`, ~30 с,
+  в `main.lifespan`), снапшот в `/api/dashboard` (`health`), письмо с дедупом.
+- Баннер: `frontend/src/pages/Dashboard.jsx` (`.diag-banner`).
+
+> **Примечание к объёму:** тумблер «авто-fix вкл/выкл» в Settings в этой итерации
+> **не** реализован — watchdog всегда активен, отключается снятием таймера
+> (`remove_watchdog` / `systemctl disable --now radiusproxy-watchdog.timer`).
+> Оставлено как возможное расширение.
+
+## Проверка
+
+- Синтаксис: `bash -n` всех скриптов + `py_compile` — OK. `freeradius -XC` не
+  затрагивается.
+- Live-план (на тесте): убить контейнер → рестарт+письма+recovery; сломать
+  неустранимо → эскалация до ребилда → стоп+письмо, проверить cooldown/предел;
+  погасить все члены пула → баннер+письмо без рестарта; убить FR-демон → баннер +
+  рестарт контейнера. Полная live-проверка эскалации/писем зависит от рабочего
+  SMTP — **частично TODO** (SMTP-relay недоступен).

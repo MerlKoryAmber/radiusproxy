@@ -42,7 +42,7 @@ log "rebuilding and restarting…"
 docker compose -f "$INSTALL_DIR/docker-compose.yml" up -d --build
 
 # Refresh the host CLI wrapper + systemd unit from the (possibly updated) tree.
-( INSTALL_DIR="$INSTALL_DIR" . "$SCRIPT_DIR/lib/common.sh"; ensure_cli; ensure_unit )
+( INSTALL_DIR="$INSTALL_DIR" . "$SCRIPT_DIR/lib/common.sh"; ensure_cli; ensure_unit; ensure_watchdog )
 
 log "waiting for health…"
 for _ in $(seq 1 60); do

@@ -170,6 +170,110 @@ cmd_restore() {
     log "restore done."
 }
 
+# --- self-healing watchdog (ADR-0012) --------------------------------------
+# Runs off a systemd timer (every ~1 min). Checks containers + API health; on
+# failure escalates restart×2 → rebuild×1 (same commit) → give up + email,
+# with a cooldown so it never loops. State is a file on the host (the DB may be
+# what is down). "All targets down" is NOT our failure — that is the backend's
+# internal loop + mail, not a restart trigger, so the watchdog only heals the
+# stack itself.
+WD_MAX_RESTART=2
+WD_MAX_REBUILD=1
+WD_COOLDOWN=1800          # seconds to stay hands-off after giving up
+WD_HEALTH_URL="http://localhost:8000/api/health"
+
+# state file: KEY=VALUE lines — phase, restarts, rebuilds, gave_up_at, incident
+_wd_get() { [ -f "$WATCHDOG_STATE" ] && sed -n "s/^$1=//p" "$WATCHDOG_STATE" | tail -1 || true; }
+_wd_set() {  # _wd_set KEY VALUE
+    mkdir -p "$(dirname "$WATCHDOG_STATE")"
+    touch "$WATCHDOG_STATE"
+    if grep -q "^$1=" "$WATCHDOG_STATE" 2>/dev/null; then
+        sed -i "s|^$1=.*|$1=$2|" "$WATCHDOG_STATE"
+    else
+        printf '%s=%s\n' "$1" "$2" >> "$WATCHDOG_STATE"
+    fi
+}
+_wd_reset() { : > "$WATCHDOG_STATE"; }
+
+# Healthy = every compose service running AND the API answers 200.
+_wd_healthy() {
+    local bad
+    bad="$(compose ps --format '{{.Service}} {{.State}}' 2>/dev/null | grep -vc ' running$' || true)"
+    [ "${bad:-1}" = "0" ] || return 1
+    [ "$(curl -s -o /dev/null -w '%{http_code}' "$WD_HEALTH_URL" 2>/dev/null)" = "200" ]
+}
+
+# Send an alert: prefer the panel's stored SMTP (via backend), else host MTA,
+# else just log — the backend's internal loop will mail once it is back up.
+_wd_alert() {  # _wd_alert SUBJECT BODY
+    local subj="$1" body="$2"
+    if compose exec -T backend python -m app.send_alert "$subj" <<<"$body" >/dev/null 2>&1; then
+        return 0
+    fi
+    if command -v sendmail >/dev/null 2>&1; then
+        printf 'Subject: %s\n\n%s\n' "$subj" "$body" | sendmail -t 2>/dev/null && return 0
+    fi
+    warn "watchdog: could not send alert ($subj)"
+    return 1
+}
+
+cmd_watchdog() {
+    need_root
+    # Serialize: overlapping timer runs must not stack.
+    exec 9>"${WATCHDOG_STATE}.lock" 2>/dev/null || true
+    flock -n 9 2>/dev/null || { log "watchdog: another run in progress — skipping this tick"; return 0; }
+
+    if _wd_healthy; then
+        # Recovered? announce once, then clear state.
+        if [ -n "$(_wd_get incident)" ]; then
+            _wd_alert "[RADIUS] Panel recovered" "The panel stack is healthy again ($(date '+%F %T %z'))." || true
+            log "watchdog: recovered — state cleared"
+        fi
+        _wd_reset
+        return 0
+    fi
+
+    # Unhealthy. Respect cooldown after a give-up.
+    local phase gave_up now
+    phase="$(_wd_get phase)"; phase="${phase:-none}"
+    gave_up="$(_wd_get gave_up_at)"; now="$(date +%s)"
+    if [ "$phase" = "gaveup" ]; then
+        if [ -n "$gave_up" ] && [ "$((now - gave_up))" -lt "$WD_COOLDOWN" ]; then
+            return 0   # hands-off window; human was already emailed
+        fi
+        _wd_reset; phase="none"   # cooldown elapsed — allow a fresh cycle
+    fi
+
+    [ -n "$(_wd_get incident)" ] || { _wd_set incident "$now"; _wd_set restarts 0; _wd_set rebuilds 0
+        _wd_alert "[RADIUS] Panel unhealthy" "Watchdog detected the stack is down/unhealthy ($(date '+%F %T %z')). Attempting automatic recovery." || true; }
+
+    local restarts rebuilds
+    restarts="$(_wd_get restarts)"; restarts="${restarts:-0}"
+    rebuilds="$(_wd_get rebuilds)"; rebuilds="${rebuilds:-0}"
+
+    if [ "$restarts" -lt "$WD_MAX_RESTART" ]; then
+        restarts=$((restarts+1)); _wd_set restarts "$restarts"; _wd_set phase "restart"
+        log "watchdog: restart attempt $restarts/$WD_MAX_RESTART"
+        _wd_alert "[RADIUS] Watchdog: restarting stack" "Restart attempt $restarts/$WD_MAX_RESTART ($(date '+%F %T %z'))." || true
+        compose restart >/dev/null 2>&1 || { compose down >/dev/null 2>&1; compose up -d >/dev/null 2>&1; }
+        return 0   # next timer tick re-checks health
+    fi
+
+    if [ "$rebuilds" -lt "$WD_MAX_REBUILD" ]; then
+        rebuilds=$((rebuilds+1)); _wd_set rebuilds "$rebuilds"; _wd_set phase "rebuild"
+        log "watchdog: rebuild attempt $rebuilds/$WD_MAX_REBUILD (same commit)"
+        _wd_alert "[RADIUS] Watchdog: rebuilding stack" "Restarts did not help — rebuilding the SAME commit $rebuilds/$WD_MAX_REBUILD ($(date '+%F %T %z')). This can take minutes." || true
+        compose up -d --build >/dev/null 2>&1 || true   # same checkout, NO git pull
+        return 0
+    fi
+
+    # Exhausted — stop touching the stack, escalate to a human, start cooldown.
+    _wd_set phase "gaveup"; _wd_set gave_up_at "$now"
+    log "watchdog: exhausted restart+rebuild — escalating to human"
+    _wd_alert "[RADIUS] Panel STILL down — manual action needed" \
+        "Automatic recovery failed after $WD_MAX_RESTART restart(s) and $WD_MAX_REBUILD rebuild(s) ($(date '+%F %T %z')). The watchdog will stay hands-off for $((WD_COOLDOWN/60)) min. Please investigate: sudo rpp status; sudo rpp logs." || true
+}
+
 cmd_url()  { _health; }
 cmd_help() {
     cat <<HELP
@@ -188,6 +292,7 @@ $CLI_NAME — FreeRADIUS Proxy Panel host CLI ($REPO_ROOT)
   logs              tail service logs
   backup            dump DB + .env to storage/backup/<stamp>/
   restore           restore DB (and optionally .env) from a backup
+  watchdog          one self-heal check (run by the systemd timer; ADR-0012)
   url               panel URL + health
   help              this text
 HELP
@@ -219,6 +324,7 @@ show_menu() {
   ${g}13.${o} Backup DB + config
   ${g}14.${o} Restore from backup
   ${g}15.${o} Panel URL / health
+  ${g}16.${o} Watchdog: run a self-heal check now
 ————————————————————————————————
 M
 }
@@ -227,7 +333,7 @@ run_menu() {
     need_root
     while true; do
         show_menu
-        local n; n="$(ask 'Please enter your selection [0-15]: ')"
+        local n; n="$(ask 'Please enter your selection [0-16]: ')"
         case "$n" in
             0)  exit 0 ;;
             1)  cmd_update || true ;;
@@ -245,7 +351,8 @@ run_menu() {
             13) cmd_backup || true ;;
             14) cmd_restore || true ;;
             15) cmd_url || true ;;
-            *)  echo "Please enter the correct number [0-15]" ;;
+            16) cmd_watchdog || true ;;
+            *)  echo "Please enter the correct number [0-16]" ;;
         esac
         _pause
     done
@@ -268,6 +375,7 @@ case "${1:-}" in
     logs)             cmd_logs ;;
     backup)           cmd_backup ;;
     restore)          cmd_restore ;;
+    watchdog)         cmd_watchdog ;;
     url)              cmd_url ;;
     *)                echo "Unknown command: $1 (try: $CLI_NAME help)" >&2; exit 1 ;;
 esac

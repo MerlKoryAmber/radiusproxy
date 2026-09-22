@@ -3,7 +3,22 @@
 Живой срез для следующего агента/сессии. Держать актуальным перед каждым смысловым
 push (§6/§10 CLAUDE.md). Время — **МСК (UTC+3)**.
 
-**Обновлено:** 2026-09-13 МСК (2)
+**Обновлено:** 2026-09-22 МСК
+
+> **НЕ в main (ветка `feature/self-healing-watchdog`, ждёт push+merge):** ADR-0012
+> самодиагностика. Внешний watchdog `rpp watchdog` (systemd
+> `radiusproxy-watchdog.timer` ~1 мин): контейнеры+`/api/health` → рестарт×2→
+> ребилд×1(тот же коммит)→стоп+письмо, cooldown 30мин, state
+> `/var/lib/radiusproxy/watchdog.state`+flock. Письмо — `app.send_alert` в
+> backend-контейнере (SMTP из MailSettings) / fallback `sendmail`. Внутренний
+> `diagnostics.py` (~30с): все члены пула недоступны / FR-демон / DC → баннер
+> (`/api/dashboard` health) + письмо. `Dashboard.jsx` баннер `.diag-banner`.
+> `install.sh`/`uninstall.sh` ставят/снимают таймер; меню rpp п.16.
+> **Тумблер авто-fix в Settings НЕ сделан** (отключение — снятием таймера).
+> Синтаксис (`bash -n`+`py_compile`) OK. **Live-эскалация/письма частично не
+> проверены** — нет рабочего SMTP; проверить убийством контейнера на тесте.
+
+**Обновлено (пред.):** 2026-09-13 МСК (2)
 
 > **НЕ в main (ветка `feature/mail-alert-fallback`, ждёт push+merge):** ADR-0011 —
 > SMTP-настройки (Settings→Почта) + email-алерт при активации обхода 2FA.

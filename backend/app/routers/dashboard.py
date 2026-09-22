@@ -72,9 +72,12 @@ async def dashboard(db: AsyncSession = Depends(get_db)):
         )
     ).scalars().all()
 
+    from ..diagnostics import snapshot as _diag_snapshot
+
     return {
         "counts": counts,
         "ad": ad,
+        "health": _diag_snapshot(),
         "freeradius_running": await asyncio.to_thread(_fr_running),
         "last_apply": (
             {

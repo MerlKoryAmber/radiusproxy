@@ -39,6 +39,22 @@ export default function Dashboard() {
         </button>
       </div>
 
+      {d.health && d.health.issues && d.health.issues.length > 0 && (
+        <div className="diag-banner">
+          <b>⚠ Self-diagnostics: {d.health.issues.length} issue(s)</b>
+          <ul>
+            {d.health.issues.map((i) => (
+              <li key={i.key}>
+                <span className={`tag ${i.severity === "critical" ? "danger" : "warn"}`}>
+                  {i.severity}
+                </span>{" "}
+                {i.message}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="cards cards-4">
         <Stat label="Clients" value={d.counts.clients} />
         <Stat label="Target servers" value={d.counts.targets} />

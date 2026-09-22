@@ -40,7 +40,7 @@ else
 fi
 
 # Remove the host CLI wrapper + systemd unit (subshell: keep our log()).
-( INSTALL_DIR="$INSTALL_DIR" . "$SCRIPT_DIR/lib/common.sh"; remove_unit; remove_cli ) \
+( INSTALL_DIR="$INSTALL_DIR" . "$SCRIPT_DIR/lib/common.sh"; remove_watchdog; remove_unit; remove_cli ) \
     && log "removed host CLI (rpp) + systemd unit" || true
 
 if [ "$PURGE" -eq 1 ]; then

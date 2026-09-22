@@ -5,6 +5,22 @@
 
 ## [Unreleased]
 
+### 2026-09-22 МСК (2)
+
+- **feat(ADR-0012):** самодиагностика + self-healing watchdog.
+  - Внешний watchdog: `rpp watchdog` (systemd `radiusproxy-watchdog.timer`, ~1 мин,
+    `ensure_watchdog`/`remove_watchdog` в `common.sh`, ставится install/снимается
+    uninstall). Проверяет контейнеры+`/api/health`; лесенка **рестарт×2 →
+    ребилд×1 (тот же коммит, без git pull) → стоп+письмо**, cooldown 30 мин,
+    состояние в `/var/lib/radiusproxy/watchdog.state` (flock от наложения).
+  - Письмо из watchdog — через `python -m app.send_alert` в backend-контейнере
+    (SMTP из `MailSettings`), fallback на хостовый `sendmail`.
+  - Внутренний health-loop (`diagnostics.py`, ~30 с, в lifespan): все члены пула
+    недоступны / FR-демон умер / DC недоступен → снапшот в `/api/dashboard`
+    (`health`) + письмо (дедуп по issue). Рестарт не инициирует.
+  - Dashboard-баннер (`Dashboard.jsx` + `.diag-banner`) при наличии проблем.
+  - Меню `rpp` пункт 16 «Watchdog: run a self-heal check now».
+
 ### 2026-09-22 МСК
 
 - **chore(graphify):** подключён Graphify (knowledge graph) для навигации по коду
