@@ -5,6 +5,12 @@
 
 ## [Unreleased]
 
+### 2026-09-22 МСК (6)
+
+- **fix(ui):** Server log — новые записи сверху (как в Decisions). Было
+  рассогласование: Decisions `id DESC` (новые вверху), Server log — порядок tail
+  (новые внизу). Теперь оба «свежее первым».
+
 ### 2026-09-22 МСК (5)
 
 - **fix(pool):** `username_uppercase` не возвращался в ответе API — `pools.py::_serialize`

@@ -147,7 +147,9 @@ function ServerLog() {
               </tr>
             </thead>
             <tbody>
-              {data.lines.map((l, i) => (
+              {/* newest first — same order as the Decisions tab (tail gives
+                  oldest→newest, so reverse for display) */}
+              {data.lines.slice().reverse().map((l, i) => (
                 <tr key={i}>
                   <td className="muted mono" style={{ whiteSpace: "nowrap" }}>
                     {l.ts ? new Date(l.ts).toLocaleString() : "—"}
