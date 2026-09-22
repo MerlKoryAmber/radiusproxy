@@ -451,13 +451,14 @@ async def render_policy_conf(db: AsyncSession) -> str:
 
     parts.append(
         "radiuspanel_srcip {\n"
-        f"{INDENT}# Inject the real originator IP if the NAS did not set one.\n"
+        f"{INDENT}# Preserve the real originator: overwrite NAS-IP-Address with the\n"
+        f"{INDENT}# address the packet actually came from, so the 2FA server sees\n"
+        f"{INDENT}# the real NAS (not this proxy). Gated by the client's toggle.\n"
+        f"{INDENT}# Transport is unchanged — the reply still comes back to us.\n"
         f'{INDENT}if ("%{{client:preserve_source_ip}}" == "yes") {{\n'
-        f"{INDENT}{INDENT}if (!&NAS-IP-Address) {{\n"
-        f"{INDENT}{INDENT}{INDENT}update proxy-request {{\n"
-        f"{INDENT}{INDENT}{INDENT}{INDENT}"
+        f"{INDENT}{INDENT}update proxy-request {{\n"
+        f"{INDENT}{INDENT}{INDENT}"
         '&NAS-IP-Address := "%{Packet-Src-IP-Address}"\n'
-        f"{INDENT}{INDENT}{INDENT}}}\n"
         f"{INDENT}{INDENT}}}\n"
         f"{INDENT}}}\n"
         f"{upper_block}"

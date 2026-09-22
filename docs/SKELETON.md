@@ -4,7 +4,7 @@
 Обновлять **перед каждым push** (см. §22 CLAUDE.md). Читать после handoff и перед
 началом задачи. Если что-то тут расходится с кодом — код прав, а скелет чинить.
 
-**Обновлено:** 2026-09-22 МСК · ветка на момент правки: `fix/challenge-log-postauth`
+**Обновлено:** 2026-09-22 МСК · ветка на момент правки: `fix/preserve-source-ip`
 
 ---
 
@@ -92,7 +92,7 @@
 
 - `render_home_server(TargetServer)`, `render_pool`, `render_realm_for_pool(name)` (realm=pool, nostrip) → `render_proxy_conf(db)` (proxy.conf; realm per pool, маршрут по клиенту).
 - `render_client` → `render_clients_conf(db)` (clients.conf; `preserve_source_ip = yes` custom-поле).
-- `render_policy_conf(db)` → `policy.d/radiuspanel`: `radiuspanel_route` — **ordered if/elsif по Rule** (матч `&Client-Shortname`[+`&User-Name =~ /wildcard/i`] → Proxy-To-Realm=пул + встроенный AD-гейт по DN + `&Tmp-String-1`; else reject) + `radiuspanel_srcip` + `radiuspanel_log`. Хелперы `_render_rule`, `_render_gate_body`, `_wildcard_to_regex`. Вызовы в site: authorize→route, pre-proxy→srcip, post-auth→log.
+- `render_policy_conf(db)` → `policy.d/radiuspanel`: `radiuspanel_route` — **ordered if/elsif по Rule** (матч `&Client-Shortname`[+`&User-Name =~ /wildcard/i`] → Proxy-To-Realm=пул + встроенный AD-гейт по DN + `&Tmp-String-1`; else reject) + `radiuspanel_srcip` + `radiuspanel_log`. Хелперы `_render_rule`, `_render_gate_body`, `_wildcard_to_regex`. Вызовы в site: authorize→route, pre-proxy→srcip, post-auth→log. `radiuspanel_srcip`: при `preserve_source_ip=yes` **всегда** перезаписывает `NAS-IP-Address := %{Packet-Src-IP-Address}` (2FA видит реальный источник; транспорт/ответ не меняются).
 - `render_sql_module()` → `mods-enabled/sql` (rlm_sql_postgresql → Postgres панели; только для adgate `%{sql:}`).
 - `render_ldap_module(cfg, *, mask_password=False)` → mods-enabled/ldap (+ `user{}` для bind-auth sAMAccountName **двойные кавычки**; `tls{}` при use_ldaps|start_tls).
 - `render_fallback_site()` → `sites-enabled/radiuspanel-fallback` (ADR-0009): vserver `radiuspanel_fallback` (SQL-гейт по правилу → ldap bind PAP → accept). `_fallback_pool_names(db)` → пулы с fallback-правилом; в proxy.conf `home_server radiuspanel-fallback{virtual_server}` + `fallback=` в пул. apply пишет/удаляет site.
