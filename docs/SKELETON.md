@@ -143,6 +143,10 @@
 
 **TABS:** **dashboard** → clients → targets → pools → rules → decisions → config → **portable** (Import/Export) → settings (Access/AD-LDAP/TLS/Host под-вкладки). Маршрут: ordered Rules (ADR-0004). HTTPS + IP-allowlist + no-proxy (ADR-0006). Импорт/экспорт JSON (ADR-0007).
 
+## Инструменты агента (`tools/`)
+
+- `rehydrate.sh` — старт сессии одним вызовом (CLAUDE.md §23): git-срез (ahead/behind, незакоммиченное, ветки вне main, stash), версии, верх handoff + «Хвосты»/«Не делать»/«Старт следующего агента», состояние графа graphify (есть/устарел/хуки), доступ к лабе (ключ, BOM в ssh config), карта docs. Только чтение; `--no-fetch` — офлайн.
+
 ## Скрипты деплоя (`scripts/`)
 
 - `install.sh` — ставит docker+compose (при отсутствии) + git, клонит репо в `INSTALL_DIR`

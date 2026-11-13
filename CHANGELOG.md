@@ -17,6 +17,12 @@
   FR), учёт ротации (copytruncate), стартовый засев с хвоста лога (4 МБ). Нет
   событий — живой. Сообщение баннера: «FreeRADIUS marked all targets of pool … dead».
   Проверка DC (LDAP, TCP) не менялась — там TCP корректен.
+- **feat(tools):** `tools/rehydrate.sh` — старт сессии агента одним вызовом
+  (git-срез, версии, верх handoff + хвосты, состояние графа graphify, доступ к
+  лабе, карта docs). CLAUDE.md §23: старт через rehydrate + как поднять graphify
+  на новой машине (граф локальный, в `.gitignore`: `pip install graphifyy` →
+  `graphify update .` → `graphify hook install`). handoff «Старт следующего агента»
+  начинается с rehydrate.
 
 ### 2026-09-22 МСК (10)
 

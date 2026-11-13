@@ -20,6 +20,9 @@ push (§6/§10 CLAUDE.md). Время — **МСК (UTC+3)**.
 > - `fix(ops)` host-env (`scripts/lib/host-env.sh`): `rpp update` сам дописывает
 >   `HOST_ADDRESSES`/`HOST_HOSTNAME` в `.env` без затирания секретов.
 > - `docs(rules)`: дельта из MKIdea `universal_rules` → CLAUDE.md (§2/§11/§16/§23).
+> - `tools/rehydrate.sh` — старт сессии одним вызовом; graphify поднят на Win-машине
+>   владельца (граф локальный). **Хвост:** git-хуки graphify (`graphify hook install`)
+>   на этой машине не поставлены — агенту запрещено писать постоянные хуки; ставит владелец.
 
 > **Всё нижеперечисленное — в main и развёрнуто.** Открытых веток/незакоммиченного
 > нет. main = `41345cd` (на момент правки).
@@ -262,6 +265,8 @@ FreeRADIUS Proxy Panel (`radiusproxy`) — веб-панель управлен�
 
 ## Старт следующего агента
 
+0. `bash tools/rehydrate.sh` — git-срез, этот handoff (верх/хвосты), граф, лаба — одним вызовом.
+   Нет графа — `graphify update .` (см. CLAUDE.md §23).
 1. Прочитать `CLAUDE.md` (правила выше дефолта), `docs/SKELETON.md` (карта — сверяться,
    не перечитывать код), этот handoff, `docs/adr/README.md` (реестр решений).
 2. `git fetch` + сверка `origin/main` (§8 — предполагать параллельные сессии).
