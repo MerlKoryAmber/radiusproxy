@@ -73,17 +73,20 @@ elif [ ! -f graphify-out/graph.json ]; then
 else
     mtime() { date -r "$1" +%s 2>/dev/null || stat -c %Y "$1"; }
     gtime="$(mtime graphify-out/graph.json)"
-    ctime="$(git log -1 --format=%ct)"
     nodes="$(grep -o '"id":' graphify-out/graph.json | wc -l | tr -d ' ')"
-    state="актуален"
-    # Устарел, если после сборки графа был коммит или правился код.
-    newer=0
-    [ "$ctime" -gt "$gtime" ] && newer=1
-    while read -r f; do
-        [ -f "$f" ] && [ "$(mtime "$f")" -gt "$gtime" ] && { newer=1; break; }
-    done < <(git status --short -- '*.py' '*.js' '*.jsx' '*.sh' | awk '{print $NF}')
-    [ "$newer" -eq 1 ] && state="устарел → graphify update ."
-    echo "граф: ~$nodes узлов, $state"
+    # Устарел = какой-то файл кода изменён на диске после сборки графа.
+    # Смотрим mtime, а НЕ время коммита: коммит лишь фиксирует уже учтённые
+    # правки (ложная тревога), а pull/checkout перезаписывают файлы → mtime растёт.
+    stale="$(git ls-files -co --exclude-standard -- '*.py' '*.js' '*.jsx' '*.sh' '*.ps1' \
+        | while read -r f; do
+              [ -f "$f" ] && [ "$(mtime "$f")" -gt "$gtime" ] && echo "$f"
+          done)"
+    if [ -n "$stale" ]; then
+        echo "граф: ~$nodes узлов, УСТАРЕЛ → graphify update .  (правило: после правок кода)"
+        echo "$stale" | head -5 | sed 's/^/  новее графа: /'
+    else
+        echo "граф: ~$nodes узлов, актуален"
+    fi
     echo "git-хуки авто-обновления:"
     graphify hook status 2>/dev/null | sed 's/^/  /'
 fi

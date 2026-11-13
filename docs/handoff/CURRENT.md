@@ -265,7 +265,8 @@ FreeRADIUS Proxy Panel (`radiusproxy`) — веб-панель управлен�
 
 ## Старт следующего агента
 
-0. `bash tools/rehydrate.sh` — git-срез, этот handoff (верх/хвосты), граф, лаба — одним вызовом.
+0. `bash tools/rehydrate.sh` (из PowerShell — `powershell -File tools\rehydrate.ps1`) —
+   git-срез, этот handoff (верх/хвосты), граф, лаба — одним вызовом.
    Нет графа — `graphify update .` (см. CLAUDE.md §23).
 1. Прочитать `CLAUDE.md` (правила выше дефолта), `docs/SKELETON.md` (карта — сверяться,
    не перечитывать код), этот handoff, `docs/adr/README.md` (реестр решений).

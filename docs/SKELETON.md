@@ -146,6 +146,7 @@
 ## Инструменты агента (`tools/`)
 
 - `rehydrate.sh` — старт сессии одним вызовом (CLAUDE.md §23): git-срез (ahead/behind, незакоммиченное, ветки вне main, stash), версии, верх handoff + «Хвосты»/«Не делать»/«Старт следующего агента», состояние графа graphify (есть/устарел/хуки), доступ к лабе (ключ, BOM в ssh config), карта docs. Только чтение; `--no-fetch` — офлайн.
+- `rehydrate.ps1` — обёртка для Windows PowerShell: находит `bash.exe` из Git for Windows (не в PATH) и запускает `rehydrate.sh`, консоль в UTF-8. Своей логики нет — только `.sh`. Файл ASCII (PS 5.1 читает .ps1 без BOM как ANSI).
 
 ## Скрипты деплоя (`scripts/`)
 

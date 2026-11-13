@@ -23,6 +23,13 @@
   на новой машине (граф локальный, в `.gitignore`: `pip install graphifyy` →
   `graphify update .` → `graphify hook install`). handoff «Старт следующего агента»
   начинается с rehydrate.
+- **feat(tools):** `tools/rehydrate.ps1` — запуск rehydrate из Windows PowerShell
+  (там `bash` не в PATH). Тонкая обёртка: находит `bash.exe` из Git for Windows
+  рядом с `git.exe` и запускает тот же `.sh`, консоль в UTF-8. Логика одна.
+- **fix(tools):** rehydrate — «граф устарел» теперь по mtime файлов кода
+  (`.py/.js/.jsx/.sh/.ps1`, tracked+untracked) против `graph.json`, а не по времени
+  коммита (коммит лишь фиксирует уже учтённые правки → ложная тревога). Печатает,
+  какие файлы новее графа; ловит и `git pull` чужих коммитов (pull обновляет mtime).
 
 ### 2026-09-22 МСК (10)
 
