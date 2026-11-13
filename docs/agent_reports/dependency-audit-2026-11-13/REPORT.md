@@ -112,3 +112,15 @@ postgresql 16 eol 2028-11-09 (есть 17, 18) · debian 12 eol 2028-06, 13 eol 
 Редирект 80→443 (`5b2b038`): `nginx.conf` — шаблон с `PANEL_HTTPS_PORT`; `http://…:18080/` → 301 `https://…:18443/` → 200, `nginx -t` OK, `$host` и пр. не тронуты.
 
 Хвост: npm 11 `allowScripts` для esbuild (предупреждение, сборка ОК).
+
+### UI-прогон в браузере (§4), 2026-11-13 МСК
+
+Встроенный браузер, `https://172.22.76.122:18443` (self-signed серт лабы добавлен в доверенные Windows вручную владельцем).
+
+- Все разделы открываются без ошибок, данные NPS-импорта видны: Clients 4, Target servers 2, Pools 2, Rules 7.
+- Settings: все подвкладки (Access, AD/LDAP, RADIUS, Mail, TLS, Host) рендерятся. TLS показывает текущий self-signed. Host: `localhost` + IP хоста.
+- AD/LDAP → «Test connection» даёт честный отказ «Server host / IP is empty».
+- F5 оставляет на текущей вкладке (`radpanel_tab`).
+- Config & apply: в `ConfirmDialog` нажато «Apply & reload» → «validated: true · reloaded: true», рестартов 0.
+- Внешних запросов нет, шрифт Inter локальный (4 woff), ошибок в консоли нет.
+- Не проверено руками: загрузка файлов (TLS PEM, импорт JSON через `FileButton`) — выбор файла встроенным браузером недоступен; API импорта проверен отдельно.
