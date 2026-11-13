@@ -16,7 +16,9 @@ env_upsert() {  # env_upsert FILE KEY VALUE
     [ -f "$file" ] || : > "$file"
     if grep -q "^${key}=" "$file" 2>/dev/null; then
         tmp="$(mktemp)"
-        grep -v "^${key}=" "$file" > "$tmp"
+        # grep -v exits 1 when NO lines remain (the file held only this key) —
+        # under set -e that silently killed update.sh on a .env with one key.
+        grep -v "^${key}=" "$file" > "$tmp" || true
         printf '%s=%s\n' "$key" "$val" >> "$tmp"
         cat "$tmp" > "$file"
         rm -f "$tmp"
