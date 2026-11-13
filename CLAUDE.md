@@ -206,7 +206,7 @@ baseline → dry-run → регресс → apply с бэкапом → пров
 | Язык | Русский (ответы, docs, текст коммитов после двоеточия) |
 | Стиль | Conventional Commits + caveman-ответы (§13) |
 | Что это | Веб-панель управления проксированием RADIUS в FreeRADIUS 3.2.x — редактор `proxy.conf` (home_server / home_server_pool / realm) с превью, валидацией `freeradius -XC` и безопасным apply с откатом |
-| Стек | Python 3.12, FastAPI 0.115, SQLAlchemy 2.0 (async), Pydantic 2, Postgres 16 (asyncpg) / SQLite (aiosqlite) fallback; React 18 + Vite 6, nginx; Docker Compose |
+| Стек | Python 3.12, FastAPI 0.162, SQLAlchemy 2.1 (async, `[asyncio]`), Pydantic 2, Postgres 16 (asyncpg) / SQLite (aiosqlite) fallback; React 18 + Vite 6, nginx 1.30; Docker Compose |
 | Ключевой модуль | Вся FreeRADIUS-специфика рендера — только в `backend/app/radius_config.py` (рендерер меняется без правки API/модели) |
 | Backend | `backend/app` — `main.py`, `models.py`, `schemas.py`, `crud.py`, `database.py`, `config.py`, `radius_config.py`, `routers/` |
 | Данные | Панель держит **свою** БД (home_servers, pools, realms, audit log); FreeRADIUS для проксирования БД не нужен — конфиг рендерится в `proxy.conf` |

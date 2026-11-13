@@ -7,6 +7,30 @@
 
 ### 2026-11-13 МСК
 
+- **fix(security):** закрыт обход IP-allowlist (Settings → Access). Два вектора,
+  оба воспроизведены на лабе до фикса (allowlist чужой сети → честный запрос 403,
+  а `X-Real-IP: 127.0.0.1` на `:8000` → 200 и `Host: x/api/health#` → 200):
+  1) API-порт был опубликован на всех интерфейсах, и `X-Real-IP` принимался от
+  любого клиента — теперь `127.0.0.1:${API_PORT}`, снаружи только через nginx;
+  2) путь брался из `request.url.path`, который Starlette < 0.49 собирает из `Host`
+  (GHSA-86qp-5c8j-p5mr) — теперь из ASGI `scope["path"]`. После фикса: `:8000`
+  снаружи закрыт, все трюки → 403/400.
+- **chore(deps):** обновление по аудиту (`docs/agent_reports/dependency-audit-2026-11-13/`):
+  fastapi 0.115.6→0.162.5 (starlette 0.41.3→1.10.0), uvicorn 0.54.0,
+  `sqlalchemy[asyncio]` 2.1.8 (extra обязателен с 2.1 — иначе нет greenlet),
+  pydantic 2.14.3, pydantic-settings 2.16.2, aiosqlite 0.22.1, asyncpg 0.32.0,
+  cryptography 50.0.2; база backend закреплена `python:3.12-slim-trixie`
+  (FreeRADIUS 3.2.7); сборка фронта node 20 (EOL) → 24; nginx 1.27 (EOL) → 1.30;
+  lock: vite 6.4.6, source-map-js 1.2.2 — `npm audit` 0 уязвимостей.
+- **feat(ops):** порты стека настраиваются через `.env` (`PANEL_HTTP_PORT`,
+  `PANEL_HTTPS_PORT`, `API_PORT`, `RADIUS_AUTH_PORT`, `RADIUS_ACCT_PORT`; умолчания
+  прежние). `host-env.sh load_ports` читают install/update/rpp (health, подсказки).
+  Нужно, чтобы стек жил на хосте рядом с чужими сервисами.
+- **Лаба** (CentOS Stream 9, соседние podman/docker-проекты на 80/443/1812):
+  стек на 18080/18443/18000/11812/11813, обновление `update.sh` прошло, health OK,
+  `freeradius -XC` OK, рестартов 0, соседи (14 контейнеров) не задеты; импорт
+  NPS-бандла 15 объектов (dry-run → apply → повтор = 15 update), apply validated.
+
 - **fix(diagnostics, ADR-0012):** ложный critical «All targets of pool … are
   unreachable» на Dashboard при живых пулах (прод: LinOTP/hmk2fa работали через
   этот же прокси). Причина: самодиагностика проверяла таргет **TCP**-коннектом на

@@ -25,6 +25,13 @@ curl -fsSL https://raw.githubusercontent.com/MerlKoryAmber/radiusproxy/main/scri
   предупреждает; заменить в Settings → TLS).
 - **Вход** по умолчанию выключен; дефолтный админ `admin` / `admin` — сменить.
 - **RADIUS:** `:1812/udp` (auth), `:1813/udp` (acct).
+- **API** `:8000` — только `127.0.0.1` хоста; снаружи API доступно через панель (`https://…/api`).
+
+**Порты на занятом хосте** (80/443/1812 уже заняты другим сервисом): задать в
+`/opt/radiusproxy/.env` `PANEL_HTTP_PORT` / `PANEL_HTTPS_PORT` / `API_PORT` /
+`RADIUS_AUTH_PORT` / `RADIUS_ACCT_PORT`, затем `sudo rpp update`. Не задано — 80/443/8000/1812/1813.
+Ограничение: редирект `http → https` ведёт на 443 — при сменённом HTTPS-порте
+открывать панель сразу по `https://<хост>:<PANEL_HTTPS_PORT>`.
 
 **Сразу после установки задать боевые секреты и пароль:**
 
@@ -145,6 +152,9 @@ Settings → **Mail**: SMTP-сервер (host/port), шифрование (не
 - **HTTPS** только (nginx 443, 80 → 301), self-signed из коробки — заменить
   сертификат в Settings → TLS.
 - **Ограничение доступа по IP** (Settings → Access) с защитой от самоблокировки.
+  Работает только через nginx: API-порт опубликован на `127.0.0.1`, nginx сам
+  выставляет `X-Real-IP` — подделать IP заголовком снаружи нельзя. Не публиковать
+  `API_PORT` на внешний интерфейс.
 - `.env`, ключи, дампы БД в git не хранятся; бэкапы — `rpp backup`.
 
 ## Документация

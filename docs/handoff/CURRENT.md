@@ -139,8 +139,11 @@ FreeRADIUS Proxy Panel (`radiusproxy`) — веб-панель управлен�
 в FreeRADIUS 3.2.x. Редактор `proxy.conf` (home_server / home_server_pool / realm)
 с превью, валидацией `freeradius -XC` и безопасным apply с откатом.
 
-- **Стек:** Python 3.12, FastAPI 0.115, SQLAlchemy 2.0 async, Pydantic 2,
-  Postgres 16 (asyncpg) / SQLite (aiosqlite) fallback; React 18 + Vite 6, nginx; Docker Compose.
+- **Стек:** Python 3.12 (Debian trixie, FreeRADIUS 3.2.7), FastAPI 0.162 / Starlette 1.10,
+  SQLAlchemy 2.1 async (`[asyncio]`), Pydantic 2.14, Postgres 16 (asyncpg) / SQLite
+  (aiosqlite) fallback; React 18 + Vite 6 (сборка node 24), nginx 1.30; Docker Compose.
+  Версии обновлены 2026-11-13 (ветка `fix/deps-2026-11`, аудит —
+  `docs/agent_reports/dependency-audit-2026-11-13/REPORT.md`).
 - **Ключевой модуль:** вся FreeRADIUS-специфика рендера — только в
   `backend/app/radius_config.py`.
 - **Данные:** панель держит свою БД (home_servers, pools, realms, audit log);
@@ -228,6 +231,18 @@ FreeRADIUS Proxy Panel (`radiusproxy`) — веб-панель управлен�
 
 ## Хвосты (открыто)
 
+- **Ветка `fix/deps-2026-11`** (локальная, не в origin): порты через `.env` + фикс
+  обхода IP-allowlist + обновление зависимостей. Проверена на лабе 172.22.76.122
+  (см. CHANGELOG 2026-11-13). Ждёт команды на merge/push в main.
+- **Редирект 80→443 не знает `PANEL_HTTPS_PORT`:** nginx `return 301 https://$host…`
+  ведёт на 443. При сменённом порте — заходить сразу по https-порту. Фикс: шаблон
+  nginx (`/etc/nginx/templates`, envsubst) с портом из env.
+- **npm 11 (node 24) `install-scripts`:** postinstall `esbuild` не одобрен
+  (`allowScripts`) — сборка проходит (бинарь из `@esbuild/linux-x64`), но при
+  следующем мажоре проверить/одобрить явно.
+- **Лаба 172.22.76.122:** IP меняется после ребута Windows (Hyper-V Default Switch);
+  стек в `/opt/radiusproxy` на нестандартных портах (соседние проекты на 80/443/1812 — не трогать).
+
 - Нет `README.md#security` разбора для прод-выкатки (привилегированная запись конфигов + reload).
 - Нет тестов (`backend`/`frontend`), нет гейта `make verify` — §4 верификация вручную.
 - **Нет Alembic:** схема через `create_all` — новые таблицы создаются, но новые колонки
@@ -272,7 +287,8 @@ FreeRADIUS Proxy Panel (`radiusproxy`) — веб-панель управлен�
    не перечитывать код), этот handoff, `docs/adr/README.md` (реестр решений).
 2. `git fetch` + сверка `origin/main` (§8 — предполагать параллельные сессии).
 3. Запуск/деплой: `docker compose up -d --build` (или `scripts/install.sh` на чистом хосте,
-   `rpp`/`update.sh` на существующем). Наружу frontend **80/443**, backend `:8000`, db `:5432`.
+   `rpp`/`update.sh` на существующем). Наружу frontend **80/443**, RADIUS 1812/1813udp;
+   backend `:8000` только на `127.0.0.1` хоста (порты меняются в `.env`, см. README).
    Панель: `https://<host>` (self-signed). Логин по умолчанию OFF, admin/admin.
 4. Тест-сервер `192.168.0.178` — только если есть локальный SSH-ключ `~/.ssh/radiusproxy_ed25519`
    (не в git). Иначе разворачивать свой хост через `scripts/install.sh`.

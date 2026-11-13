@@ -4,16 +4,17 @@
 Обновлять **перед каждым push** (см. §22 CLAUDE.md). Читать после handoff и перед
 началом задачи. Если что-то тут расходится с кодом — код прав, а скелет чинить.
 
-**Обновлено:** 2026-09-22 МСК · ветка на момент правки: `fix/preserve-source-ip`
+**Обновлено:** 2026-11-13 МСК · ветка на момент правки: `fix/deps-2026-11`
 
 ---
 
 ## Стек и запуск
 
-- Backend: FastAPI + SQLAlchemy 2.0 async + Pydantic 2. БД: Postgres 16 (asyncpg) /
-  SQLite (aiosqlite) fallback. Схема — `Base.metadata.create_all` на старте (**нет Alembic**).
-- Frontend: React 18 + Vite 6, nginx. Fetch-обёртка `/api` → backend.
-- **FreeRADIUS 3.2 в backend-контейнере** (Debian bookworm) — панель пишет в реальный
+- Backend: FastAPI 0.162 (Starlette 1.10) + SQLAlchemy 2.1 async (`[asyncio]` — greenlet)
+  + Pydantic 2.14. БД: Postgres 16 (asyncpg) / SQLite (aiosqlite) fallback.
+  Схема — `Base.metadata.create_all` на старте (**нет Alembic**).
+- Frontend: React 18 + Vite 6 (сборка node 24), nginx 1.30. Fetch-обёртка `/api` → backend.
+- **FreeRADIUS 3.2.7 в backend-контейнере** (`python:3.12-slim-trixie`, Debian trixie) — панель пишет в реальный
   `/etc/freeradius/3.0`, валидирует `freeradius -XC`, перезагружает
   (`radius-reload.sh`). `entrypoint.sh` стартует FR (если конфиг валиден) + uvicorn.
   **Site вшит в образ** (`backend/freeradius/site-default` → `sites-enabled/default`):
@@ -23,7 +24,10 @@
   самовосстановление после ребилда). ADR-0008.
 - **HTTPS:** backend генерит self-signed cert в БД+том `panelcerts`; frontend nginx `443 ssl`
   + `80→443`, авто-reload по inotify при смене cert. Наружу **80/443** (не 8080).
-- Деплой: `docker compose up -d --build` (db / backend :8000+1812/1813udp / frontend :80+:443).
+- Деплой: `docker compose up -d --build` (db / backend `127.0.0.1:8000`+1812/1813udp / frontend :80+:443).
+  Хост-порты — из `.env` (`PANEL_HTTP_PORT`/`PANEL_HTTPS_PORT`/`API_PORT`/`RADIUS_AUTH_PORT`/`RADIUS_ACCT_PORT`,
+  `host-env.sh load_ports`). API только на loopback: IP-allowlist (`main._ip_allowlist`)
+  верит `X-Real-IP`, т.к. единственный внешний путь — nginx; путь берёт из `scope["path"]`.
   Все сервисы `restart: unless-stopped` — встают сами после ребута хоста.
   Все сервисы с пустым `http(s)_proxy`/`no_proxy=*` (не ходят во внешний прокси).
 - **Хостовое CLI `rpp`** (`scripts/rpp.sh` + `scripts/lib/common.sh` → `/usr/bin/rpp`):
@@ -156,7 +160,7 @@
 - `update.sh` — `git pull` + `compose up -d --build` (`--no-pull` = без pull); обновляет `rpp`+unit.
 - `uninstall.sh` — `compose down -v --rmi local` (`--keep-data`, `--purge`); снимает `rpp`+unit.
 - `rpp.sh` + `lib/common.sh` — хостовое CLI-меню (`/usr/bin/rpp`): все операции + backup/restore/password/secrets. Паттерн `docs/patterns/cli-menu-linux.md`.
-- `lib/host-env.sh` (`write_host_env`/`env_upsert`) — идемпотентно дозаполняет `HOST_ADDRESSES`/`HOST_HOSTNAME` в `.env` без затирания секретов; зовётся из `install.sh` и `update.sh`, чтобы Settings→Host был верным без ручных правок на сервере.
+- `lib/host-env.sh` (`write_host_env`/`env_upsert`) — идемпотентно дозаполняет `HOST_ADDRESSES`/`HOST_HOSTNAME` в `.env` без затирания секретов; зовётся из `install.sh` и `update.sh`, чтобы Settings→Host был верным без ручных правок на сервере. `load_ports` — экспорт хост-портов из `.env` (умолчания 80/443/8000/1812/1813) для health/подсказок install/update/rpp.
 - `lib/docker-proxy.sh` (`apply_docker_proxy`) — прокси для pull/build на хостах без прямого `docker.io`: резолвит прокси из env/`/etc/environment`, пишет systemd drop-in для dockerd (чинит pull) + экспортит `HTTP(S)_PROXY`/`NO_PROXY` для build. Зовётся из `install.sh`/`update.sh` до `compose up --build`; `docker-compose.yml build.args` пробрасывают в apt/npm. Runtime контейнеров не трогает. Knob: `DOCKER_HTTP_PROXY`, `DOCKER_PROXY_SKIP=1`.
 **Auth-гейт (App.jsx):** на старте `api.auth.status()`; 401 → `<Login>`; иначе shell. Имя юзера в топбаре → дропдаун (Change password с подтверждением / Log out).
 
