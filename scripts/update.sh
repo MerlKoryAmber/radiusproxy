@@ -12,6 +12,11 @@ set -euo pipefail
 
 log()  { printf '\033[1;36m[update]\033[0m %s\n' "$*"; }
 die()  { printf '\033[1;31m[update] ERROR:\033[0m %s\n' "$*" >&2; exit 1; }
+# set -e exits silently on any failing command (incl. inside sourced lib
+# functions — hence -E). Name the line + command instead of a mute stop.
+set -E
+trap 'rc=$?; printf "[1;31m[update] ERROR:[0m failed (rc=%s) at %s:%s: %s
+" "$rc" "${BASH_SOURCE[0]##*/}" "$LINENO" "$BASH_COMMAND" >&2' ERR
 
 [ "$(id -u)" -eq 0 ] || die "run as root (sudo)."
 
