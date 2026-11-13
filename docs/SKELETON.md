@@ -37,7 +37,7 @@
 |------|------|
 | `main.py` | FastAPI app, lifespan → `init_models()` + `_group_sync_loop` (синк AD) + `pool_down_watch` (алерт обхода 2FA) + `diagnostics_watch` (самодиагностика, ADR-0012) + `_decision_cleanup_loop` (ретенция proxy_decision, ADR-0013), IntegrityError→409, CORS, include роутеров, `/api/health` |
 | `mailer.py` | SMTP-отправка (`send_mail`) + фоновый детектор `pool_down_watch` (тейл radius.log → письмо при уходе пула в fallback, ADR-0011) |
-| `diagnostics.py` | внутренний health-loop `diagnostics_watch` (все члены пула недоступны / FR-демон / DC) → снапшот `snapshot()` в dashboard + письмо; ADR-0012 |
+| `diagnostics.py` | внутренний health-loop `diagnostics_watch` (все члены пула помечены FR dead — из `radius.log`, `_update_hs_state` / FR-демон / DC по TCP) → снапшот `snapshot()` в dashboard + письмо; ADR-0012 |
 | `send_alert.py` | CLI `python -m app.send_alert <subject>` (body на stdin) — письмо для хостового watchdog (читает MailSettings + `mailer.send_mail`); ADR-0012 |
 | `config.py` | `Settings` (env): `database_url`, `proxy_conf_path`, `clients_conf_path`, `ldap_conf_path`, `ldap_ca_path`, `radius_check_cmd`, `radius_reload_cmd`, `cors_origins`. В compose пути = реальный `/etc/freeradius/3.0/*`, check=`freeradius -XC`, reload=`radius-reload.sh`. `get_settings()` (lru_cache) |
 | `Dockerfile` / `entrypoint.sh` / `radius-reload.sh` | backend-образ = panel + FreeRADIUS 3.2 (+ ldap/postgresql/utils). Панель управляет локальным FR |

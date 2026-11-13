@@ -5,6 +5,19 @@
 
 ## [Unreleased]
 
+### 2026-11-13 МСК
+
+- **fix(diagnostics, ADR-0012):** ложный critical «All targets of pool … are
+  unreachable» на Dashboard при живых пулах (прод: LinOTP/hmk2fa работали через
+  этот же прокси). Причина: самодиагностика проверяла таргет **TCP**-коннектом на
+  `ip:1812`, а RADIUS — **UDP**; живой 2FA TCP не слушает → всегда «недоступен».
+  Теперь «пул лёг» = FreeRADIUS сам пометил dead **все** его члены (ADR-0010):
+  `diagnostics._update_hs_state` читает `radius.log` (`Marking home server IP port
+  N dead/zombie/alive`), сброс вердиктов на `Ready to process requests` (рестарт
+  FR), учёт ротации (copytruncate), стартовый засев с хвоста лога (4 МБ). Нет
+  событий — живой. Сообщение баннера: «FreeRADIUS marked all targets of pool … dead».
+  Проверка DC (LDAP, TCP) не менялась — там TCP корректен.
+
 ### 2026-09-22 МСК (10)
 
 - **fix(ops):** host-факты в `.env` (`HOST_ADDRESSES`/`HOST_HOSTNAME`) теперь

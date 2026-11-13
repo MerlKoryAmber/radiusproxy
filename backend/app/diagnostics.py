@@ -14,6 +14,8 @@ the host watchdog to restart the container.
 from __future__ import annotations
 
 import asyncio
+import os
+import re
 import socket
 import subprocess
 from datetime import datetime, timezone
@@ -21,8 +23,60 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
+from .config import get_settings
+
 # Latest snapshot, read by routers/dashboard.py. Empty `issues` = healthy.
 _status: dict = {"checked_at": None, "issues": [], "ok": True}
+
+# Target health = FreeRADIUS's own verdict (ADR-0010), NOT a probe of ours.
+# RADIUS is UDP: a TCP connect to :1812 always fails on a live 2FA server, and a
+# bare UDP packet proves nothing without a valid request + secret. FR already
+# tracks every home_server (status_check pings / real-traffic timeouts) and logs
+# each state change by IP:port, e.g.
+#   Proxy: Marking home server 172.26.13.229 port 1812 as dead.
+#   Proxy: Marking home server 172.26.13.229 port 1812 as zombie (...)
+#   Proxy: Marking home server 172.26.13.229 port 1812 alive again...
+_HS_MARK = re.compile(r"Marking home server (\S+) port (\d+) (?:as )?(dead|zombie|alive)")
+# FR (re)start → every home_server starts alive in FR's memory; drop old verdicts.
+_FR_READY = re.compile(r"Ready to process requests")
+_SEED_BYTES = 4 * 1024 * 1024  # on first read, scan recent history only
+
+_hs_state: dict[tuple[str, int], str] = {}  # (ip, port) -> dead|zombie|alive
+_log_pos: int | None = None
+
+
+def _update_hs_state() -> None:
+    """Advance through radius.log and keep FR's latest verdict per home server.
+    Unknown (no event seen) = treated as up: we only report what FR concluded."""
+    global _log_pos
+    path = get_settings().radius_log_path
+    try:
+        size = os.path.getsize(path)
+    except OSError:
+        return
+    if _log_pos is None:
+        start = max(0, size - _SEED_BYTES)
+    elif size < _log_pos:  # rotated/truncated (logrotate copytruncate, ADR-0013)
+        start = 0
+    else:
+        start = _log_pos
+    if size == start:
+        _log_pos = size
+        return
+    try:
+        with open(path, "rb") as f:
+            f.seek(start)
+            data = f.read()
+    except OSError:
+        return
+    _log_pos = start + len(data)
+    for line in data.decode("utf-8", "replace").splitlines():
+        if _FR_READY.search(line):
+            _hs_state.clear()
+            continue
+        m = _HS_MARK.search(line)
+        if m:
+            _hs_state[(m.group(1), int(m.group(2)))] = m.group(3)
 
 
 def snapshot() -> dict:
@@ -60,7 +114,9 @@ async def _collect_issues(db) -> list[dict]:
             "message": "FreeRADIUS daemon is not running in the backend container.",
         })
 
-    # 2) Every enabled member of a pool unreachable (external 2FA outage).
+    # 2) FreeRADIUS marked every enabled member of a pool dead (external 2FA
+    #    outage). Source: radius.log state changes — see _update_hs_state.
+    await asyncio.to_thread(_update_hs_state)
     pools = (
         await db.execute(
             select(models.HomeServerPool)
@@ -78,15 +134,12 @@ async def _collect_issues(db) -> list[dict]:
         ]
         if not members:
             continue
-        reach = await asyncio.gather(*[
-            asyncio.to_thread(_tcp_reachable, t.ipaddr, t.port) for t in members
-        ])
-        if not any(reach):
+        if all(_hs_state.get((t.ipaddr, t.port)) == "dead" for t in members):
             issues.append({
                 "key": f"pool-down:{pool.name}",
                 "severity": "critical",
                 "message": (
-                    f"All targets of pool '{pool.name}' are unreachable "
+                    f"FreeRADIUS marked all targets of pool '{pool.name}' dead "
                     f"({', '.join(f'{t.ipaddr}:{t.port}' for t in members)})."
                 ),
             })
