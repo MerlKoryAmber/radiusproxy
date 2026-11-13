@@ -10,7 +10,9 @@ RUN npm run build
 FROM nginx:1.30-alpine
 # inotify-tools: reload nginx when the backend replaces the TLS cert.
 RUN apk add --no-cache inotify-tools openssl
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# As a template: the image's 20-envsubst-on-templates.sh renders it to
+# conf.d/default.conf with PANEL_HTTPS_PORT (redirect target) at start.
+COPY nginx.conf /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY entrypoint.sh /docker-entrypoint.d/99-radiuspanel-tls.sh
 RUN chmod +x /docker-entrypoint.d/99-radiuspanel-tls.sh

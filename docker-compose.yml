@@ -97,6 +97,8 @@ services:
     depends_on:
       - backend
     environment:
+      # Host-side HTTPS port for the 80→443 redirect (nginx.conf is a template).
+      PANEL_HTTPS_PORT: "${PANEL_HTTPS_PORT:-443}"
       no_proxy: "*"
       NO_PROXY: "*"
       http_proxy: ""
