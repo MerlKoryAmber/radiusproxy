@@ -139,7 +139,7 @@ async def test_mail(data: schemas.MailTestIn, db: AsyncSession = Depends(get_db)
         send_mail(
             row,
             subject="[RADIUS] Проверка почты",
-            body="Тестовое письмо от FreeRADIUS Proxy Panel. "
+            body="Тестовое письмо от MK RadiusProxy. "
             "Если вы его получили — отправка алертов настроена верно.",
             to_override=data.to,
         )

@@ -1,5 +1,5 @@
 {
-  "name": "freeradius-proxy-panel",
+  "name": "mk-radiusproxy",
   "private": true,
   "version": "0.1.0",
   "type": "module",

@@ -190,7 +190,7 @@ async def diagnostics_watch() -> None:
                 when = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d %H:%M:%S %z")
                 body = "Panel self-diagnostics detected new issue(s):\n\n" + "\n".join(
                     f"  • [{i['severity']}] {i['message']}" for i in new
-                ) + f"\n\nTime: {when}\n— FreeRADIUS Proxy Panel"
+                ) + f"\n\nTime: {when}\n— MK RadiusProxy"
                 try:
                     await asyncio.to_thread(
                         send_mail, cfg,

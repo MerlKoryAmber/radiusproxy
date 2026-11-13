@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# FreeRADIUS Proxy Panel — installer.
+# MK RadiusProxy — installer.
 #
 # Installs the panel and everything it needs to run on a fresh Linux host:
 #   - Docker Engine + the compose plugin (if missing)
@@ -140,7 +140,7 @@ wait_healthy || true
 ip="$(hostname -I 2>/dev/null | awk '{print $1}')"; ip="${ip:-<host-ip>}"
 cat <<DONE
 
-$(printf '\033[1;32m[install] FreeRADIUS Proxy Panel is up.\033[0m')
+$(printf '\033[1;32m[install] MK RadiusProxy is up.\033[0m')
 
   Panel UI : https://${ip}:${PANEL_HTTPS_PORT}   (self-signed cert — browser will warn; replace it in Settings → TLS)
   API      : http://127.0.0.1:${API_PORT}   (host-only; from outside — via the panel https)

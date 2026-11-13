@@ -135,7 +135,7 @@ push (§6/§10 CLAUDE.md). Время — **МСК (UTC+3)**.
 
 ## Срез проекта
 
-FreeRADIUS Proxy Panel (`radiusproxy`) — веб-панель управления проксированием RADIUS
+MK RadiusProxy (`radiusproxy`) — веб-панель управления проксированием RADIUS
 в FreeRADIUS 3.2.x. Редактор `proxy.conf` (home_server / home_server_pool / realm)
 с превью, валидацией `freeradius -XC` и безопасным apply с откатом.
 

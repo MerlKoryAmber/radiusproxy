@@ -30,7 +30,7 @@ export default function Login({ onLoggedIn }) {
             <img src="/logo.png" alt="" />
           </span>
           <div>
-            <b>RADIUS Proxy</b>
+            <b>MK RadiusProxy</b>
             <span>3.2</span>
           </div>
         </div>

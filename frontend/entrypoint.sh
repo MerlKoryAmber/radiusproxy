@@ -17,7 +17,7 @@ if [ ! -s "$CERT_DIR/cert.pem" ]; then
     echo "[tls] backend cert not present yet — generating a stopgap"
     openssl req -x509 -newkey rsa:2048 -nodes \
         -keyout "$CERT_DIR/key.pem" -out "$CERT_DIR/cert.pem" \
-        -days 3650 -subj "/CN=radius-proxy-panel" 2>/dev/null || true
+        -days 3650 -subj "/CN=mk-radiusproxy" 2>/dev/null || true
 fi
 
 (

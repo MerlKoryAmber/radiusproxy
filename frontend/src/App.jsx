@@ -115,7 +115,7 @@ export default function App() {
           <span className="brand-mark">
             <img src="/logo.png" alt="" />
           </span>
-          <b>RADIUS Proxy</b>
+          <b>MK RadiusProxy</b>
           <span>3.2</span>
         </div>
         <nav className="nav">

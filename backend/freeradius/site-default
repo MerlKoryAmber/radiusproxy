@@ -1,5 +1,5 @@
 #
-# sites-enabled/default — FreeRADIUS Proxy Panel virtual server (baked into the
+# sites-enabled/default — MK RadiusProxy virtual server (baked into the
 # image; static). A pure RADIUS proxy:
 #   authorize  -> radiuspanel_route  (ordered rules: set Proxy-To-Realm or reject
 #                                      + AD group gate)  [policy.d/radiuspanel]

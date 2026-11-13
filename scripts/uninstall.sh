@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# FreeRADIUS Proxy Panel — uninstaller. Tears down the stack.
+# MK RadiusProxy — uninstaller. Tears down the stack.
 #   sudo /opt/radiusproxy/scripts/uninstall.sh [--purge] [--keep-data]
 #
 # By default: stops containers, removes the panel's built images and its DB

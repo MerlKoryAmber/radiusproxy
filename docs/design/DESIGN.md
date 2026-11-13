@@ -1,4 +1,4 @@
-# FreeRADIUS Proxy Panel — Design System
+# MK RadiusProxy — Design System
 
 Источник оформления: соседний проект **MK 2FA** → **Squid Proxy Manager**
 (Interros corporate identity). Портирован в React-фронт radiusproxy как чистый

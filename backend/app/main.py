@@ -131,7 +131,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="FreeRADIUS Proxy Panel",
+    title="MK RadiusProxy",
     version="0.1.0",
     description="Manage FreeRADIUS 3.2 proxy.conf — home servers, pools, realms.",
     lifespan=lifespan,

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# FreeRADIUS Proxy Panel — updater. Pulls the latest code and rebuilds the stack.
+# MK RadiusProxy — updater. Pulls the latest code and rebuilds the stack.
 #   sudo /opt/radiusproxy/scripts/update.sh [--no-pull]
 #
 #   --no-pull   rebuild the current checkout without git fetch/pull

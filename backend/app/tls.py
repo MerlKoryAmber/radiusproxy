@@ -39,7 +39,7 @@ def _san_entries(common_name: str) -> list[x509.GeneralName]:
     return sans
 
 
-def generate_self_signed(common_name: str = "radius-proxy-panel") -> tuple[str, str]:
+def generate_self_signed(common_name: str = "mk-radiusproxy") -> tuple[str, str]:
     """Return (cert_pem, key_pem) for a fresh 10-year self-signed RSA cert.
     SAN covers the CN, localhost and the host IPs so it is usable by IP."""
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)

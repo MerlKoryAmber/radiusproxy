@@ -1,7 +1,7 @@
 # Pattern: Linux host CLI management menu
 
 Перенесено из соседнего проекта (`MerlKoryAmber/2fa` → `docs/patterns/cli-menu-linux.md`)
-и адаптировано под FreeRADIUS Proxy Panel. Переносимые требования к меню управления
+и адаптировано под MK RadiusProxy. Переносимые требования к меню управления
 продуктом на Linux-хосте. Не ADR продукта, не замена `install.sh`/`update.sh` — обёртка и UX.
 
 **Реализация в этом репо:** `scripts/rpp.sh` (+ `scripts/lib/common.sh`) → `/usr/bin/rpp`
@@ -37,7 +37,7 @@
 ## Структура меню
 
 ```
-  RADIUS PROXY PANEL  (/opt/radiusproxy)
+  MK RADIUSPROXY  (/opt/radiusproxy)
 ————————————————————————————————
    0. Exit
 ————————————————————————————————

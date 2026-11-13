@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# FreeRADIUS Proxy Panel — host management CLI (`rpp`).
+# MK RadiusProxy — host management CLI (`rpp`).
 # Interactive numbered menu with no args; the same actions as subcommands.
 # Wraps scripts/{install,update,uninstall}.sh + a systemd unit; never
 # duplicates their logic. See docs/patterns/cli-menu-linux.md.
@@ -277,7 +277,7 @@ cmd_watchdog() {
 cmd_url()  { _health; }
 cmd_help() {
     cat <<HELP
-$CLI_NAME — FreeRADIUS Proxy Panel host CLI ($REPO_ROOT)
+$CLI_NAME — MK RadiusProxy host CLI ($REPO_ROOT)
 
   (no args)         interactive menu
   update            git pull + rebuild
@@ -301,7 +301,7 @@ HELP
 # --- menu ------------------------------------------------------------------
 show_menu() {
     local g="$C_ACCENT" o="$C_OFF"
-    printf '\n  %sRADIUS PROXY PANEL%s  (%s)\n' "$g" "$o" "$REPO_ROOT"
+    printf '\n  %sMK RADIUSPROXY%s  (%s)\n' "$g" "$o" "$REPO_ROOT"
     cat <<M
 ————————————————————————————————
   ${g} 0.${o} Exit

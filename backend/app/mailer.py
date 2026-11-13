@@ -123,7 +123,7 @@ def _alert_body(pool_name: str, rules: list[dict], when: str) -> str:
         "Пока пул недоступен, вход выполняется по одному фактору. Эти входы",
         "помечаются в панели (Logs) меткой pool-down-1fa.",
         "",
-        "— FreeRADIUS Proxy Panel",
+        "— MK RadiusProxy",
     ]
     return "\n".join(lines)
 

@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# Shared helpers for the FreeRADIUS Proxy Panel host scripts (rpp menu +
+# Shared helpers for the MK RadiusProxy host scripts (rpp menu +
 # install/update/uninstall). Source this; do not execute it.
 #
 # Provides: REPO_ROOT / COMPOSE / CLI_NAME / ETC_DIR / UNIT resolution,
@@ -81,7 +81,7 @@ ensure_cli() {
     local wrap="/usr/bin/$CLI_NAME"
     cat > "$wrap" <<'WRAP'
 #!/bin/bash
-# FreeRADIUS Proxy Panel host CLI — thin wrapper. Logic lives in the repo tree,
+# MK RadiusProxy host CLI — thin wrapper. Logic lives in the repo tree,
 # so a git pull always refreshes the menu.
 set -euo pipefail
 ROOT="$(cat /etc/rpp/repo_root 2>/dev/null || true)"
@@ -102,7 +102,7 @@ ensure_unit() {
     command -v systemctl >/dev/null 2>&1 || { warn "no systemd — skipping unit."; return 0; }
     cat > "/etc/systemd/system/$UNIT" <<UNITF
 [Unit]
-Description=FreeRADIUS Proxy Panel (docker compose stack)
+Description=MK RadiusProxy (docker compose stack)
 Requires=docker.service
 After=docker.service network-online.target
 [Service]
@@ -130,7 +130,7 @@ ensure_watchdog() {
     mkdir -p "$(dirname "$WATCHDOG_STATE")"
     cat > "/etc/systemd/system/$WATCHDOG_UNIT" <<UNITF
 [Unit]
-Description=FreeRADIUS Proxy Panel watchdog (self-heal + alert)
+Description=MK RadiusProxy watchdog (self-heal + alert)
 After=docker.service $UNIT
 [Service]
 Type=oneshot
@@ -139,7 +139,7 @@ ExecStart=/bin/bash $REPO_ROOT/scripts/rpp.sh watchdog
 UNITF
     cat > "/etc/systemd/system/$WATCHDOG_TIMER" <<TIMERF
 [Unit]
-Description=Run the FreeRADIUS Proxy Panel watchdog every minute
+Description=Run the MK RadiusProxy watchdog every minute
 [Timer]
 OnBootSec=2min
 OnUnitActiveSec=1min

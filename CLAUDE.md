@@ -198,7 +198,7 @@ baseline → dry-run → регресс → apply с бэкапом → пров
 
 ---
 
-## (проект) Специфика — FreeRADIUS Proxy Panel (radiusproxy)
+## (проект) Специфика — MK RadiusProxy (radiusproxy)
 
 | Поле | Значение |
 |------|----------|
