@@ -143,7 +143,7 @@ cat <<DONE
 $(printf '\033[1;32m[install] FreeRADIUS Proxy Panel is up.\033[0m')
 
   Panel UI : https://${ip}:${PANEL_HTTPS_PORT}   (self-signed cert — browser will warn; replace it in Settings → TLS)
-  API      : http://${ip}:${API_PORT}
+  API      : http://127.0.0.1:${API_PORT}   (host-only; from outside — via the panel https)
   RADIUS   : ${ip}:${RADIUS_AUTH_PORT}/udp (auth), ${ip}:${RADIUS_ACCT_PORT}/udp (acct)
   Ports    : set PANEL_HTTP_PORT / PANEL_HTTPS_PORT / API_PORT / RADIUS_AUTH_PORT /
              RADIUS_ACCT_PORT in ${INSTALL_DIR}/.env to move them (then: sudo rpp update)

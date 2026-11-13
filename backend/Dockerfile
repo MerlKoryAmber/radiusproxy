@@ -1,8 +1,10 @@
-FROM python:3.12-slim
+# Pin the Debian release: bare `slim` silently jumps distro (and FreeRADIUS
+# minor) on the next upstream retag. trixie ships FreeRADIUS 3.2.7.
+FROM python:3.12-slim-trixie
 
 WORKDIR /app
 
-# FreeRADIUS 3.2 (Debian bookworm ships 3.2.1) runs in this same container so
+# FreeRADIUS 3.2 (Debian trixie ships 3.2.7) runs in this same container so
 # the panel fully manages it: writes config into /etc/freeradius/3.0, validates
 # with `freeradius -XC`, and reloads. freeradius-ldap = rlm_ldap (AD group gate),
 # freeradius-postgresql = rlm_sql (audit log / local group list), freeradius-utils

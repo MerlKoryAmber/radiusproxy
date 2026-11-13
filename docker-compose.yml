@@ -75,7 +75,10 @@ services:
     ports:
       # Host ports are overridable in .env (defaults = classic layout) so the
       # stack can share a host — see scripts/lib/host-env.sh load_ports.
-      - "${API_PORT:-8000}:8000"
+      # API is host-local: the only outside path to the backend is nginx, which
+      # sets X-Real-IP itself. Published on all interfaces, anyone could send a
+      # forged X-Real-IP: 127.0.0.1 straight to :8000 and pass the IP allowlist.
+      - "127.0.0.1:${API_PORT:-8000}:8000"
       - "${RADIUS_AUTH_PORT:-1812}:1812/udp"
       - "${RADIUS_ACCT_PORT:-1813}:1813/udp"
 

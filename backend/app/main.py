@@ -161,8 +161,15 @@ def _client_ip(request: Request) -> str:
 @app.middleware("http")
 async def _ip_allowlist(request: Request, call_next):
     """Restrict /api access to an allowlist of IPs/CIDRs (loopback always OK).
-    Empty allowlist = open. Reads AuthSettings each request (cheap)."""
-    path = request.url.path
+    Empty allowlist = open. Reads AuthSettings each request (cheap).
+
+    Path comes from the ASGI scope (what the router actually dispatches on), NOT
+    request.url.path: older Starlette rebuilds request.url from the Host header,
+    so a crafted Host could make it differ from the real path and skip this
+    check (GHSA-86qp-5c8j-p5mr). The client IP is trusted from X-Real-IP only
+    because the API port is published on 127.0.0.1 (docker-compose.yml) — the
+    sole outside path is nginx, which overwrites that header."""
+    path = request.scope.get("path", "")
     if path.startswith("/api") and path != "/api/health":
         from . import models
 
