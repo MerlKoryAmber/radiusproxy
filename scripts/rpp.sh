@@ -23,9 +23,9 @@ _set_env() {  # file KEY VALUE — replace in place or append
 
 _health() {
     local ip; ip="$(hostname -I 2>/dev/null | awk '{print $1}')"; ip="${ip:-localhost}"
-    echo "  Panel : https://$ip   (self-signed — replace in Settings → TLS)"
-    printf '  https : '; curl -sk -o /dev/null -w '%{http_code}\n' https://localhost/ 2>/dev/null || echo down
-    printf '  api   : '; curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8000/api/health 2>/dev/null || echo down
+    echo "  Panel : https://$ip:${PANEL_HTTPS_PORT}   (self-signed — replace in Settings → TLS)"
+    printf '  https : '; curl -sk -o /dev/null -w '%{http_code}\n' "https://localhost:${PANEL_HTTPS_PORT}/" 2>/dev/null || echo down
+    printf '  api   : '; curl -s -o /dev/null -w '%{http_code}\n' "http://localhost:${API_PORT}/api/health" 2>/dev/null || echo down
 }
 
 # --- lifecycle -------------------------------------------------------------
@@ -180,7 +180,7 @@ cmd_restore() {
 WD_MAX_RESTART=2
 WD_MAX_REBUILD=1
 WD_COOLDOWN=1800          # seconds to stay hands-off after giving up
-WD_HEALTH_URL="http://localhost:8000/api/health"
+WD_HEALTH_URL="http://localhost:${API_PORT}/api/health"   # API_PORT: common.sh → load_ports
 
 # state file: KEY=VALUE lines — phase, restarts, rebuilds, gave_up_at, incident
 _wd_get() { [ -f "$WATCHDOG_STATE" ] && sed -n "s/^$1=//p" "$WATCHDOG_STATE" | tail -1 || true; }

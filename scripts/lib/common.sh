@@ -24,6 +24,12 @@ else
 fi
 COMPOSE="$REPO_ROOT/docker-compose.yml"
 
+# Host ports from .env (PANEL_HTTPS_PORT, API_PORT, …; defaults = 443/8000/…)
+# for health checks and the watchdog. Same source as docker-compose.yml.
+# shellcheck disable=SC1091
+. "$(dirname "${BASH_SOURCE[0]}")/host-env.sh"
+load_ports "$REPO_ROOT"
+
 # --- output ----------------------------------------------------------------
 if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
     C_ACCENT=$'\033[0;32m'; C_WARN=$'\033[1;33m'; C_ERR=$'\033[1;31m'; C_OFF=$'\033[0m'

@@ -93,8 +93,8 @@ clone_or_update() {
 wait_healthy() {
     log "waiting for the panel to come up…"
     for _ in $(seq 1 60); do
-        if curl -fsSk -o /dev/null https://localhost/ 2>/dev/null \
-           && curl -fsS -o /dev/null http://localhost:8000/api/health 2>/dev/null; then
+        if curl -fsSk -o /dev/null "https://localhost:${PANEL_HTTPS_PORT}/" 2>/dev/null \
+           && curl -fsS -o /dev/null "http://localhost:${API_PORT}/api/health" 2>/dev/null; then
             return 0
         fi
         sleep 3
@@ -110,6 +110,7 @@ write_env() {
     # shellcheck disable=SC1091
     . "$INSTALL_DIR/scripts/lib/host-env.sh"
     write_host_env "$INSTALL_DIR"
+    load_ports "$INSTALL_DIR"   # host ports from .env (defaults 80/443/8000/1812/1813)
 }
 
 ensure_git
@@ -141,17 +142,19 @@ cat <<DONE
 
 $(printf '\033[1;32m[install] FreeRADIUS Proxy Panel is up.\033[0m')
 
-  Panel UI : https://${ip}   (self-signed cert — browser will warn; replace it in Settings → TLS)
-  API      : http://${ip}:8000
-  RADIUS   : ${ip}:1812/udp (auth), ${ip}:1813/udp (acct)
+  Panel UI : https://${ip}:${PANEL_HTTPS_PORT}   (self-signed cert — browser will warn; replace it in Settings → TLS)
+  API      : http://${ip}:${API_PORT}
+  RADIUS   : ${ip}:${RADIUS_AUTH_PORT}/udp (auth), ${ip}:${RADIUS_ACCT_PORT}/udp (acct)
+  Ports    : set PANEL_HTTP_PORT / PANEL_HTTPS_PORT / API_PORT / RADIUS_AUTH_PORT /
+             RADIUS_ACCT_PORT in ${INSTALL_DIR}/.env to move them (then: sudo rpp update)
   Install  : ${INSTALL_DIR}
 
   Panel login is OFF by default (open). Default admin: admin / admin —
   change it (top-right user menu) and enable login in Settings before prod.
   Restrict access by IP in Settings → Access if needed.
 
-  Firewall (if enabled): open 80,443/tcp and 1812-1813/udp, e.g.
-    firewall-cmd --add-service=http --add-service=https --add-port=1812-1813/udp --permanent && firewall-cmd --reload
+  Firewall (if enabled): open ${PANEL_HTTP_PORT},${PANEL_HTTPS_PORT}/tcp and ${RADIUS_AUTH_PORT},${RADIUS_ACCT_PORT}/udp, e.g.
+    firewall-cmd --add-port=${PANEL_HTTP_PORT}/tcp --add-port=${PANEL_HTTPS_PORT}/tcp --add-port=${RADIUS_AUTH_PORT}/udp --add-port=${RADIUS_ACCT_PORT}/udp --permanent && firewall-cmd --reload
 
   Manage    : sudo rpp            (menu: update / status / logs / backup / restore / password / …)
   Update    : sudo rpp update     (or ${INSTALL_DIR}/scripts/update.sh)

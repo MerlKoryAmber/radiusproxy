@@ -73,9 +73,11 @@ services:
     volumes:
       - panelcerts:/certs
     ports:
-      - "8000:8000"
-      - "1812:1812/udp"
-      - "1813:1813/udp"
+      # Host ports are overridable in .env (defaults = classic layout) so the
+      # stack can share a host — see scripts/lib/host-env.sh load_ports.
+      - "${API_PORT:-8000}:8000"
+      - "${RADIUS_AUTH_PORT:-1812}:1812/udp"
+      - "${RADIUS_ACCT_PORT:-1813}:1813/udp"
 
   frontend:
     build:
@@ -101,8 +103,8 @@ services:
     volumes:
       - panelcerts:/etc/nginx/certs
     ports:
-      - "80:80"
-      - "443:443"
+      - "${PANEL_HTTP_PORT:-80}:80"
+      - "${PANEL_HTTPS_PORT:-443}:443"
 
 volumes:
   pgdata:

@@ -25,6 +25,20 @@ env_upsert() {  # env_upsert FILE KEY VALUE
     fi
 }
 
+# Host ports the stack publishes. Read from .env (docker compose substitutes the
+# same keys in docker-compose.yml); defaults = the classic layout, so prod is
+# unchanged. Lets the panel share a host that already uses 80/443/8000/1812
+# (e.g. a lab running another 2FA stack). Exports the vars for health checks.
+load_ports() {  # load_ports INSTALL_DIR
+    local env="$1/.env" kv k v
+    for kv in PANEL_HTTP_PORT:80 PANEL_HTTPS_PORT:443 API_PORT:8000 \
+              RADIUS_AUTH_PORT:1812 RADIUS_ACCT_PORT:1813; do
+        k="${kv%%:*}"
+        v="$(sed -n "s/^${k}=//p" "$env" 2>/dev/null | tail -1)"
+        export "$k=${v:-${kv#*:}}"
+    done
+}
+
 write_host_env() {  # write_host_env INSTALL_DIR
     local dir="$1" env="$1/.env" addrs host
     addrs="$(hostname -I 2>/dev/null | tr ' ' ',' | sed 's/,$//')"

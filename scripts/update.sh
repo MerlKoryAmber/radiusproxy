@@ -41,7 +41,7 @@ fi
 # Keep host facts (HOST_ADDRESSES/HOST_HOSTNAME) fresh in .env without touching
 # secrets — so Settings→Host is correct after an update with no manual .env step.
 # shellcheck disable=SC1091
-. "$SCRIPT_DIR/lib/host-env.sh"; write_host_env "$INSTALL_DIR"
+. "$SCRIPT_DIR/lib/host-env.sh"; write_host_env "$INSTALL_DIR"; load_ports "$INSTALL_DIR"
 
 log "rebuilding and restarting…"
 # BuildKit paints completed/inactive lines dim blue — unreadable on a black
@@ -54,8 +54,8 @@ docker compose -f "$INSTALL_DIR/docker-compose.yml" up -d --build
 
 log "waiting for health…"
 for _ in $(seq 1 60); do
-    if curl -fsSk -o /dev/null https://localhost/ 2>/dev/null \
-       && curl -fsS -o /dev/null http://localhost:8000/api/health 2>/dev/null; then
+    if curl -fsSk -o /dev/null "https://localhost:${PANEL_HTTPS_PORT}/" 2>/dev/null \
+       && curl -fsS -o /dev/null "http://localhost:${API_PORT}/api/health" 2>/dev/null; then
         log "panel is up."
         exit 0
     fi
