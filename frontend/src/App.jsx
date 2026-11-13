@@ -116,7 +116,6 @@ export default function App() {
             <img src="/logo.png" alt="" />
           </span>
           <b>MK RadiusProxy</b>
-          <span>3.2</span>
         </div>
         <nav className="nav">
           {TABS.map((t) => (

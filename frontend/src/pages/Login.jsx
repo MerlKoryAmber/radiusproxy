@@ -31,7 +31,6 @@ export default function Login({ onLoggedIn }) {
           </span>
           <div>
             <b>MK RadiusProxy</b>
-            <span>3.2</span>
           </div>
         </div>
         <div className="field">
