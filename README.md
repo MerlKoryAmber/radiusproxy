@@ -30,8 +30,7 @@ curl -fsSL https://raw.githubusercontent.com/MerlKoryAmber/radiusproxy/main/scri
 **Порты на занятом хосте** (80/443/1812 уже заняты другим сервисом): задать в
 `/opt/radiusproxy/.env` `PANEL_HTTP_PORT` / `PANEL_HTTPS_PORT` / `API_PORT` /
 `RADIUS_AUTH_PORT` / `RADIUS_ACCT_PORT`, затем `sudo rpp update`. Не задано — 80/443/8000/1812/1813.
-Ограничение: редирект `http → https` ведёт на 443 — при сменённом HTTPS-порте
-открывать панель сразу по `https://<хост>:<PANEL_HTTPS_PORT>`.
+Редирект `http → https` ведёт на `PANEL_HTTPS_PORT`.
 
 **Сразу после установки задать боевые секреты и пароль:**
 

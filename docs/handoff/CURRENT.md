@@ -234,9 +234,6 @@ FreeRADIUS Proxy Panel (`radiusproxy`) — веб-панель управлен�
 - **Ветка `fix/deps-2026-11`** (локальная, не в origin): порты через `.env` + фикс
   обхода IP-allowlist + обновление зависимостей. Проверена на лабе 172.22.76.122
   (см. CHANGELOG 2026-11-13). Ждёт команды на merge/push в main.
-- **Редирект 80→443 не знает `PANEL_HTTPS_PORT`:** nginx `return 301 https://$host…`
-  ведёт на 443. При сменённом порте — заходить сразу по https-порту. Фикс: шаблон
-  nginx (`/etc/nginx/templates`, envsubst) с портом из env.
 - **npm 11 (node 24) `install-scripts`:** postinstall `esbuild` не одобрен
   (`allowScripts`) — сборка проходит (бинарь из `@esbuild/linux-x64`), но при
   следующем мажоре проверить/одобрить явно.

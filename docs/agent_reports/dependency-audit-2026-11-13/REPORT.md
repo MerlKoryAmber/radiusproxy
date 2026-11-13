@@ -109,4 +109,6 @@ postgresql 16 eol 2028-11-09 (есть 17, 18) · debian 12 eol 2028-06, 13 eol 
 | nginx `X-Real-IP`/`X-Forwarded-For: 127.0.0.1` | 403 | 403 |
 | `Host: x/api/health#` | 200 (на :18000) | 403 (loopback), 400 (nginx) |
 
-Хвосты: редирект 80→443 не учитывает `PANEL_HTTPS_PORT`; npm 11 `allowScripts` для esbuild (предупреждение, сборка ОК).
+Редирект 80→443 (`5b2b038`): `nginx.conf` — шаблон с `PANEL_HTTPS_PORT`; `http://…:18080/` → 301 `https://…:18443/` → 200, `nginx -t` OK, `$host` и пр. не тронуты.
+
+Хвост: npm 11 `allowScripts` для esbuild (предупреждение, сборка ОК).

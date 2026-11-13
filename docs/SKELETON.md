@@ -28,6 +28,8 @@
   Хост-порты — из `.env` (`PANEL_HTTP_PORT`/`PANEL_HTTPS_PORT`/`API_PORT`/`RADIUS_AUTH_PORT`/`RADIUS_ACCT_PORT`,
   `host-env.sh load_ports`). API только на loopback: IP-allowlist (`main._ip_allowlist`)
   верит `X-Real-IP`, т.к. единственный внешний путь — nginx; путь берёт из `scope["path"]`.
+  `frontend/nginx.conf` — **шаблон** (`/etc/nginx/templates/default.conf.template`, envsubst
+  на старте): редирект 80→`${PANEL_HTTPS_PORT}`.
   Все сервисы `restart: unless-stopped` — встают сами после ребута хоста.
   Все сервисы с пустым `http(s)_proxy`/`no_proxy=*` (не ходят во внешний прокси).
 - **Хостовое CLI `rpp`** (`scripts/rpp.sh` + `scripts/lib/common.sh` → `/usr/bin/rpp`):

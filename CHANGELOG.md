@@ -26,6 +26,10 @@
   `PANEL_HTTPS_PORT`, `API_PORT`, `RADIUS_AUTH_PORT`, `RADIUS_ACCT_PORT`; умолчания
   прежние). `host-env.sh load_ports` читают install/update/rpp (health, подсказки).
   Нужно, чтобы стек жил на хосте рядом с чужими сервисами.
+- **fix(nginx):** редирект `http → https` ведёт на `PANEL_HTTPS_PORT` (был жёстко 443).
+  `frontend/nginx.conf` теперь шаблон (`/etc/nginx/templates`, штатный envsubst образа
+  nginx; подставляется только `PANEL_HTTPS_PORT`, `$host`/`$uri` nginx не трогаются).
+  Лаба: `http://…:18080/` → 301 `https://…:18443/` → 200.
 - **Лаба** (CentOS Stream 9, соседние podman/docker-проекты на 80/443/1812):
   стек на 18080/18443/18000/11812/11813, обновление `update.sh` прошло, health OK,
   `freeradius -XC` OK, рестартов 0, соседи (14 контейнеров) не задеты; импорт
