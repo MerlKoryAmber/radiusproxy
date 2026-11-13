@@ -105,8 +105,9 @@ a { color: var(--accent); }
   overflow: hidden;
 }
 .brand-mark img { max-width: 100%; max-height: 100%; object-fit: contain; }
+/* Two-word name ("MK RadiusProxy") must stay on one line in the 232px rail. */
 .brand b {
-  font-weight: 600; letter-spacing: 0.14em; color: #fff;
+  font-weight: 600; letter-spacing: 0.03em; color: #fff; white-space: nowrap;
 }
 .brand span { color: var(--ir-accent); font-size: 12px; letter-spacing: 0.08em; }
 
@@ -448,7 +449,7 @@ pre.conf .kw { color: var(--ir-accent); }
 .login-brand {
   display: flex; align-items: center; gap: 12px; margin-bottom: 24px;
 }
-.login-brand b { display: block; font-weight: 600; letter-spacing: 0.14em; }
+.login-brand b { display: block; font-weight: 600; letter-spacing: 0.03em; white-space: nowrap; }
 .login-brand span { color: var(--ir-accent); font-size: 12px; letter-spacing: 0.08em; }
 
 .filter-input {
