@@ -5,6 +5,17 @@
 
 ## [Unreleased]
 
+### 2026-09-22 МСК (10)
+
+- **fix(ops):** host-факты в `.env` (`HOST_ADDRESSES`/`HOST_HOSTNAME`) теперь
+  дозаполняются автоматически при `install` **и** `update` — общий хелпер
+  `scripts/lib/host-env.sh` (`write_host_env`/`env_upsert`). Идемпотентно и
+  **без затирания секретов** (upsert только этих ключей; `APP_ENCRYPTION_KEY`/
+  `JWT_SECRET` и прочие строки не трогаются). Убирает ручной `echo … >> .env` на
+  сервере: обычный `rpp update` сам чинит Settings→Host на уже стоящих
+  инсталляциях. Побочно: `install.sh` больше не усекает `.env` при повторном
+  запуске (раньше `write_env` делал `>` и мог снести секреты).
+
 ### 2026-09-22 МСК (9)
 
 - **fix(radius):** `preserve_source_ip` теперь реально работает. Было: NAS-IP

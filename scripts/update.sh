@@ -38,6 +38,11 @@ fi
 # shellcheck disable=SC1091
 . "$SCRIPT_DIR/lib/docker-proxy.sh"; apply_docker_proxy
 
+# Keep host facts (HOST_ADDRESSES/HOST_HOSTNAME) fresh in .env without touching
+# secrets — so Settings→Host is correct after an update with no manual .env step.
+# shellcheck disable=SC1091
+. "$SCRIPT_DIR/lib/host-env.sh"; write_host_env "$INSTALL_DIR"
+
 log "rebuilding and restarting…"
 # BuildKit paints completed/inactive lines dim blue — unreadable on a black
 # terminal. Force readable colors (and let callers override with BUILDKIT_COLORS).

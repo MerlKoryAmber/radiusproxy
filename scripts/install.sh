@@ -105,15 +105,11 @@ wait_healthy() {
 
 write_env() {
     # Host IPs + hostname shown read-only in the panel (the container sees
-    # neither the host NICs nor the host's real hostname — inside a container
-    # `hostname` returns the container id, so we pass the host's here).
-    local addrs host
-    addrs="$(hostname -I 2>/dev/null | tr ' ' ',' | sed 's/,$//')"
-    host="$(hostname -f 2>/dev/null || hostname 2>/dev/null || true)"
-    {
-        printf 'HOST_ADDRESSES=%s\n' "$addrs"
-        printf 'HOST_HOSTNAME=%s\n' "$host"
-    } > "$INSTALL_DIR/.env"
+    # neither the host NICs nor the host's real hostname). Idempotent upsert —
+    # preserves any secrets already in .env instead of truncating them.
+    # shellcheck disable=SC1091
+    . "$INSTALL_DIR/scripts/lib/host-env.sh"
+    write_host_env "$INSTALL_DIR"
 }
 
 ensure_git
