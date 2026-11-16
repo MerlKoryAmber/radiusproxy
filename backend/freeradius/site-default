@@ -41,7 +41,12 @@ server default {
 		preprocess
 	}
 
+	# Always ACK accounting locally. An empty section returns noop, and on noop
+	# FreeRADIUS sends NO Accounting-Response — NASes that wait for it (VMware
+	# UAG after an Access-Accept) then time out and fail the login, while auth
+	# itself succeeded. Accounting is not forwarded to the 2FA targets.
 	accounting {
+		ok
 	}
 
 	pre-proxy {
