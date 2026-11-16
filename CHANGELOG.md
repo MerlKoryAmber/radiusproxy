@@ -5,6 +5,16 @@
 
 ## [Unreleased]
 
+### 2026-11-16 МСК
+
+- **fix(radius):** вход через VMware UAG с TOTP падал с таймаутом («не получен нужный
+  отклик»), хотя RADIUS отдавал Access-Accept (tcpdump на проде: Challenge → TOTP →
+  Accept за 33 мс). После Accept UAG шлёт Accounting-Request на 1813, а секция
+  `accounting {}` в `site-default` была пустой → `noop` → FreeRADIUS **не отвечает** →
+  UAG ждёт и валит вход. NPS отвечал — потому с ним работало; Checkpoint (push)
+  accounting не шлёт. Теперь `accounting { ok }`: Accounting-Response отдаётся всегда,
+  в 2FA accounting не проксируется. Лаба: Start/Interim/Stop → Accounting-Response.
+
 ### 2026-11-13 МСК
 
 - **docs(rules):** CLAUDE.md §24 — на проде человеку ничего руками не предлагать:
