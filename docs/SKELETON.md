@@ -18,7 +18,7 @@
   `/etc/freeradius/3.0`, валидирует `freeradius -XC`, перезагружает
   (`radius-reload.sh`). `entrypoint.sh` стартует FR (если конфиг валиден) + uvicorn.
   **Site вшит в образ** (`backend/freeradius/site-default` → `sites-enabled/default`):
-  зовёт `radiuspanel_route` (authorize) / `srcip` (pre-proxy) / `log` (post-auth + Post-Auth-Type REJECT + Post-Auth-Type Challenge — лог проксируемого Access-Challenge).
+  зовёт `radiuspanel_route` (authorize) / `srcip` (pre-proxy) / `accounting { ok }` (всегда Accounting-Response — UAG без него падает по таймауту) / `log` (post-auth + Post-Auth-Type REJECT + Post-Auth-Type Challenge — лог проксируемого Access-Challenge).
   Stub `policy.d/radiuspanel` вшит для `-XC` на первом старте. `/etc/freeradius/3.0` —
   **в образе, не volume** → панель **применяет конфиг на старте** (`_apply_on_boot`,
   самовосстановление после ребилда). ADR-0008.
